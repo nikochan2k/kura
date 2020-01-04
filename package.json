@@ -7,7 +7,7 @@
   "homepage": "https://github.com/nikochan2k/kura",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "typings": "dist/ndex.d.ts",
+  "typings": "dist/index.d.ts",
   "files": [
     "dist"
   ],
