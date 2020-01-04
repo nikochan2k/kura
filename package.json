@@ -13,7 +13,9 @@
     "IndexedDB"
   ],
   "scripts": {
-    "build": "tsc",
+    "clean": "rimraf ./dist",
+    "compile": "tsc",
+    "build": "npm-run-all clean compile",
     "test": "jest --runInBand"
   },
   "jest": {
@@ -40,6 +42,8 @@
     "@types/node": "^13.1.1",
     "fake-indexeddb": "^3.0.0",
     "jest": "^24.9.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.0",
     "ts-jest": "^24.2.0",
     "typescript": "^3.7.4"
   },

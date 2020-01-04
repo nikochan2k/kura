@@ -1,4 +1,4 @@
-import { FileWriter, FileWriterAsync } from "./filewriter";
+import { FileWriter } from "./filewriter";
 
 // Type definitions for File System API
 // Project: http://www.w3.org/TR/file-system-api/

@@ -5,14 +5,7 @@ import {
   LocalFileSystem
 } from "../filesystem";
 
-if (window.TEMPORARY == null) {
-  window.TEMPORARY = 0;
-}
-if (window.PERSISTENT == null) {
-  window.PERSISTENT = 1;
-}
-
-export class DefaultLocalFileSystem implements LocalFileSystem {
+export class EmbeddedLocalFileSystem implements LocalFileSystem {
   constructor() {
     this.requestFileSystem =
       window.requestFileSystem || window.webkitRequestFileSystem;
