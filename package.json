@@ -5,7 +5,9 @@
   "author": "Yoshihiro Seki",
   "license": "MIT",
   "homepage": "https://github.com/nikochan2k/kura",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "index.d.ts",
+  "typings": "index.d.ts",
   "files": [
     "dist"
   ],
