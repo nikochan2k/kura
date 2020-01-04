@@ -6,8 +6,8 @@
   "license": "MIT",
   "homepage": "https://github.com/nikochan2k/kura",
   "main": "dist/index.js",
-  "types": "index.d.ts",
-  "typings": "index.d.ts",
+  "types": "dist/index.d.ts",
+  "typings": "dist/ndex.d.ts",
   "files": [
     "dist"
   ],
