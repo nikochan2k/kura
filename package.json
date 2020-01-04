@@ -1,0 +1,47 @@
+{
+  "name": "kura",
+  "version": "0.1.0",
+  "description": "The FileSystem API abstraction library.",
+  "author": "Yoshihiro Seki",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "FileSystem",
+    "storage",
+    "IndexedDB"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --runInBand"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "ts",
+      "tsx"
+    ],
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "tsconfig.json"
+      }
+    },
+    "testMatch": [
+      "**/src/__tests__/*.spec.+(ts|tsx|js)"
+    ],
+    "preset": "ts-jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.25",
+    "@types/node": "^13.1.1",
+    "fake-indexeddb": "^3.0.0",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.2.0",
+    "typescript": "^3.7.4"
+  },
+  "dependencies": {}
+}
