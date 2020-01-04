@@ -1,5 +1,5 @@
 require("fake-indexeddb/auto");
-import { DefaultLocalFileSystemAsync } from "../DefaultLocalFileSystemAsync";
+import { DefaultLocalFileSystemAsync } from "../default/DefaultLocalFileSystemAsync";
 import { FileSystemAsync } from "../FileSystemAsync";
 import { InvalidModificationError, NotFoundError } from "../FileError";
 

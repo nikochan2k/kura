@@ -1,14 +1,16 @@
 {
   "name": "kura",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The FileSystem API abstraction library.",
   "author": "Yoshihiro Seki",
   "license": "MIT",
   "homepage": "https://github.com/nikochan2k/kura",
+  "main": "index.js",
   "files": [
     "dist"
   ],
   "keywords": [
+    "kura",
     "FileSystem",
     "storage",
     "IndexedDB"
