@@ -260,35 +260,23 @@ export class Idb {
 
   delete(fullPath: string) {
     return new Promise<void>(async (resolve, reject) => {
-      const dirPath = getParentPath(fullPath);
-      let index: FileSystemIndex;
-      if (this.useIndex) {
-        index = (await this.getIndex(dirPath)).index;
-      }
       const self = this;
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       entryTx.onabort = function(ev) {
         reject(ev);
       };
-      entryTx.oncomplete = function(ev) {
-        if (index) {
+      entryTx.oncomplete = async function(ev) {
+        if (self.useIndex) {
+          const dirPath = getParentPath(fullPath);
+          const index = (await self.getIndex(dirPath)).index;
           const record = index[fullPath];
           if (record && record.deleted == null) {
             record.deleted = Date.now();
-            self
-              .putIndexJson(dirPath, index)
-              .then(() => {
-                resolve();
-              })
-              .catch(err => {
-                reject(err);
-              });
-          } else {
-            resolve();
+            const indexPath = createPath(dirPath, INDEX_FILE_NAME);
+            await self.putContent(indexPath, index);
           }
-        } else {
-          resolve();
         }
+        resolve();
       };
       let range = IDBKeyRange.only(fullPath);
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
@@ -337,7 +325,7 @@ export class Idb {
               cursor.delete();
             } else {
               let updated = false;
-              const index = await self.deserializeIndexJson(cursor.value);
+              const index = (await cursor.value) as FileSystemIndex;
               for (const record of Object.values(index)) {
                 if (record.deleted == null) {
                   record.deleted = deleted;
@@ -345,8 +333,7 @@ export class Idb {
                 }
               }
               if (updated) {
-                const data = self.serializeIndexJson(index);
-                cursor.update(data);
+                cursor.update(index);
               }
             }
             cursor.continue();
@@ -367,46 +354,6 @@ export class Idb {
     });
   }
 
-  private async deserializeIndexJson(data: string | Blob) {
-    const text = await dataToString(data);
-    return JSON.parse(text) as FileSystemIndex;
-  }
-
-  private async getIndexJson(indexPath: string) {
-    const data = await this.getContent(indexPath);
-    if (data == null) {
-      return null;
-    }
-    return await this.deserializeIndexJson(data);
-  }
-
-  private serializeIndexJson(index: FileSystemIndex) {
-    const text = JSON.stringify(index);
-    return Idb.SUPPORTS_BLOB ? new Blob([text]) : text;
-  }
-
-  private async putIndexJson(indexPath: string, index: FileSystemIndex) {
-    return new Promise<void>((resolve, reject) => {
-      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-      contentTx.onabort = function(ev) {
-        reject(ev);
-      };
-      contentTx.onerror = function(ev) {
-        reject(ev);
-      };
-      contentTx.oncomplete = function() {
-        resolve();
-      };
-      const data = this.serializeIndexJson(index);
-      const contentReq = contentTx
-        .objectStore(CONTENT_STORE)
-        .put(data, indexPath);
-      contentReq.onerror = function(ev) {
-        reject(ev);
-      };
-    });
-  }
-
   async getIndex(dirPath: string) {
     return await this.putIndex(dirPath, true);
   }
@@ -421,8 +368,11 @@ export class Idb {
     }
 
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
-    const index = await this.getIndexJson(indexPath);
-    const handle = (objects: FileSystemObject[], index: FileSystemIndex) => {
+    const index = (await this.getContent(indexPath)) as FileSystemIndex;
+    const updateRecord = (
+      objects: FileSystemObject[],
+      index: FileSystemIndex
+    ) => {
       let record = index[objToAdd.fullPath];
       if (!record) {
         record = { obj: objToAdd, updated: Date.now() };
@@ -430,6 +380,7 @@ export class Idb {
       } else {
         record.updated = Date.now();
       }
+      delete record.deleted;
       objects.push(objToAdd);
     };
     if (index) {
@@ -440,8 +391,8 @@ export class Idb {
         }
       }
       if (objToAdd) {
-        handle(objects, index);
-        await this.putIndexJson(createPath(dirPath, INDEX_FILE_NAME), index);
+        updateRecord(objects, index);
+        await this.putContent(indexPath, index);
       }
       return needEntries
         ? { index: index, objects: this.createEntries(objects) }
@@ -455,13 +406,34 @@ export class Idb {
         }
       }
       if (objToAdd) {
-        handle(objects, index);
+        updateRecord(objects, index);
       }
-      await this.putIndexJson(createPath(dirPath, INDEX_FILE_NAME), index);
+      await this.putContent(indexPath, index);
       return needEntries
         ? { index: index, objects: this.createEntries(objects) }
         : { index: index, objects: null };
     }
+  }
+
+  putContent(fullPath: string, content: any) {
+    return new Promise<FileSystemObject>((resolve, reject) => {
+      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
+      contentTx.onabort = function(ev) {
+        reject(ev);
+      };
+      contentTx.onerror = function(ev) {
+        reject(ev);
+      };
+      contentTx.oncomplete = function() {
+        resolve();
+      };
+      const contentReq = contentTx
+        .objectStore(CONTENT_STORE)
+        .put(content, fullPath);
+      contentReq.onerror = function(ev) {
+        reject(ev);
+      };
+    });
   }
 
   put(obj: FileSystemObject, content?: string | Blob) {
@@ -481,42 +453,15 @@ export class Idb {
       entryTx.onerror = function(ev) {
         reject(ev);
       };
-      entryTx.oncomplete = function() {
-        const parentDir = getParentPath(obj.fullPath);
-        const handle = () => {
-          if (self.useIndex) {
-            self
-              .putIndex(parentDir, false, obj)
-              .then(() => {
-                resolve(obj);
-              })
-              .catch(err => {
-                reject(err);
-              });
-          } else {
-            resolve(obj);
-          }
-        };
+      entryTx.oncomplete = async function() {
         if (content) {
-          const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-          contentTx.onabort = function(ev) {
-            reject(ev);
-          };
-          contentTx.onerror = function(ev) {
-            reject(ev);
-          };
-          contentTx.oncomplete = function() {
-            handle();
-          };
-          const contentReq = contentTx
-            .objectStore(CONTENT_STORE)
-            .put(content, obj.fullPath);
-          contentReq.onerror = function(ev) {
-            reject(ev);
-          };
-        } else {
-          handle();
+          await self.putContent(obj.fullPath, content);
         }
+        if (self.useIndex) {
+          const dirPath = getParentPath(obj.fullPath);
+          await self.putIndex(dirPath, false, obj);
+        }
+        resolve();
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = function(ev) {
