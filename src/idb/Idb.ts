@@ -1,4 +1,5 @@
 import { countSlash, getRange } from "./IdbUtil";
+import { createPath, getName, getParentPath } from "../FileSystemUtil";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileSystemIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
@@ -6,14 +7,8 @@ import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileEntry } from "./IdbFileEntry";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { InvalidModificationError, InvalidStateError } from "../FileError";
-import {
-  createPath,
-  dataToString,
-  getParentPath,
-  getName
-} from "../FileSystemUtil";
 
-interface Ret {
+interface IndexAndObjects {
   index: FileSystemIndex;
   objects: FileSystemObject[];
 }
@@ -252,7 +247,8 @@ export class Idb {
 
   async getEntries(dirPath: string, recursive: boolean) {
     if (this.useIndex) {
-      return (await this.getIndex(dirPath)).objects;
+      const objects = (await this.handleIndexAndObjects(dirPath)).objects;
+      return this.createEntries(objects);
     }
 
     return this.createEntries(await this.getObjects(dirPath, recursive));
@@ -268,14 +264,23 @@ export class Idb {
       entryTx.oncomplete = async function(ev) {
         if (self.useIndex) {
           const dirPath = getParentPath(fullPath);
-          const index = (await self.getIndex(dirPath)).index;
-          const record = index[fullPath];
-          if (record && record.deleted == null) {
-            record.deleted = Date.now();
-            const indexPath = createPath(dirPath, INDEX_FILE_NAME);
-            await self.putContent(indexPath, index);
-          }
+          await self.handleIndexAndObjects(
+            dirPath,
+            (index: FileSystemIndex, objects: FileSystemObject[]) => {
+              let record = index[fullPath];
+              if (record) {
+                record.deleted = Date.now();
+              }
+              for (let i = 0, end = objects.length; i < end; i++) {
+                if (objects[i].fullPath === fullPath) {
+                  objects.splice(i);
+                  break;
+                }
+              }
+            }
+          );
         }
+
         resolve();
       };
       let range = IDBKeyRange.only(fullPath);
@@ -354,35 +359,17 @@ export class Idb {
     });
   }
 
-  async getIndex(dirPath: string) {
-    return await this.putIndex(dirPath, true);
-  }
-
-  async putIndex(
+  async handleIndexAndObjects(
     dirPath: string,
-    needEntries: boolean,
-    objToAdd?: FileSystemObject
-  ): Promise<Ret> {
+    update?: (index: FileSystemIndex, objects: FileSystemObject[]) => void
+  ): Promise<IndexAndObjects> {
     if (!this.useIndex) {
       throw new InvalidStateError(this.filesystem.name, dirPath, "useIndex");
     }
 
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
     const index = (await this.getContent(indexPath)) as FileSystemIndex;
-    const updateRecord = (
-      objects: FileSystemObject[],
-      index: FileSystemIndex
-    ) => {
-      let record = index[objToAdd.fullPath];
-      if (!record) {
-        record = { obj: objToAdd, updated: Date.now() };
-        index[objToAdd.fullPath] = record;
-      } else {
-        record.updated = Date.now();
-      }
-      delete record.deleted;
-      objects.push(objToAdd);
-    };
+
     if (index) {
       const objects: FileSystemObject[] = [];
       for (const record of Object.values(index)) {
@@ -390,13 +377,11 @@ export class Idb {
           objects.push(record.obj);
         }
       }
-      if (objToAdd) {
-        updateRecord(objects, index);
+      if (update) {
+        update(index, objects);
         await this.putContent(indexPath, index);
       }
-      return needEntries
-        ? { index: index, objects: this.createEntries(objects) }
-        : { index: index, objects: null };
+      return { index: index, objects: objects };
     } else {
       const objects = await this.getObjects(dirPath, false);
       const index: FileSystemIndex = {};
@@ -405,13 +390,11 @@ export class Idb {
           index[obj.fullPath] = { obj: obj, updated: obj.lastModified };
         }
       }
-      if (objToAdd) {
-        updateRecord(objects, index);
+      if (update) {
+        update(index, objects);
       }
       await this.putContent(indexPath, index);
-      return needEntries
-        ? { index: index, objects: this.createEntries(objects) }
-        : { index: index, objects: null };
+      return { index: index, objects: objects };
     }
   }
 
@@ -459,7 +442,20 @@ export class Idb {
         }
         if (self.useIndex) {
           const dirPath = getParentPath(obj.fullPath);
-          await self.putIndex(dirPath, false, obj);
+          await self.handleIndexAndObjects(
+            dirPath,
+            (index: FileSystemIndex, objects: FileSystemObject[]) => {
+              let record = index[obj.fullPath];
+              if (!record) {
+                record = { obj: obj, updated: Date.now() };
+                index[obj.fullPath] = record;
+              } else {
+                record.updated = Date.now();
+              }
+              delete record.deleted;
+              objects.push(obj);
+            }
+          );
         }
         resolve();
       };
