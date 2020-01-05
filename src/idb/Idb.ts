@@ -324,8 +324,8 @@ export class Idb {
 
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
     const filesystem = this.filesystem;
-    try {
-      const data = await filesystem.idb.getContent(indexPath);
+    const data = await filesystem.idb.getContent(indexPath);
+    if (data) {
       let text = await dataToString(data);
       const objects = JSON.parse(text) as FileSystemObject[];
       if (objToAdd) {
@@ -333,16 +333,13 @@ export class Idb {
         await this.putIndexJson(indexPath, objects);
       }
       return needEntries ? this.createEntries(objects) : null;
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        const objects = await this.getObjects(dirPath, false);
-        if (objToAdd) {
-          objects.push(objToAdd);
-        }
-        await this.putIndexJson(indexPath, objects);
-        return needEntries ? this.createEntries(objects) : null;
+    } else {
+      const objects = await this.getObjects(dirPath, false);
+      if (objToAdd) {
+        objects.push(objToAdd);
       }
-      throw e;
+      await this.putIndexJson(indexPath, objects);
+      return needEntries ? this.createEntries(objects) : null;
     }
   }
 
@@ -359,7 +356,7 @@ export class Idb {
       tx.oncomplete = function() {
         const parentDir = getParentPath(obj.fullPath);
         const handle = () => {
-          if (self.useIndex) {
+          if (self.useIndex && obj.name !== INDEX_FILE_NAME) {
             self
               .putIndex(parentDir, false, obj)
               .then(() => {
