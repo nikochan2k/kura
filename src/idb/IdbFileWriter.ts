@@ -15,8 +15,7 @@ export class IdbFileWriter extends AbstractFileWriter<IdbFileEntry>
       name: this.fileEntry.name,
       fullPath: this.fileEntry.fullPath,
       lastModified: Date.now(),
-      size: file.size,
-      hash: null
+      size: file.size
     };
 
     const writeToIdb = (

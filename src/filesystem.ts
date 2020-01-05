@@ -54,8 +54,6 @@ export interface Metadata {
    * @readonly
    */
   size: number;
-
-  [key: string]: any;
 }
 
 export interface Flags {

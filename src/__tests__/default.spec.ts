@@ -95,6 +95,10 @@ test("create file in the dir", async done => {
     expect(e).toBeInstanceOf(NotFoundError);
   }
 
+  const parent = await fileEntry.getParent();
+  expect(parent.fullPath).toBe(dirEntry.fullPath);
+  expect(parent.name).toBe(dirEntry.name);
+
   done();
 });
 

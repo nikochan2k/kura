@@ -38,9 +38,8 @@ export class IdbDirectoryEntry extends IdbEntry implements DirectoryEntry {
     const newObj: FileSystemObject = {
       name: path.split(DIR_SEPARATOR).pop(),
       fullPath: path,
-      lastModified: Date.now(),
-      size: isFile ? 0 : null,
-      hash: null
+      lastModified: isFile ? Date.now() : undefined,
+      size: isFile ? 0 : undefined
     };
 
     const idb = this.filesystem.idb;

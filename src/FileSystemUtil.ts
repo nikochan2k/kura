@@ -4,6 +4,18 @@ import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { FileSystemAsync } from "./FileSystemAsync";
 
+const LastPathPart = /\/([^\/]*)$/;
+
+export function getParentPath(filePath: string) {
+  const parentPath = filePath.replace(LastPathPart, "");
+  return parentPath === "" ? "/" : parentPath;
+}
+
+export function getName(filePath: string) {
+  const result = LastPathPart.exec(filePath);
+  return result[1];
+}
+
 export function createEntry(fileSystemAsync: FileSystemAsync, entry: Entry) {
   return entry.isFile
     ? new FileEntryAsync(fileSystemAsync, entry as FileEntry)

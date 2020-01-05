@@ -11,6 +11,8 @@ import {
 } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
+import { getName, getParentPath } from "../FileSystemUtil";
+import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { NotImplementedError } from "../FileError";
 
@@ -41,7 +43,14 @@ export abstract class IdbEntry implements Entry {
     successCallback: DirectoryEntryCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    throw new NotImplementedError(this.filesystem.name, this.fullPath);
+    const parentPath = getParentPath(this.fullPath);
+    successCallback(
+      new IdbDirectoryEntry({
+        filesystem: this.filesystem,
+        name: getName(parentPath),
+        fullPath: parentPath
+      })
+    );
   }
 
   getMetadata(
