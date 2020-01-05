@@ -44,7 +44,7 @@ export class IdbDirectoryEntry extends IdbEntry implements DirectoryEntry {
 
     const idb = this.filesystem.idb;
     idb
-      .put(newObj)
+      .putEntry(newObj)
       .then(() => {
         if (isFile) {
           (successCallback as FileEntryCallback)(

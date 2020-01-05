@@ -24,7 +24,7 @@ export class IdbFileWriter extends AbstractFileWriter<IdbFileEntry>
       onsuccess: () => void
     ) => {
       this.fileEntry.filesystem.idb
-        .put(entry, content)
+        .putEntry(entry, content)
         .then(() => {
           onsuccess();
           if (this.onwriteend) {

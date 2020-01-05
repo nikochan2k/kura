@@ -39,12 +39,8 @@ export class Idb {
       const dbName = "blob-support";
       indexedDB.deleteDatabase(dbName).onsuccess = function() {
         const request = indexedDB.open(dbName, 1);
-        request.onupgradeneeded = function() {
+        request.onupgradeneeded = () =>
           request.result.createObjectStore("store");
-        };
-        request.onerror = function() {
-          reject();
-        };
         request.onsuccess = function() {
           const db = request.result;
           try {
@@ -60,6 +56,7 @@ export class Idb {
           }
           resolve();
         };
+        request.onerror = (ev: Event) => reject(ev);
       };
     });
   }
@@ -90,12 +87,9 @@ export class Idb {
         self.db.onerror = self.onError;
         resolve();
       };
-      request.onerror = function(ev) {
-        reject(ev);
-      };
-      request.onblocked = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      request.onerror = onerror;
+      request.onblocked = onerror;
     });
   }
 
@@ -108,13 +102,10 @@ export class Idb {
     return new Promise<void>((resolve, reject) => {
       const dbName = this.db.name;
       const request = indexedDB.deleteDatabase(dbName);
-      request.onerror = function(ev) {
-        reject(ev);
-      };
-      request.onsuccess = function(ev) {
-        resolve();
-      };
-
+      const onerror = (ev: Event) => reject(ev);
+      request.onblocked = onerror;
+      request.onerror = onerror;
+      request.onsuccess = () => resolve();
       this.close();
     });
   }
@@ -123,19 +114,12 @@ export class Idb {
     return new Promise<FileSystemObject>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
-      tx.onabort = function(ev) {
-        reject(ev);
-      };
-      tx.onerror = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
       const request = tx.objectStore(ENTRY_STORE).get(range);
-      request.onerror = function(ev) {
-        reject(ev);
-      };
-      tx.oncomplete = function() {
-        resolve(request.result);
-      };
+      tx.oncomplete = () => resolve(request.result);
+      request.onerror = onerror;
     });
   }
 
@@ -143,16 +127,10 @@ export class Idb {
     return new Promise<any>((resolve, reject) => {
       const tx = this.db.transaction([CONTENT_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
-      tx.onabort = function(ev) {
-        reject(ev);
-      };
-      tx.onerror = function(ev) {
-        reject(ev);
-      };
+      tx.onabort = onerror;
+      tx.onerror = onerror;
       const request = tx.objectStore(CONTENT_STORE).get(range);
-      request.onerror = function(ev) {
-        reject(ev);
-      };
+      request.onerror = onerror;
       tx.oncomplete = function(ev) {
         if (request.result != null) {
           resolve(request.result);
@@ -166,22 +144,15 @@ export class Idb {
   hasChild(fullPath: string) {
     return new Promise<boolean>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      tx.onabort = function(ev) {
-        reject(ev);
-      };
-      tx.onerror = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
       let result = false;
-      tx.oncomplete = function() {
-        resolve(result);
-      };
+      tx.oncomplete = () => resolve(result);
 
       const range = getRange(fullPath);
       const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onerror = function(ev) {
-        reject(ev);
-      };
+      request.onerror = onerror;
       request.onsuccess = function(ev) {
         const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
         if (cursor) {
@@ -194,16 +165,11 @@ export class Idb {
   getObjects(fullPath: string, recursive: boolean) {
     return new Promise<FileSystemObject[]>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      tx.onabort = function(ev) {
-        reject(ev);
-      };
-      tx.onerror = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
       const objects: FileSystemObject[] = [];
-      tx.oncomplete = function() {
-        resolve(objects);
-      };
+      tx.oncomplete = () => resolve(objects);
 
       let slashCount: number;
       if (fullPath === DIR_SEPARATOR) {
@@ -213,9 +179,6 @@ export class Idb {
       }
       const range = getRange(fullPath);
       const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onerror = function(ev) {
-        reject(ev);
-      };
       request.onsuccess = function(ev) {
         const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
         if (cursor) {
@@ -228,6 +191,7 @@ export class Idb {
           cursor.continue();
         }
       };
+      request.onerror = onerror;
     });
   }
 
@@ -258,9 +222,9 @@ export class Idb {
     return new Promise<void>(async (resolve, reject) => {
       const self = this;
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      entryTx.onabort = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      entryTx.onabort = onerror;
+      entryTx.onerror = onerror;
       entryTx.oncomplete = async function(ev) {
         if (self.useIndex) {
           const dirPath = getParentPath(fullPath);
@@ -285,42 +249,28 @@ export class Idb {
       };
       let range = IDBKeyRange.only(fullPath);
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
-      request.onerror = function(ev) {
-        reject(ev);
-      };
+      request.onerror = onerror;
     });
   }
 
   deleteRecursively(fullPath: string) {
     return new Promise<void>((resolve, reject) => {
-      const self = this;
       const range = getRange(fullPath);
 
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      entryTx.onabort = function(ev) {
-        reject(ev);
-      };
-      entryTx.onerror = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      entryTx.onabort = onerror;
+      entryTx.onerror = onerror;
       entryTx.oncomplete = function() {
         const deleted = Date.now();
         const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-        contentTx.onabort = function(ev) {
-          reject(ev);
-        };
-        contentTx.onerror = function(ev) {
-          reject(ev);
-        };
-        contentTx.oncomplete = function() {
-          resolve();
-        };
+        contentTx.onabort = onerror;
+        contentTx.onerror = onerror;
+        contentTx.oncomplete = () => resolve();
         const contentReq = contentTx
           .objectStore(CONTENT_STORE)
           .openCursor(range);
-        contentReq.onerror = function(ev) {
-          reject(ev);
-        };
+        contentReq.onerror = onerror;
         contentReq.onsuccess = async function(ev) {
           const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
           if (cursor) {
@@ -346,9 +296,6 @@ export class Idb {
         };
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).openCursor(range);
-      entryReq.onerror = function(ev) {
-        reject(ev);
-      };
       entryReq.onsuccess = function(ev) {
         const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
         if (cursor) {
@@ -356,6 +303,7 @@ export class Idb {
           cursor.continue();
         }
       };
+      entryReq.onerror = onerror;
     });
   }
 
@@ -399,29 +347,21 @@ export class Idb {
   }
 
   putContent(fullPath: string, content: any) {
-    return new Promise<FileSystemObject>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-      contentTx.onabort = function(ev) {
-        reject(ev);
-      };
-      contentTx.onerror = function(ev) {
-        reject(ev);
-      };
-      contentTx.oncomplete = function() {
-        resolve();
-      };
+      const onerror = (ev: Event) => reject(ev);
+      contentTx.onabort = onerror;
+      contentTx.onerror = onerror;
+      contentTx.oncomplete = () => resolve();
       const contentReq = contentTx
         .objectStore(CONTENT_STORE)
         .put(content, fullPath);
-      contentReq.onerror = function(ev) {
-        reject(ev);
-      };
+      contentReq.onerror = onerror;
     });
   }
 
-  put(obj: FileSystemObject, content?: string | Blob) {
-    const self = this;
-    return new Promise<FileSystemObject>((resolve, reject) => {
+  putEntry(obj: FileSystemObject, content?: string | Blob) {
+    return new Promise<void>((resolve, reject) => {
       if (this.useIndex && obj.name === INDEX_FILE_NAME) {
         reject(
           new InvalidModificationError(this.filesystem.name, obj.fullPath)
@@ -429,13 +369,11 @@ export class Idb {
         return;
       }
 
+      const self = this;
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      entryTx.onabort = function(ev) {
-        reject(ev);
-      };
-      entryTx.onerror = function(ev) {
-        reject(ev);
-      };
+      const onerror = (ev: Event) => reject(ev);
+      entryTx.onabort = onerror;
+      entryTx.onerror = onerror;
       entryTx.oncomplete = async function() {
         if (content) {
           await self.putContent(obj.fullPath, content);
@@ -460,9 +398,7 @@ export class Idb {
         resolve();
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
-      entryReq.onerror = function(ev) {
-        reject(ev);
-      };
+      entryReq.onerror = onerror;
     });
   }
 }

@@ -88,7 +88,7 @@ export abstract class IdbEntry implements Entry {
       size: this.params.size
     };
     this.filesystem.idb
-      .put(obj)
+      .putEntry(obj)
       .then(() => {
         this.params.lastModified = lastModified;
         successCallback();
