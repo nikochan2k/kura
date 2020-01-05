@@ -80,7 +80,7 @@ export async function dataToString(data: string | Blob) {
   if (typeof data === "string") {
     return data;
   }
-  return blobToString(data);
+  return await blobToString(data);
 }
 
 export function blobToString(blob: Blob) {

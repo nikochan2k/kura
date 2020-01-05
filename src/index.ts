@@ -11,6 +11,7 @@ export * from "./FileError";
 export * from "./filesystem";
 export * from "./FileSystemAsync";
 export * from "./FileSystemConstants";
+export * from "./FileSystemIndex";
 export * from "./FileSystemObject";
 export * from "./FileSystemParams";
 export * from "./FileSystemUtil";

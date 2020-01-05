@@ -1,16 +1,22 @@
 import { countSlash, getRange } from "./IdbUtil";
-import { createPath, dataToString, getParentPath } from "../FileSystemUtil";
-import {
-  DIR_SEPARATOR,
-  EMPTY_BLOB,
-  INDEX_FILE_NAME
-} from "../FileSystemConstants";
+import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
+import { FileSystemIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
-import { IdbEntry } from "./IdbEntry";
 import { IdbFileEntry } from "./IdbFileEntry";
 import { IdbFileSystem } from "./IdbFileSystem";
-import { NotFoundError } from "../FileError";
+import { InvalidModificationError, InvalidStateError } from "../FileError";
+import {
+  createPath,
+  dataToString,
+  getParentPath,
+  getName
+} from "../FileSystemUtil";
+
+interface Ret {
+  index: FileSystemIndex;
+  objects: FileSystemObject[];
+}
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -156,7 +162,7 @@ export class Idb {
         if (request.result != null) {
           resolve(request.result);
         } else {
-          resolve(Idb.SUPPORTS_BLOB ? EMPTY_BLOB : "");
+          resolve(null);
         }
       };
     });
@@ -246,20 +252,43 @@ export class Idb {
 
   async getEntries(dirPath: string, recursive: boolean) {
     if (this.useIndex) {
-      return this.getIndex(dirPath);
+      return (await this.getIndex(dirPath)).objects;
     }
 
     return this.createEntries(await this.getObjects(dirPath, recursive));
   }
 
   delete(fullPath: string) {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
+      const dirPath = getParentPath(fullPath);
+      let index: FileSystemIndex;
+      if (this.useIndex) {
+        index = (await this.getIndex(dirPath)).index;
+      }
+      const self = this;
       const tx = this.db.transaction([ENTRY_STORE], "readwrite");
       tx.onabort = function(ev) {
         reject(ev);
       };
       tx.oncomplete = function(ev) {
-        resolve();
+        if (index) {
+          const record = index[fullPath];
+          if (record && record.deleted == null) {
+            record.deleted = Date.now();
+            self
+              .putIndexJson(dirPath, index)
+              .then(() => {
+                resolve();
+              })
+              .catch(err => {
+                reject(err);
+              });
+          } else {
+            resolve();
+          }
+        } else {
+          resolve();
+        }
       };
       let range = IDBKeyRange.only(fullPath);
       const request = tx.objectStore(ENTRY_STORE).delete(range);
@@ -271,23 +300,70 @@ export class Idb {
 
   deleteRecursively(fullPath: string) {
     return new Promise<void>((resolve, reject) => {
-      const tx = this.db.transaction([ENTRY_STORE], "readwrite");
-      tx.onabort = function(ev) {
-        reject(ev);
-      };
-      tx.onerror = function(ev) {
-        reject(ev);
-      };
-      tx.oncomplete = function() {
-        resolve();
-      };
-
+      const self = this;
       const range = getRange(fullPath);
-      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onerror = function(ev) {
+
+      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
+      entryTx.onabort = function(ev) {
         reject(ev);
       };
-      request.onsuccess = function(ev) {
+      entryTx.onerror = function(ev) {
+        reject(ev);
+      };
+      entryTx.oncomplete = function() {
+        const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
+        contentTx.onabort = function(ev) {
+          reject(ev);
+        };
+        contentTx.onerror = function(ev) {
+          reject(ev);
+        };
+        const indexPathes: string[] = [];
+        contentTx.oncomplete = function() {
+          const promises: Promise<FileSystemIndex>[] = [];
+          for (const indexPath of indexPathes) {
+            promises.push(self.getIndexJson(indexPath));
+          }
+          const deleted = Date.now();
+          Promise.all(promises).then(async indexes => {
+            let i = 0;
+            for (const index of indexes) {
+              const indexPath = indexPathes[i];
+              for (const record of Object.values(index)) {
+                record.deleted = deleted;
+              }
+              await self.putIndexJson(indexPath, index);
+              i++;
+            }
+            console.log("resolve");
+            resolve();
+          });
+        };
+        const contentReq = contentTx
+          .objectStore(CONTENT_STORE)
+          .openCursor(range);
+        contentReq.onerror = function(ev) {
+          reject(ev);
+        };
+        contentReq.onsuccess = async function(ev) {
+          const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
+          if (cursor) {
+            const fullPath = cursor.key.valueOf() as string;
+            const name = getName(fullPath);
+            if (name !== INDEX_FILE_NAME) {
+              cursor.delete();
+            } else {
+              indexPathes.push(fullPath);
+            }
+            cursor.continue();
+          }
+        };
+      };
+      const entryReq = entryTx.objectStore(ENTRY_STORE).openCursor(range);
+      entryReq.onerror = function(ev) {
+        reject(ev);
+      };
+      entryReq.onsuccess = function(ev) {
         const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
         if (cursor) {
           cursor.delete();
@@ -297,16 +373,35 @@ export class Idb {
     });
   }
 
-  private async putIndexJson(indexPath: string, objects: FileSystemObject[]) {
-    const text = JSON.stringify(objects);
-    const blob = new Blob([text]);
-    const obj: FileSystemObject = {
-      fullPath: indexPath,
-      name: INDEX_FILE_NAME,
-      lastModified: Date.now(),
-      size: blob.size
-    };
-    await this.put(obj, Idb.SUPPORTS_BLOB ? blob : text);
+  private async getIndexJson(indexPath: string) {
+    const data = await this.getContent(indexPath);
+    if (data == null) {
+      return null;
+    }
+    let text = await dataToString(data);
+    return JSON.parse(text) as FileSystemIndex;
+  }
+
+  private async putIndexJson(indexPath: string, index: FileSystemIndex) {
+    return new Promise<void>((resolve, reject) => {
+      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
+      contentTx.onabort = function(ev) {
+        reject(ev);
+      };
+      contentTx.onerror = function(ev) {
+        reject(ev);
+      };
+      contentTx.oncomplete = function() {
+        resolve();
+      };
+      const text = JSON.stringify(index);
+      const contentReq = contentTx
+        .objectStore(CONTENT_STORE)
+        .put(Idb.SUPPORTS_BLOB ? new Blob([text]) : text, indexPath);
+      contentReq.onerror = function(ev) {
+        reject(ev);
+      };
+    });
   }
 
   async getIndex(dirPath: string) {
@@ -317,46 +412,76 @@ export class Idb {
     dirPath: string,
     needEntries: boolean,
     objToAdd?: FileSystemObject
-  ) {
+  ): Promise<Ret> {
     if (!this.useIndex) {
-      return null;
+      throw new InvalidStateError(this.filesystem.name, dirPath, "useIndex");
     }
 
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
-    const filesystem = this.filesystem;
-    const data = await filesystem.idb.getContent(indexPath);
-    if (data) {
-      let text = await dataToString(data);
-      const objects = JSON.parse(text) as FileSystemObject[];
-      if (objToAdd) {
-        objects.push(objToAdd);
-        await this.putIndexJson(indexPath, objects);
+    const index = await this.getIndexJson(indexPath);
+    const handle = (objects: FileSystemObject[], index: FileSystemIndex) => {
+      let record = index[objToAdd.fullPath];
+      if (!record) {
+        record = { obj: objToAdd, updated: Date.now() };
+        index[objToAdd.fullPath] = record;
+      } else {
+        record.updated = Date.now();
       }
-      return needEntries ? this.createEntries(objects) : null;
+      objects.push(objToAdd);
+    };
+    if (index) {
+      const objects: FileSystemObject[] = [];
+      for (const record of Object.values(index)) {
+        if (record.deleted == null) {
+          objects.push(record.obj);
+        }
+      }
+      if (objToAdd) {
+        handle(objects, index);
+        await this.putIndexJson(createPath(dirPath, INDEX_FILE_NAME), index);
+      }
+      return needEntries
+        ? { index: index, objects: this.createEntries(objects) }
+        : { index: index, objects: null };
     } else {
       const objects = await this.getObjects(dirPath, false);
-      if (objToAdd) {
-        objects.push(objToAdd);
+      const index: FileSystemIndex = {};
+      for (const obj of objects) {
+        if (obj.name !== INDEX_FILE_NAME) {
+          index[obj.fullPath] = { obj: obj, updated: obj.lastModified };
+        }
       }
-      await this.putIndexJson(indexPath, objects);
-      return needEntries ? this.createEntries(objects) : null;
+      if (objToAdd) {
+        handle(objects, index);
+      }
+      await this.putIndexJson(createPath(dirPath, INDEX_FILE_NAME), index);
+      return needEntries
+        ? { index: index, objects: this.createEntries(objects) }
+        : { index: index, objects: null };
     }
   }
 
   put(obj: FileSystemObject, content?: string | Blob) {
     const self = this;
     return new Promise<FileSystemObject>((resolve, reject) => {
-      let tx = this.db.transaction([ENTRY_STORE], "readwrite");
-      tx.onabort = function(ev) {
+      if (this.useIndex && obj.name === INDEX_FILE_NAME) {
+        reject(
+          new InvalidModificationError(this.filesystem.name, obj.fullPath)
+        );
+        return;
+      }
+
+      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
+      entryTx.onabort = function(ev) {
         reject(ev);
       };
-      tx.onerror = function(ev) {
+      entryTx.onerror = function(ev) {
         reject(ev);
       };
-      tx.oncomplete = function() {
+      entryTx.oncomplete = function() {
         const parentDir = getParentPath(obj.fullPath);
         const handle = () => {
-          if (self.useIndex && obj.name !== INDEX_FILE_NAME) {
+          if (self.useIndex) {
             self
               .putIndex(parentDir, false, obj)
               .then(() => {
@@ -370,17 +495,17 @@ export class Idb {
           }
         };
         if (content) {
-          tx = this.db.transaction([CONTENT_STORE], "readwrite");
-          tx.onabort = function(ev) {
+          const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
+          contentTx.onabort = function(ev) {
             reject(ev);
           };
-          tx.onerror = function(ev) {
+          contentTx.onerror = function(ev) {
             reject(ev);
           };
-          tx.oncomplete = function() {
+          contentTx.oncomplete = function() {
             handle();
           };
-          const contentReq = tx
+          const contentReq = contentTx
             .objectStore(CONTENT_STORE)
             .put(content, obj.fullPath);
           contentReq.onerror = function(ev) {
@@ -390,7 +515,7 @@ export class Idb {
           handle();
         }
       };
-      const entryReq = tx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
+      const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = function(ev) {
         reject(ev);
       };
