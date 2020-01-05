@@ -145,7 +145,7 @@ export class Idb {
   }
 
   getContent(fullPath: string) {
-    return new Promise<string | Blob>((resolve, reject) => {
+    return new Promise<any>((resolve, reject) => {
       const tx = this.db.transaction([CONTENT_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
       tx.onabort = function(ev) {
@@ -266,11 +266,11 @@ export class Idb {
         index = (await this.getIndex(dirPath)).index;
       }
       const self = this;
-      const tx = this.db.transaction([ENTRY_STORE], "readwrite");
-      tx.onabort = function(ev) {
+      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
+      entryTx.onabort = function(ev) {
         reject(ev);
       };
-      tx.oncomplete = function(ev) {
+      entryTx.oncomplete = function(ev) {
         if (index) {
           const record = index[fullPath];
           if (record && record.deleted == null) {
@@ -291,7 +291,7 @@ export class Idb {
         }
       };
       let range = IDBKeyRange.only(fullPath);
-      const request = tx.objectStore(ENTRY_STORE).delete(range);
+      const request = entryTx.objectStore(ENTRY_STORE).delete(range);
       request.onerror = function(ev) {
         reject(ev);
       };
@@ -311,6 +311,7 @@ export class Idb {
         reject(ev);
       };
       entryTx.oncomplete = function() {
+        const deleted = Date.now();
         const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
         contentTx.onabort = function(ev) {
           reject(ev);
@@ -318,26 +319,8 @@ export class Idb {
         contentTx.onerror = function(ev) {
           reject(ev);
         };
-        const indexPathes: string[] = [];
         contentTx.oncomplete = function() {
-          const promises: Promise<FileSystemIndex>[] = [];
-          for (const indexPath of indexPathes) {
-            promises.push(self.getIndexJson(indexPath));
-          }
-          const deleted = Date.now();
-          Promise.all(promises).then(async indexes => {
-            let i = 0;
-            for (const index of indexes) {
-              const indexPath = indexPathes[i];
-              for (const record of Object.values(index)) {
-                record.deleted = deleted;
-              }
-              await self.putIndexJson(indexPath, index);
-              i++;
-            }
-            console.log("resolve");
-            resolve();
-          });
+          resolve();
         };
         const contentReq = contentTx
           .objectStore(CONTENT_STORE)
@@ -353,7 +336,18 @@ export class Idb {
             if (name !== INDEX_FILE_NAME) {
               cursor.delete();
             } else {
-              indexPathes.push(fullPath);
+              let updated = false;
+              const index = await self.deserializeIndexJson(cursor.value);
+              for (const record of Object.values(index)) {
+                if (record.deleted == null) {
+                  record.deleted = deleted;
+                  updated = true;
+                }
+              }
+              if (updated) {
+                const data = self.serializeIndexJson(index);
+                cursor.update(data);
+              }
             }
             cursor.continue();
           }
@@ -373,13 +367,22 @@ export class Idb {
     });
   }
 
+  private async deserializeIndexJson(data: string | Blob) {
+    const text = await dataToString(data);
+    return JSON.parse(text) as FileSystemIndex;
+  }
+
   private async getIndexJson(indexPath: string) {
     const data = await this.getContent(indexPath);
     if (data == null) {
       return null;
     }
-    let text = await dataToString(data);
-    return JSON.parse(text) as FileSystemIndex;
+    return await this.deserializeIndexJson(data);
+  }
+
+  private serializeIndexJson(index: FileSystemIndex) {
+    const text = JSON.stringify(index);
+    return Idb.SUPPORTS_BLOB ? new Blob([text]) : text;
   }
 
   private async putIndexJson(indexPath: string, index: FileSystemIndex) {
@@ -394,10 +397,10 @@ export class Idb {
       contentTx.oncomplete = function() {
         resolve();
       };
-      const text = JSON.stringify(index);
+      const data = this.serializeIndexJson(index);
       const contentReq = contentTx
         .objectStore(CONTENT_STORE)
-        .put(Idb.SUPPORTS_BLOB ? new Blob([text]) : text, indexPath);
+        .put(data, indexPath);
       contentReq.onerror = function(ev) {
         reject(ev);
       };
