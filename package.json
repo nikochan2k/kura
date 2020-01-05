@@ -5,11 +5,11 @@
   "author": "Yoshihiro Seki",
   "license": "MIT",
   "homepage": "https://github.com/nikochan2k/kura",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "typings": "dist/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "typings": "lib/index.d.ts",
   "files": [
-    "dist"
+    "lib"
   ],
   "keywords": [
     "kura",
@@ -22,7 +22,7 @@
     "url": "https://github.com/nikochan2k/kura.git"
   },
   "scripts": {
-    "clean": "rimraf ./dist",
+    "clean": "rimraf ./lib",
     "compile": "tsc",
     "build": "npm-run-all clean compile",
     "test": "jest --runInBand"
