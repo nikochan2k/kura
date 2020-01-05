@@ -26,7 +26,7 @@ export class IdbLocalFileSystem extends AbstractLocalFileSystem {
       throw new Error("No temporary storage");
     }
 
-    const idb = new Idb();
+    const idb = new Idb(this.useIndex);
     idb
       .open(this.bucket)
       .then(() => {

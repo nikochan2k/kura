@@ -6,9 +6,17 @@ import { FileSystemAsync } from "./FileSystemAsync";
 
 const LastPathPart = /\/([^\/]*)$/;
 
+export function createPath(parentPath: string, name: string) {
+  if (parentPath === DIR_SEPARATOR) {
+    return parentPath + name;
+  } else {
+    return parentPath + DIR_SEPARATOR + name;
+  }
+}
+
 export function getParentPath(filePath: string) {
   const parentPath = filePath.replace(LastPathPart, "");
-  return parentPath === "" ? "/" : parentPath;
+  return parentPath === "" ? DIR_SEPARATOR : parentPath;
 }
 
 export function getName(filePath: string) {
@@ -66,6 +74,24 @@ export function blobToFile(
     type: type || "application/octet-stream"
   });
   return file;
+}
+
+export async function dataToString(data: string | Blob) {
+  if (typeof data === "string") {
+    return data;
+  }
+  return blobToString(data);
+}
+
+export function blobToString(blob: Blob) {
+  return new Promise<string>(resolve => {
+    const reader = new FileReader();
+    reader.addEventListener("loadend", e => {
+      const str = (e.srcElement as FileReader).result as string;
+      resolve(str);
+    });
+    reader.readAsText(blob);
+  });
 }
 
 export function base64ToFile(

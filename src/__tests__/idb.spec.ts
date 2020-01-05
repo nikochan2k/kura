@@ -1,4 +1,5 @@
 require("fake-indexeddb/auto");
+import { blobToString } from "../FileSystemUtil";
 import { FileSystemAsync } from "../FileSystemAsync";
 import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";
 import { InvalidModificationError, NotFoundError } from "../FileError";
@@ -56,14 +57,7 @@ test("add text file", async done => {
   file = await fileEntry.file();
   expect(file.size).toBe(8);
 
-  const str = await new Promise<string>(resolve => {
-    const reader = new FileReader();
-    reader.addEventListener("loadend", e => {
-      const text = (e.srcElement as any).result;
-      resolve(text);
-    });
-    reader.readAsText(file);
-  });
+  const str = await blobToString(file);
   expect(str).toBe("hogefuga");
 
   done();

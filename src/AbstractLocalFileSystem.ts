@@ -6,7 +6,7 @@ import {
 } from "./filesystem";
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
-  constructor(public bucket: string) {}
+  constructor(public bucket: string, protected useIndex = false) {}
 
   get TEMPORARY() {
     return window.TEMPORARY;

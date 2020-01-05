@@ -9,8 +9,9 @@ export class IdbDirectoryReader implements DirectoryReader {
     successCallback: EntriesCallback,
     errorCallback?: ErrorCallback
   ): void {
-    this.dirEntry.filesystem.idb
-      .getEntries(this.dirEntry.fullPath, false)
+    const dirEntry = this.dirEntry;
+    dirEntry.filesystem.idb
+      .getEntries(dirEntry.fullPath, false)
       .then(entries => {
         successCallback(entries);
       })
