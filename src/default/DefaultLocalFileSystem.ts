@@ -1,6 +1,11 @@
 import { EmbeddedLocalFileSystem } from "../embedded/EmbeddedLocalFileSystem";
+import {
+  EntryCallback,
+  ErrorCallback,
+  FileSystemCallback,
+  LocalFileSystem
+} from "../filesystem";
 import { IdbLocalFileSystem } from "../idb/IdbLocalFileSystem";
-import { LocalFileSystem } from "../filesystem";
 
 export class DefaultLocalFileSystem implements LocalFileSystem {
   private localFileSystem: LocalFileSystem;
@@ -20,8 +25,8 @@ export class DefaultLocalFileSystem implements LocalFileSystem {
   requestFileSystem(
     type: number,
     size: number,
-    successCallback: import("../filesystem").FileSystemCallback,
-    errorCallback?: import("../filesystem").ErrorCallback
+    successCallback: FileSystemCallback,
+    errorCallback?: ErrorCallback
   ): void {
     this.localFileSystem.requestFileSystem(
       type,
@@ -33,8 +38,8 @@ export class DefaultLocalFileSystem implements LocalFileSystem {
 
   resolveLocalFileSystemURL(
     url: string,
-    successCallback: import("../filesystem").EntryCallback,
-    errorCallback?: import("../filesystem").ErrorCallback
+    successCallback: EntryCallback,
+    errorCallback?: ErrorCallback
   ): void {
     this.localFileSystem.resolveLocalFileSystemURL(
       url,
