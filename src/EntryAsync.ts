@@ -6,20 +6,40 @@ import { FileSystemAsync } from "./FileSystemAsync";
 export abstract class EntryAsync<T extends Entry> {
   constructor(protected fileSystemAsync: FileSystemAsync, protected entry: T) {}
 
-  get isFile() {
-    return this.entry.isFile;
-  }
-  get isDirectory() {
-    return this.entry.isDirectory;
-  }
-  get name() {
-    return this.entry.name;
+  get filesystem() {
+    return this.fileSystemAsync;
   }
   get fullPath() {
     return this.entry.fullPath;
   }
-  get filesystem() {
-    return this.fileSystemAsync;
+  get isDirectory() {
+    return this.entry.isDirectory;
+  }
+  get isFile() {
+    return this.entry.isFile;
+  }
+  get name() {
+    return this.entry.name;
+  }
+
+  copyTo(
+    parent: DirectoryEntryAsync,
+    newName?: string
+  ): Promise<EntryAsync<FileEntry | DirectoryEntry>> {
+    return new Promise<EntryAsync<FileEntry | DirectoryEntry>>(
+      (resolve, reject) => {
+        this.entry.copyTo(
+          parent,
+          newName,
+          entry => {
+            resolve(createEntry(this.fileSystemAsync, entry));
+          },
+          error => {
+            reject(error);
+          }
+        );
+      }
+    );
   }
 
   getMetadata(): Promise<Metadata> {
@@ -35,12 +55,11 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  setMetadata(metadata: Metadata): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.entry.setMetadata(
-        metadata,
-        () => {
-          resolve();
+  getParent(): Promise<DirectoryEntryAsync> {
+    return new Promise<DirectoryEntryAsync>((resolve, reject) => {
+      this.entry.getParent(
+        entry => {
+          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
         },
         error => {
           reject(error);
@@ -69,30 +88,6 @@ export abstract class EntryAsync<T extends Entry> {
     );
   }
 
-  copyTo(
-    parent: DirectoryEntryAsync,
-    newName?: string
-  ): Promise<EntryAsync<FileEntry | DirectoryEntry>> {
-    return new Promise<EntryAsync<FileEntry | DirectoryEntry>>(
-      (resolve, reject) => {
-        this.entry.copyTo(
-          parent,
-          newName,
-          entry => {
-            resolve(createEntry(this.fileSystemAsync, entry));
-          },
-          error => {
-            reject(error);
-          }
-        );
-      }
-    );
-  }
-
-  toURL(): string {
-    return this.entry.toURL();
-  }
-
   remove(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.remove(
@@ -106,16 +101,21 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  getParent(): Promise<DirectoryEntryAsync> {
-    return new Promise<DirectoryEntryAsync>((resolve, reject) => {
-      this.entry.getParent(
-        entry => {
-          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
+  setMetadata(metadata: Metadata): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.entry.setMetadata(
+        metadata,
+        () => {
+          resolve();
         },
         error => {
           reject(error);
         }
       );
     });
+  }
+
+  toURL(): string {
+    return this.entry.toURL();
   }
 }

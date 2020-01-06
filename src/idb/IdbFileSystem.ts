@@ -4,9 +4,6 @@ import { Idb } from "./Idb";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 
 export class IdbFileSystem implements FileSystem {
-  get name() {
-    return this.idb.db.name;
-  }
   root: IdbDirectoryEntry;
 
   constructor(public idb: Idb) {
@@ -15,5 +12,9 @@ export class IdbFileSystem implements FileSystem {
       name: "",
       fullPath: DIR_SEPARATOR
     });
+  }
+
+  get name() {
+    return this.idb.db.name;
   }
 }

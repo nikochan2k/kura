@@ -18,8 +18,8 @@ import { InvalidModificationError, NotFoundError } from "../FileError";
 import { onError, resolveToFullPath } from "../FileSystemUtil";
 
 export class IdbDirectoryEntry extends IdbEntry implements DirectoryEntry {
-  public isFile = false;
   public isDirectory = true;
+  public isFile = false;
 
   constructor(params: FileSystemParams<IdbFileSystem>) {
     super(params);
@@ -60,69 +60,6 @@ export class IdbDirectoryEntry extends IdbEntry implements DirectoryEntry {
               ...newObj
             })
           );
-        }
-      })
-      .catch(err => {
-        onError(err, errorCallback);
-      });
-  }
-
-  getFile(
-    path: string,
-    options?: Flags | undefined,
-    successCallback?: FileEntryCallback | undefined,
-    errorCallback?: ErrorCallback | undefined
-  ): void {
-    path = resolveToFullPath(this.fullPath, path);
-    const idb = this.filesystem.idb;
-    idb
-      .getEntry(path)
-      .then(obj => {
-        if (!options) {
-          options = {};
-        }
-        if (!successCallback) {
-          successCallback = () => {};
-        }
-
-        if (obj) {
-          if (obj.size == null) {
-            onError(
-              new InvalidModificationError(
-                this.filesystem.name,
-                path,
-                `${path} is not a file`
-              ),
-              errorCallback
-            );
-            return;
-          }
-          if (options.create && options.exclusive) {
-            onError(
-              new InvalidModificationError(
-                this.filesystem.name,
-                path,
-                `${path} already exists`
-              ),
-              errorCallback
-            );
-            return;
-          }
-          successCallback(
-            new IdbFileEntry({
-              filesystem: this.filesystem,
-              ...obj
-            })
-          );
-        } else {
-          if (options.create) {
-            this.doCreateObject(true, path, successCallback, errorCallback);
-          } else {
-            onError(
-              new NotFoundError(this.filesystem.name, path),
-              errorCallback
-            );
-          }
         }
       })
       .catch(err => {
@@ -184,6 +121,69 @@ export class IdbDirectoryEntry extends IdbEntry implements DirectoryEntry {
         } else {
           if (options.create) {
             this.doCreateObject(false, path, successCallback, errorCallback);
+          } else {
+            onError(
+              new NotFoundError(this.filesystem.name, path),
+              errorCallback
+            );
+          }
+        }
+      })
+      .catch(err => {
+        onError(err, errorCallback);
+      });
+  }
+
+  getFile(
+    path: string,
+    options?: Flags | undefined,
+    successCallback?: FileEntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    path = resolveToFullPath(this.fullPath, path);
+    const idb = this.filesystem.idb;
+    idb
+      .getEntry(path)
+      .then(obj => {
+        if (!options) {
+          options = {};
+        }
+        if (!successCallback) {
+          successCallback = () => {};
+        }
+
+        if (obj) {
+          if (obj.size == null) {
+            onError(
+              new InvalidModificationError(
+                this.filesystem.name,
+                path,
+                `${path} is not a file`
+              ),
+              errorCallback
+            );
+            return;
+          }
+          if (options.create && options.exclusive) {
+            onError(
+              new InvalidModificationError(
+                this.filesystem.name,
+                path,
+                `${path} already exists`
+              ),
+              errorCallback
+            );
+            return;
+          }
+          successCallback(
+            new IdbFileEntry({
+              filesystem: this.filesystem,
+              ...obj
+            })
+          );
+        } else {
+          if (options.create) {
+            this.doCreateObject(true, path, successCallback, errorCallback);
           } else {
             onError(
               new NotFoundError(this.filesystem.name, path),

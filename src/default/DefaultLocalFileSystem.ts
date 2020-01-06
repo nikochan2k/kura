@@ -5,6 +5,9 @@ import { LocalFileSystem } from "../filesystem";
 export class DefaultLocalFileSystem implements LocalFileSystem {
   private localFileSystem: LocalFileSystem;
 
+  PERSISTENT: number;
+  TEMPORARY: number;
+
   constructor() {
     this.localFileSystem = new EmbeddedLocalFileSystem();
     if (!this.localFileSystem.requestFileSystem) {
@@ -13,9 +16,6 @@ export class DefaultLocalFileSystem implements LocalFileSystem {
     this.TEMPORARY = window.TEMPORARY;
     this.PERSISTENT = window.PERSISTENT;
   }
-
-  TEMPORARY: number;
-  PERSISTENT: number;
 
   requestFileSystem(
     type: number,

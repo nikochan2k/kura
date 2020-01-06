@@ -19,13 +19,13 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
     );
   }
 
-  getFile(path: string, options?: Flags): Promise<FileEntryAsync> {
-    return new Promise<FileEntryAsync>((resolve, reject) => {
-      this.entry.getFile(
+  getDirectory(path: string, options?: Flags): Promise<DirectoryEntryAsync> {
+    return new Promise<DirectoryEntryAsync>((resolve, reject) => {
+      this.entry.getDirectory(
         path,
         options,
         entry => {
-          resolve(new FileEntryAsync(this.fileSystemAsync, entry));
+          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
         },
         error => {
           reject(error);
@@ -34,13 +34,13 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
     });
   }
 
-  getDirectory(path: string, options?: Flags): Promise<DirectoryEntryAsync> {
-    return new Promise<DirectoryEntryAsync>((resolve, reject) => {
-      this.entry.getDirectory(
+  getFile(path: string, options?: Flags): Promise<FileEntryAsync> {
+    return new Promise<FileEntryAsync>((resolve, reject) => {
+      this.entry.getFile(
         path,
         options,
         entry => {
-          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
+          resolve(new FileEntryAsync(this.fileSystemAsync, entry));
         },
         error => {
           reject(error);

@@ -1,10 +1,9 @@
-import { Entry } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
 
 export interface Record {
+  deleted?: number;
   obj: FileSystemObject;
   updated: number;
-  deleted?: number;
 }
 
 export interface FileSystemIndex {

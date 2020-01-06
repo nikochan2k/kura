@@ -6,14 +6,12 @@ import {
 } from "./filesystem";
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
-  constructor(public bucket: string, protected useIndex = false) {}
-
-  get TEMPORARY() {
-    return window.TEMPORARY;
-  }
-  get PERSISTENT() {
-    return window.PERSISTENT;
-  }
+  constructor(
+    public bucket: string,
+    protected useIndex = false,
+    public PERSISTENT = window.PERSISTENT,
+    public TEMPORARY = window.TEMPORARY
+  ) {}
 
   abstract requestFileSystem(
     type: number,

@@ -3,9 +3,10 @@ export interface FileError extends DOMError {
 }
 
 export abstract class AbstractFileError implements FileError {
-  abstract name: string;
   abstract code: number;
+  abstract name: string;
   stack: string;
+
   constructor(
     public bucket: string,
     public filePath: string,
@@ -16,33 +17,37 @@ export abstract class AbstractFileError implements FileError {
 }
 
 export class InvalidStateError extends AbstractFileError {
+  code = 7;
+  name = "Invalid state error";
+
   constructor(bucket: string, filePath: string, detail?: string) {
     super(bucket, filePath, detail);
   }
-  name = "Invalid state error";
-  code = 7;
 }
 
 export class InvalidModificationError extends AbstractFileError {
+  code = 9;
+  name = "Invalid modification error";
+
   constructor(bucket: string, filePath: string, detail?: string) {
     super(bucket, filePath, detail);
   }
-  name = "Invalid modification error";
-  code = 9;
 }
 
 export class NotFoundError extends AbstractFileError {
+  code = 1;
+  name = "Not found";
+
   constructor(bucket: string, filePath: string, detail?: string) {
     super(bucket, filePath, detail);
   }
-  name = "Not found";
-  code = 1;
 }
 
 export class NotImplementedError extends AbstractFileError {
+  code = -1;
+  name = "Not implemented";
+
   constructor(bucket: string, filePath: string, detail?: string) {
     super(bucket, filePath, detail);
   }
-  name = "Not implemented";
-  code = -1;
 }

@@ -1,6 +1,6 @@
 export interface FileSystemObject {
-  name: string;
   fullPath: string;
   lastModified?: number;
+  name: string;
   size?: number;
 }

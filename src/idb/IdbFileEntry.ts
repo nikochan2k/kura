@@ -13,15 +13,17 @@ import { IdbFileSystem } from "./IdbFileSystem";
 import { IdbFileWriter } from "./IdbFileWriter";
 
 export class IdbFileEntry extends IdbEntry implements FileEntry {
-  isFile = true;
-  isDirectory = false;
-  get size() {
-    return this.params.size;
-  }
   private idbFileWriter: IdbFileWriter;
+
+  isDirectory = false;
+  isFile = true;
 
   constructor(params: FileSystemParams<IdbFileSystem>) {
     super(params);
+  }
+
+  get size() {
+    return this.params.size;
   }
 
   createWriter(

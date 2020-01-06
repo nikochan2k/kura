@@ -17,27 +17,44 @@ import { IdbFileSystem } from "./IdbFileSystem";
 import { NotImplementedError } from "../FileError";
 
 export abstract class IdbEntry implements Entry {
-  abstract isFile: boolean;
   abstract isDirectory: boolean;
+  abstract isFile: boolean;
+
+  constructor(public params: FileSystemParams<IdbFileSystem>) {}
 
   get filesystem() {
     return this.params.filesystem;
-  }
-
-  get name() {
-    return this.params.name;
   }
 
   get fullPath() {
     return this.params.fullPath;
   }
 
-  constructor(public params: FileSystemParams<IdbFileSystem>) {}
+  get name() {
+    return this.params.name;
+  }
 
-  abstract remove(
-    successCallback: VoidCallback,
+  copyTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
-  ): void;
+  ): void {
+    throw new NotImplementedError(this.filesystem.name, this.fullPath);
+  }
+
+  getMetadata(
+    successCallback: MetadataCallback,
+    errorCallback?: ErrorCallback
+  ): void {
+    successCallback({
+      modificationTime:
+        this.params.lastModified == null
+          ? null
+          : new Date(this.params.lastModified),
+      size: this.params.size
+    });
+  }
 
   getParent(
     successCallback: DirectoryEntryCallback,
@@ -53,17 +70,13 @@ export abstract class IdbEntry implements Entry {
     );
   }
 
-  getMetadata(
-    successCallback: MetadataCallback,
-    errorCallback?: ErrorCallback
+  moveTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
   ): void {
-    successCallback({
-      modificationTime:
-        this.params.lastModified == null
-          ? null
-          : new Date(this.params.lastModified),
-      size: this.params.size
-    });
+    throw new NotImplementedError(this.filesystem.name, this.fullPath);
   }
 
   setMetadata(
@@ -98,25 +111,12 @@ export abstract class IdbEntry implements Entry {
       });
   }
 
-  moveTo(
-    parent: DirectoryEntry,
-    newName?: string | undefined,
-    successCallback?: EntryCallback | undefined,
-    errorCallback?: ErrorCallback | undefined
-  ): void {
-    throw new NotImplementedError(this.filesystem.name, this.fullPath);
-  }
-
-  copyTo(
-    parent: DirectoryEntry,
-    newName?: string | undefined,
-    successCallback?: EntryCallback | undefined,
-    errorCallback?: ErrorCallback | undefined
-  ): void {
-    throw new NotImplementedError(this.filesystem.name, this.fullPath);
-  }
-
   toURL(): string {
     return `filesystem:${location.protocol}:${location.host}:${location.port}${DIR_SEPARATOR}${this.fullPath}`;
   }
+
+  abstract remove(
+    successCallback: VoidCallback,
+    errorCallback?: ErrorCallback | undefined
+  ): void;
 }

@@ -6,16 +6,8 @@ import {
 } from "../filesystem";
 
 export class EmbeddedLocalFileSystem implements LocalFileSystem {
-  constructor() {
-    this.requestFileSystem =
-      window.requestFileSystem || window.webkitRequestFileSystem;
-    this.resolveLocalFileSystemURL = window.resolveLocalFileSystemURL;
-    this.TEMPORARY = window.TEMPORARY;
-    this.PERSISTENT = window.PERSISTENT;
-  }
-
-  TEMPORARY: number;
   PERSISTENT: number;
+  TEMPORARY: number;
 
   requestFileSystem: (
     type: number,
@@ -29,4 +21,12 @@ export class EmbeddedLocalFileSystem implements LocalFileSystem {
     successCallback: EntryCallback,
     errorCallback?: ErrorCallback
   ) => void;
+
+  constructor() {
+    this.requestFileSystem =
+      window.requestFileSystem || window.webkitRequestFileSystem;
+    this.resolveLocalFileSystemURL = window.resolveLocalFileSystemURL;
+    this.TEMPORARY = window.TEMPORARY;
+    this.PERSISTENT = window.PERSISTENT;
+  }
 }

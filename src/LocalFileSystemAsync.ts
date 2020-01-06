@@ -6,12 +6,12 @@ import { NotImplementedError } from "./FileError";
 export class LocalFileSystemAsync {
   constructor(public localFileSystem: LocalFileSystem) {}
 
-  get TEMPORARY() {
-    return window.TEMPORARY;
+  get PERSISTENT() {
+    return this.localFileSystem.PERSISTENT;
   }
 
-  get PERSISTENT() {
-    return window.PERSISTENT;
+  get TEMPORARY() {
+    return this.localFileSystem.TEMPORARY;
   }
 
   requestFileSystemAsync(type: number, size: number): Promise<FileSystemAsync> {
