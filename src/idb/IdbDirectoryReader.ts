@@ -11,7 +11,7 @@ export class IdbDirectoryReader implements DirectoryReader {
   ): void {
     const dirEntry = this.dirEntry;
     dirEntry.filesystem.idb
-      .getEntries(dirEntry.fullPath, false)
+      .getEntries(dirEntry.fullPath)
       .then(entries => {
         successCallback(entries);
       })
