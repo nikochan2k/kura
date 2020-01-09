@@ -1,29 +1,20 @@
+import { AbstractFileEntry } from "../AbstractFileEntry";
 import { base64ToFile, blobToFile, onError } from "../FileSystemUtil";
-import {
-  ErrorCallback,
-  FileCallback,
-  FileEntry,
-  FileWriterCallback,
-  VoidCallback
-} from "../filesystem";
+import { ErrorCallback, FileCallback, FileWriterCallback } from "../filesystem";
 import { FileSystemParams } from "../FileSystemParams";
 import { Idb } from "./Idb";
-import { IdbEntry } from "./IdbEntry";
+import { IdbEntrySupport } from "./IdbEntrySupport";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { IdbFileWriter } from "./IdbFileWriter";
 
-export class IdbFileEntry extends IdbEntry implements FileEntry {
+export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
   private idbFileWriter: IdbFileWriter;
 
   isDirectory = false;
   isFile = true;
 
   constructor(params: FileSystemParams<IdbFileSystem>) {
-    super(params);
-  }
-
-  get size() {
-    return this.params.size;
+    super(params, new IdbEntrySupport(params));
   }
 
   createWriter(
@@ -37,6 +28,10 @@ export class IdbFileEntry extends IdbEntry implements FileEntry {
     } else {
       successCallback(this.idbFileWriter);
     }
+  }
+
+  async delete() {
+    await this.filesystem.idb.delete(this.fullPath);
   }
 
   file(
@@ -72,21 +67,6 @@ export class IdbFileEntry extends IdbEntry implements FileEntry {
       })
       .catch(error => {
         onError(error, errorCallback);
-      });
-  }
-
-  remove(
-    successCallback: VoidCallback,
-    errorCallback?: ErrorCallback | undefined
-  ): void {
-    const idb = this.filesystem.idb;
-    idb
-      .delete(this.fullPath)
-      .then(() => {
-        successCallback();
-      })
-      .catch(err => {
-        onError(err, errorCallback);
       });
   }
 }

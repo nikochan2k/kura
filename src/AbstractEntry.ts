@@ -1,0 +1,103 @@
+import { DIR_SEPARATOR } from "./FileSystemConstants";
+import {
+  DirectoryEntry,
+  DirectoryEntryCallback,
+  Entry,
+  EntryCallback,
+  ErrorCallback,
+  FileEntry,
+  FileSystem,
+  MetadataCallback,
+  VoidCallback
+} from "./filesystem";
+import { FileSystemObject } from "./FileSystemObject";
+import { FileSystemParams } from "./FileSystemParams";
+import { getParentPath } from "./FileSystemUtil";
+import { NotImplementedError } from "./FileError";
+import { AbstractEntrySupport } from "./AbstractEntrySupport";
+
+export abstract class AbstractEntry<T extends FileSystem> implements Entry {
+  toDirectoryEntry: (obj: FileSystemObject) => DirectoryEntry;
+  toFileEntry: (obj: FileSystemObject) => FileEntry;
+  getDirectoryObject: (path: string) => Promise<FileSystemObject>;
+  getFileObject: (path: string) => Promise<FileSystemObject>;
+  abstract isDirectory: boolean;
+  abstract isFile: boolean;
+  toURL: () => string;
+
+  constructor(
+    public params: FileSystemParams<T>,
+    support: AbstractEntrySupport
+  ) {
+    this.getDirectoryObject = support.getDirectoryObject;
+    this.getFileObject = support.getFileObject;
+    this.toDirectoryEntry = support.toDirectoryEntry;
+    this.toFileEntry = support.toFileEntry;
+    this.toURL = support.toURL;
+  }
+
+  get filesystem() {
+    return this.params.filesystem;
+  }
+  get fullPath() {
+    return this.params.fullPath;
+  }
+  get name() {
+    return this.params.name;
+  }
+
+  copyTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    throw new NotImplementedError(this.filesystem.name, this.fullPath);
+  }
+
+  createObject(path: string, isFile: boolean): FileSystemObject {
+    return {
+      name: path.split(DIR_SEPARATOR).pop(),
+      fullPath: path,
+      lastModified: isFile ? Date.now() : undefined,
+      size: isFile ? 0 : undefined
+    };
+  }
+
+  getMetadata(
+    successCallback: MetadataCallback,
+    errorCallback?: ErrorCallback
+  ): void {
+    successCallback({
+      modificationTime:
+        this.params.lastModified == null
+          ? null
+          : new Date(this.params.lastModified),
+      size: this.params.size
+    });
+  }
+
+  getParent(
+    successCallback: DirectoryEntryCallback,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    const parentPath = getParentPath(this.fullPath);
+    const obj = this.createObject(parentPath, false);
+    successCallback(this.toDirectoryEntry(obj));
+  }
+
+  moveTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    throw new NotImplementedError(this.filesystem.name, this.fullPath);
+  }
+
+  abstract async delete(): Promise<void>;
+  abstract remove(
+    successCallback: VoidCallback,
+    errorCallback?: ErrorCallback | undefined
+  ): void;
+}

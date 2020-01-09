@@ -1,4 +1,9 @@
 import { DIR_OPEN_BOUND, DIR_SEPARATOR } from "../FileSystemConstants";
+import { DirectoryEntry, FileEntry } from "../filesystem";
+import { FileSystemObject } from "../FileSystemObject";
+import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
+import { IdbFileEntry } from "./IdbFileEntry";
+import { IdbFileSystem } from "./IdbFileSystem";
 
 export function countSlash(path: string) {
   let result = 0;
@@ -8,6 +13,26 @@ export function countSlash(path: string) {
     }
   }
   return result;
+}
+
+export function createDirectoryEntry(
+  filesystem: IdbFileSystem,
+  obj: FileSystemObject
+): DirectoryEntry {
+  return new IdbDirectoryEntry({
+    filesystem: filesystem,
+    ...obj
+  });
+}
+
+export function createFileEntry(
+  filesystem: IdbFileSystem,
+  obj: FileSystemObject
+): FileEntry {
+  return new IdbFileEntry({
+    filesystem: filesystem,
+    ...obj
+  });
 }
 
 export function getRange(fullPath: string) {

@@ -101,20 +101,6 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  setMetadata(metadata: Metadata): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.entry.setMetadata(
-        metadata,
-        () => {
-          resolve();
-        },
-        error => {
-          reject(error);
-        }
-      );
-    });
-  }
-
   toURL(): string {
     return this.entry.toURL();
   }

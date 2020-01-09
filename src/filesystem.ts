@@ -107,18 +107,6 @@ export interface Entry {
   ): void;
 
   /**
-   * Look up metadata about this entry.
-   * @param metadata Metadata about this entry
-   * @param successCallback A callback that is called on success.
-   * @param errorCallback ErrorCallback A callback that is called when errors happen.
-   */
-  setMetadata(
-    metadata: Metadata,
-    successCallback: VoidCallback,
-    errorCallback?: ErrorCallback
-  ): void;
-
-  /**
    * The name of the entry, excluding the path leading to it.
    */
   name: string;
