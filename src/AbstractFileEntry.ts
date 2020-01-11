@@ -1,16 +1,16 @@
+import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
 import {
   ErrorCallback,
   FileCallback,
   FileEntry,
-  FileSystem,
   FileWriterCallback,
   VoidCallback
 } from "./filesystem";
 import { FileSystemParams } from "./FileSystemParams";
 import { onError } from "./FileSystemUtil";
 
-export abstract class AbstractFileEntry<T extends FileSystem>
+export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
   implements FileEntry {
   isDirectory = false;

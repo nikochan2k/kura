@@ -10,11 +10,11 @@ export class IdbDirectoryReader implements DirectoryReader {
   createEntry(obj: FileSystemObject) {
     return obj.size != null
       ? new IdbFileEntry({
-          filesystem: this.dirEntry.filesystem,
+          accessor: this.dirEntry.params.accessor,
           ...obj
         })
       : new IdbDirectoryEntry({
-          filesystem: this.dirEntry.filesystem,
+          accessor: this.dirEntry.params.accessor,
           ...obj
         });
   }
@@ -29,9 +29,8 @@ export class IdbDirectoryReader implements DirectoryReader {
     successCallback: EntriesCallback,
     errorCallback?: ErrorCallback
   ): void {
-    const dirEntry = this.dirEntry;
-    dirEntry.filesystem.accessor
-      .getObjects(dirEntry.fullPath)
+    this.dirEntry.params.accessor
+      .getObjects(this.dirEntry.params.fullPath)
       .then(objects => {
         successCallback(this.createEntries(objects));
       })

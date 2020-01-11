@@ -9,30 +9,30 @@ import {
 } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
+import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryReader } from "./IdbDirectoryReader";
 import { IdbFileEntry } from "./IdbFileEntry";
-import { IdbFileSystem } from "./IdbFileSystem";
 import { InvalidModificationError } from "../FileError";
 import { onError } from "../FileSystemUtil";
 
-export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbFileSystem> {
-  constructor(params: FileSystemParams<IdbFileSystem>) {
+export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
+  constructor(params: FileSystemParams<IdbAccessor>) {
     super(params);
   }
 
   toFileEntry(obj: FileSystemObject): FileEntry {
     return new IdbFileEntry({
-      filesystem: this.params.filesystem,
+      accessor: this.params.accessor,
       ...obj
     });
   }
 
   getDirectoryObject(path: string): Promise<FileSystemObject> {
-    return this.params.filesystem.accessor.getObject(path);
+    return this.params.accessor.getObject(path);
   }
 
   getFileObject(path: string): Promise<FileSystemObject> {
-    return this.params.filesystem.accessor.getObject(path);
+    return this.params.accessor.getObject(path);
   }
 
   createReader(): DirectoryReader {
@@ -41,7 +41,7 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbFileSystem> {
 
   toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
-      filesystem: this.params.filesystem,
+      accessor: this.params.accessor,
       ...obj
     });
   }
@@ -50,7 +50,7 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbFileSystem> {
   }
 
   async delete() {
-    const accessor = this.filesystem.accessor;
+    const accessor = this.params.accessor;
     if (await accessor.hasChild(this.fullPath)) {
       throw new InvalidModificationError(
         this.filesystem.name,
@@ -63,12 +63,12 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbFileSystem> {
   }
 
   hasChild(): Promise<boolean> {
-    return this.filesystem.accessor.hasChild(this.fullPath);
+    return this.params.accessor.hasChild(this.fullPath);
   }
 
   async registerObject(path: string, isFile: boolean) {
     const obj = this.createObject(path, isFile);
-    const accessor = this.filesystem.accessor;
+    const accessor = this.params.accessor;
     await accessor.putObject(obj);
     return obj;
   }
@@ -77,7 +77,7 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbFileSystem> {
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    this.filesystem.accessor
+    this.params.accessor
       .deleteRecursively(this.fullPath)
       .then(() => {
         successCallback();

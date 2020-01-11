@@ -1,3 +1,4 @@
+import { AbstractAccessor } from "./AbstractAccessor";
 import { DIR_SEPARATOR } from "./FileSystemConstants";
 import {
   DirectoryEntry,
@@ -5,7 +6,6 @@ import {
   Entry,
   EntryCallback,
   ErrorCallback,
-  FileSystem,
   MetadataCallback,
   VoidCallback
 } from "./filesystem";
@@ -14,14 +14,15 @@ import { FileSystemParams } from "./FileSystemParams";
 import { getParentPath } from "./FileSystemUtil";
 import { NotImplementedError } from "./FileError";
 
-export abstract class AbstractEntry<T extends FileSystem> implements Entry {
+export abstract class AbstractEntry<T extends AbstractAccessor>
+  implements Entry {
   abstract isDirectory: boolean;
   abstract isFile: boolean;
 
   constructor(public params: FileSystemParams<T>) {}
 
   get filesystem() {
-    return this.params.filesystem;
+    return this.params.accessor.filesystem;
   }
   get fullPath() {
     return this.params.fullPath;

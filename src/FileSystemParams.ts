@@ -1,7 +1,7 @@
-import { FileSystem } from "./filesystem";
+import { AbstractAccessor } from "./AbstractAccessor";
 import { FileSystemObject } from "./FileSystemObject";
 
-export interface FileSystemParams<FS extends FileSystem>
+export interface FileSystemParams<T extends AbstractAccessor>
   extends FileSystemObject {
-  filesystem: FS;
+  accessor: AbstractAccessor;
 }

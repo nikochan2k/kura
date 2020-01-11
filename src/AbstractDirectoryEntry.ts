@@ -1,3 +1,4 @@
+import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
 import {
   DirectoryEntry,
@@ -6,7 +7,6 @@ import {
   ErrorCallback,
   FileEntry,
   FileEntryCallback,
-  FileSystem,
   Flags,
   VoidCallback
 } from "./filesystem";
@@ -15,7 +15,7 @@ import { FileSystemParams } from "./FileSystemParams";
 import { InvalidModificationError, NotFoundError } from "./FileError";
 import { onError, resolveToFullPath } from "./FileSystemUtil";
 
-export abstract class AbstractDirectoryEntry<T extends FileSystem>
+export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
   implements DirectoryEntry {
   isDirectory = true;

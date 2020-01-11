@@ -1,7 +1,11 @@
-import { FileSystemObject } from "./FileSystemObject";
+import { FileSystem } from "./filesystem";
 import { FileSystemIndex } from "./FileSystemIndex";
+import { FileSystemObject } from "./FileSystemObject";
 
 export abstract class AbstractAccessor {
+  abstract filesystem: FileSystem;
+  abstract name: string;
+
   constructor(protected useIndex: boolean) {}
 
   async getObjects(dirPath: string) {
@@ -13,6 +17,7 @@ export abstract class AbstractAccessor {
   abstract delete(fullPath: string): Promise<void>;
   abstract deleteRecursively(fullPath: string): Promise<void>;
   abstract getContent(fullPath: string): Promise<any>;
+  abstract getObject(fullPath: string): Promise<FileSystemObject>;
   abstract getObjectsFromDatabase(
     fullPath: string
   ): Promise<FileSystemObject[]>;

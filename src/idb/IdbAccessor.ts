@@ -4,8 +4,8 @@ import { createPath, getName, getParentPath } from "../FileSystemUtil";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileSystemIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
-import { IdbFileSystem } from "./IdbFileSystem";
 import { InvalidModificationError, InvalidStateError } from "../FileError";
+import { IdbFileSystem } from "./IdbFileSystem";
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -24,6 +24,10 @@ export class IdbAccessor extends AbstractAccessor {
   constructor(useIndex: boolean) {
     super(useIndex);
     this.filesystem = new IdbFileSystem(this);
+  }
+
+  get name() {
+    return this.db.name;
   }
 
   close() {
@@ -293,9 +297,7 @@ export class IdbAccessor extends AbstractAccessor {
   putObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       if (this.useIndex && obj.name === INDEX_FILE_NAME) {
-        reject(
-          new InvalidModificationError(this.filesystem.name, obj.fullPath)
-        );
+        reject(new InvalidModificationError(this.name, obj.fullPath));
         return;
       }
 
@@ -331,7 +333,7 @@ export class IdbAccessor extends AbstractAccessor {
     update?: (index: FileSystemIndex) => void
   ) {
     if (!this.useIndex) {
-      throw new InvalidStateError(this.filesystem.name, dirPath, "useIndex");
+      throw new InvalidStateError(this.name, dirPath, "useIndex");
     }
 
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);

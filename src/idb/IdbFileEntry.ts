@@ -11,13 +11,12 @@ import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
 import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
-import { IdbFileSystem } from "./IdbFileSystem";
 import { IdbFileWriter } from "./IdbFileWriter";
 
-export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
+export class IdbFileEntry extends AbstractFileEntry<IdbAccessor> {
   private idbFileWriter: IdbFileWriter;
 
-  constructor(params: FileSystemParams<IdbFileSystem>) {
+  constructor(params: FileSystemParams<IdbAccessor>) {
     super(params);
   }
 
@@ -35,7 +34,7 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
   }
 
   async delete() {
-    await this.filesystem.accessor.delete(this.fullPath);
+    await this.params.accessor.delete(this.fullPath);
   }
 
   file(
@@ -52,7 +51,7 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
       successCallback(file);
       return;
     }
-    const accessor = this.filesystem.accessor;
+    const accessor = this.params.accessor;
     accessor
       .getObject(this.fullPath)
       .then(entry => {
@@ -76,7 +75,7 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
 
   toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
-      filesystem: this.params.filesystem,
+      accessor: this.params.accessor,
       ...obj
     });
   }

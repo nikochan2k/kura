@@ -8,13 +8,13 @@ export class IdbFileSystem implements FileSystem {
 
   constructor(public accessor: IdbAccessor) {
     this.root = new IdbDirectoryEntry({
-      filesystem: this,
+      accessor: accessor,
       name: "",
       fullPath: DIR_SEPARATOR
     });
   }
 
   get name() {
-    return this.accessor.db.name;
+    return this.accessor.name;
   }
 }
