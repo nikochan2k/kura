@@ -1,6 +1,7 @@
 import * as Default from "./default";
 import * as Embedded from "./embedded";
 import * as Idb from "./idb";
+export * from "./AbstractAccessor";
 export * from "./AbstractDirectoryEntry";
 export * from "./AbstractFileEntry";
 export * from "./AbstractFileWriter";
