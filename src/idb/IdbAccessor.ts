@@ -3,15 +3,8 @@ import { createPath, getName, getParentPath } from "../FileSystemUtil";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileSystemIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
-import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
-import { IdbFileEntry } from "./IdbFileEntry";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { InvalidModificationError, InvalidStateError } from "../FileError";
-
-interface IndexAndObjects {
-  index: FileSystemIndex;
-  objects: FileSystemObject[];
-}
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -19,7 +12,7 @@ const CONTENT_STORE = "contents";
 const indexedDB: IDBFactory =
   window.indexedDB || window.mozIndexedDB || window.msIndexedDB;
 
-export class Idb {
+export class IdbAccessor {
   static SUPPORTS_BLOB = true;
 
   private initialized = false;
@@ -34,20 +27,6 @@ export class Idb {
   close() {
     this.db.close();
     delete this.db;
-  }
-
-  createEntries(objects: FileSystemObject[]) {
-    return objects.map(obj => {
-      return obj.size != null
-        ? new IdbFileEntry({
-            filesystem: this.filesystem,
-            ...obj
-          })
-        : new IdbDirectoryEntry({
-            filesystem: this.filesystem,
-            ...obj
-          });
-    });
   }
 
   delete(fullPath: string) {
@@ -144,6 +123,7 @@ export class Idb {
 
   getContent(fullPath: string) {
     return new Promise<any>((resolve, reject) => {
+      const onerror = (ev: Event) => reject(ev);
       const tx = this.db.transaction([CONTENT_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
       tx.onabort = onerror;
@@ -160,14 +140,13 @@ export class Idb {
     });
   }
 
-  async getEntries(dirPath: string) {
-    const objects = this.useIndex
+  async getObjects(dirPath: string) {
+    return this.useIndex
       ? await this.getObjectsFromIndex(dirPath)
-      : await this.getObjects(dirPath);
-    return this.createEntries(objects);
+      : await this.getObjectsFromDatabase(dirPath);
   }
 
-  getEntry(fullPath: string) {
+  getObject(fullPath: string) {
     return new Promise<FileSystemObject>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
@@ -180,7 +159,7 @@ export class Idb {
     });
   }
 
-  getObjects(fullPath: string) {
+  getObjectsFromDatabase(fullPath: string) {
     return new Promise<FileSystemObject[]>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const onerror = (ev: Event) => reject(ev);
@@ -251,9 +230,9 @@ export class Idb {
             const blob = new Blob(["test"], { type: "text/plain" });
             const transaction = db.transaction("store", "readwrite");
             transaction.objectStore("store").put(blob, "key");
-            Idb.SUPPORTS_BLOB = true;
+            IdbAccessor.SUPPORTS_BLOB = true;
           } catch (err) {
-            Idb.SUPPORTS_BLOB = false;
+            IdbAccessor.SUPPORTS_BLOB = false;
           } finally {
             db.close();
             indexedDB.deleteDatabase(dbName);
@@ -311,7 +290,7 @@ export class Idb {
     });
   }
 
-  putEntry(obj: FileSystemObject, content?: string | Blob) {
+  putObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       if (this.useIndex && obj.name === INDEX_FILE_NAME) {
         reject(
@@ -326,9 +305,6 @@ export class Idb {
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
       entryTx.oncomplete = async function() {
-        if (content) {
-          await self.putContent(obj.fullPath, content);
-        }
         if (self.useIndex) {
           const dirPath = getParentPath(obj.fullPath);
           await self.putIndex(dirPath, (index: FileSystemIndex) => {
@@ -380,7 +356,7 @@ export class Idb {
         await this.putContent(indexPath, index);
       }
     } else {
-      objects = await this.getObjects(dirPath);
+      objects = await this.getObjectsFromDatabase(dirPath);
       const index: FileSystemIndex = {};
       for (const obj of objects) {
         if (obj.name !== INDEX_FILE_NAME) {

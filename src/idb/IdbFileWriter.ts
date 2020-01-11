@@ -1,7 +1,7 @@
 import { AbstractFileWriter } from "../AbstractFileWriter";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileWriter } from "../filewriter";
-import { Idb } from "./Idb";
+import { IdbAccessor } from "./IdbAccessor";
 import { IdbFileEntry } from "./IdbFileEntry";
 
 export class IdbFileWriter extends AbstractFileWriter<IdbFileEntry>
@@ -19,29 +19,37 @@ export class IdbFileWriter extends AbstractFileWriter<IdbFileEntry>
     };
 
     const writeToIdb = (
-      entry: FileSystemObject,
+      obj: FileSystemObject,
       content: string | Blob,
       onsuccess: () => void
     ) => {
-      this.fileEntry.filesystem.idb
-        .putEntry(entry, content)
+      const accessor = this.fileEntry.filesystem.accessor;
+      accessor
+        .putObject(obj)
         .then(() => {
-          onsuccess();
-          if (this.onwriteend) {
-            const evt: ProgressEvent<EventTarget> = {
-              loaded: this.position,
-              total: this.length,
-              lengthComputable: true
-            } as any;
-            this.onwriteend(evt);
-          }
+          accessor
+            .putContent(obj.fullPath, content)
+            .then(() => {
+              onsuccess();
+              if (this.onwriteend) {
+                const evt: ProgressEvent<EventTarget> = {
+                  loaded: this.position,
+                  total: this.length,
+                  lengthComputable: true
+                } as any;
+                this.onwriteend(evt);
+              }
+            })
+            .catch(err => {
+              this.handleError(err);
+            });
         })
         .catch(err => {
           this.handleError(err);
         });
     };
 
-    if (Idb.SUPPORTS_BLOB) {
+    if (IdbAccessor.SUPPORTS_BLOB) {
       writeToIdb(entry, file, onsuccess);
     } else {
       const reader = new FileReader();

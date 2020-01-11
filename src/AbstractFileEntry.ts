@@ -1,5 +1,4 @@
 import { AbstractEntry } from "./AbstractEntry";
-import { AbstractEntrySupport } from "./AbstractEntrySupport";
 import {
   ErrorCallback,
   FileCallback,
@@ -18,8 +17,8 @@ export abstract class AbstractFileEntry<T extends FileSystem>
   isFile = true;
   size: number;
 
-  constructor(params: FileSystemParams<T>, support: AbstractEntrySupport) {
-    super(params, support);
+  constructor(params: FileSystemParams<T>) {
+    super(params);
   }
 
   remove(

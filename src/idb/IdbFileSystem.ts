@@ -1,12 +1,12 @@
 import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystem } from "../filesystem";
-import { Idb } from "./Idb";
+import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 
 export class IdbFileSystem implements FileSystem {
   root: IdbDirectoryEntry;
 
-  constructor(public idb: Idb) {
+  constructor(public accessor: IdbAccessor) {
     this.root = new IdbDirectoryEntry({
       filesystem: this,
       name: "",
@@ -15,6 +15,6 @@ export class IdbFileSystem implements FileSystem {
   }
 
   get name() {
-    return this.idb.db.name;
+    return this.accessor.db.name;
   }
 }

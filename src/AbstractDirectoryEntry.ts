@@ -4,16 +4,16 @@ import {
   DirectoryEntryCallback,
   DirectoryReader,
   ErrorCallback,
+  FileEntry,
   FileEntryCallback,
   FileSystem,
   Flags,
   VoidCallback
 } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
+import { FileSystemParams } from "./FileSystemParams";
 import { InvalidModificationError, NotFoundError } from "./FileError";
 import { onError, resolveToFullPath } from "./FileSystemUtil";
-import { FileSystemParams } from "./FileSystemParams";
-import { AbstractEntrySupport } from "./AbstractEntrySupport";
 
 export abstract class AbstractDirectoryEntry<T extends FileSystem>
   extends AbstractEntry<T>
@@ -21,8 +21,8 @@ export abstract class AbstractDirectoryEntry<T extends FileSystem>
   isDirectory = true;
   isFile = false;
 
-  constructor(params: FileSystemParams<T>, support: AbstractEntrySupport) {
-    super(params, support);
+  constructor(params: FileSystemParams<T>) {
+    super(params);
   }
 
   getDirectory(
@@ -193,4 +193,10 @@ export abstract class AbstractDirectoryEntry<T extends FileSystem>
     path: string,
     isFile: boolean
   ): Promise<FileSystemObject>;
+
+  protected abstract getDirectoryObject(
+    path: string
+  ): Promise<FileSystemObject>;
+  protected abstract getFileObject(path: string): Promise<FileSystemObject>;
+  protected abstract toFileEntry(obj: FileSystemObject): FileEntry;
 }

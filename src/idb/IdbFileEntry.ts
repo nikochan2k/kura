@@ -1,20 +1,24 @@
 import { AbstractFileEntry } from "../AbstractFileEntry";
 import { base64ToFile, blobToFile, onError } from "../FileSystemUtil";
-import { ErrorCallback, FileCallback, FileWriterCallback } from "../filesystem";
+import { DIR_SEPARATOR } from "../FileSystemConstants";
+import {
+  DirectoryEntry,
+  ErrorCallback,
+  FileCallback,
+  FileWriterCallback
+} from "../filesystem";
+import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
-import { Idb } from "./Idb";
-import { IdbEntrySupport } from "./IdbEntrySupport";
+import { IdbAccessor } from "./IdbAccessor";
+import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { IdbFileWriter } from "./IdbFileWriter";
 
 export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
   private idbFileWriter: IdbFileWriter;
 
-  isDirectory = false;
-  isFile = true;
-
   constructor(params: FileSystemParams<IdbFileSystem>) {
-    super(params, new IdbEntrySupport(params));
+    super(params);
   }
 
   createWriter(
@@ -22,7 +26,7 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
     errorCallback?: ErrorCallback | undefined
   ): void {
     if (!this.idbFileWriter) {
-      this.file(file => {
+      this.file(() => {
         successCallback(this.idbFileWriter);
       }, errorCallback);
     } else {
@@ -31,7 +35,7 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
   }
 
   async delete() {
-    await this.filesystem.idb.delete(this.fullPath);
+    await this.filesystem.accessor.delete(this.fullPath);
   }
 
   file(
@@ -48,14 +52,14 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
       successCallback(file);
       return;
     }
-    const idb = this.filesystem.idb;
-    idb
-      .getEntry(this.fullPath)
+    const accessor = this.filesystem.accessor;
+    accessor
+      .getObject(this.fullPath)
       .then(entry => {
-        idb
+        accessor
           .getContent(this.fullPath)
           .then(content => {
-            const file = Idb.SUPPORTS_BLOB
+            const file = IdbAccessor.SUPPORTS_BLOB
               ? blobToFile([content as Blob], entry.name, entry.lastModified)
               : base64ToFile(content as string, entry.name, entry.lastModified);
             this.idbFileWriter = new IdbFileWriter(this, file);
@@ -68,5 +72,16 @@ export class IdbFileEntry extends AbstractFileEntry<IdbFileSystem> {
       .catch(error => {
         onError(error, errorCallback);
       });
+  }
+
+  toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
+    return new IdbDirectoryEntry({
+      filesystem: this.params.filesystem,
+      ...obj
+    });
+  }
+
+  toURL(): string {
+    return `idb:${location.protocol}:${location.host}:${location.port}${DIR_SEPARATOR}${this.params.fullPath}`;
   }
 }

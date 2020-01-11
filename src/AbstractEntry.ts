@@ -5,7 +5,6 @@ import {
   Entry,
   EntryCallback,
   ErrorCallback,
-  FileEntry,
   FileSystem,
   MetadataCallback,
   VoidCallback
@@ -14,27 +13,12 @@ import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import { getParentPath } from "./FileSystemUtil";
 import { NotImplementedError } from "./FileError";
-import { AbstractEntrySupport } from "./AbstractEntrySupport";
 
 export abstract class AbstractEntry<T extends FileSystem> implements Entry {
-  toDirectoryEntry: (obj: FileSystemObject) => DirectoryEntry;
-  toFileEntry: (obj: FileSystemObject) => FileEntry;
-  getDirectoryObject: (path: string) => Promise<FileSystemObject>;
-  getFileObject: (path: string) => Promise<FileSystemObject>;
   abstract isDirectory: boolean;
   abstract isFile: boolean;
-  toURL: () => string;
 
-  constructor(
-    public params: FileSystemParams<T>,
-    support: AbstractEntrySupport
-  ) {
-    this.getDirectoryObject = support.getDirectoryObject;
-    this.getFileObject = support.getFileObject;
-    this.toDirectoryEntry = support.toDirectoryEntry;
-    this.toFileEntry = support.toFileEntry;
-    this.toURL = support.toURL;
-  }
+  constructor(public params: FileSystemParams<T>) {}
 
   get filesystem() {
     return this.params.filesystem;
@@ -100,4 +84,7 @@ export abstract class AbstractEntry<T extends FileSystem> implements Entry {
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void;
+  abstract toURL(): string;
+
+  protected abstract toDirectoryEntry(obj: FileSystemObject): DirectoryEntry;
 }

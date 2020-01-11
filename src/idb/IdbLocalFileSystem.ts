@@ -4,7 +4,7 @@ import {
   ErrorCallback,
   FileSystemCallback
 } from "../filesystem";
-import { Idb } from "./Idb";
+import { IdbAccessor } from "./IdbAccessor";
 import { NotImplementedError } from "../FileError";
 import { onError } from "../FileSystemUtil";
 
@@ -26,11 +26,11 @@ export class IdbLocalFileSystem extends AbstractLocalFileSystem {
       throw new Error("No temporary storage");
     }
 
-    const idb = new Idb(this.useIndex);
-    idb
+    const accessor = new IdbAccessor(this.useIndex);
+    accessor
       .open(this.bucket)
       .then(() => {
-        successCallback(idb.filesystem);
+        successCallback(accessor.filesystem);
       })
       .catch(err => {
         onError(err, errorCallback);
