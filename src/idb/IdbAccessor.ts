@@ -1,3 +1,4 @@
+import { AbstractAccessor } from "../AbstractAccessor";
 import { countSlash, getRange } from "./IdbUtil";
 import { createPath, getName, getParentPath } from "../FileSystemUtil";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
@@ -12,7 +13,7 @@ const CONTENT_STORE = "contents";
 const indexedDB: IDBFactory =
   window.indexedDB || window.mozIndexedDB || window.msIndexedDB;
 
-export class IdbAccessor {
+export class IdbAccessor extends AbstractAccessor {
   static SUPPORTS_BLOB = true;
 
   private initialized = false;
@@ -20,7 +21,8 @@ export class IdbAccessor {
   db: IDBDatabase;
   filesystem: IdbFileSystem;
 
-  constructor(private useIndex: boolean) {
+  constructor(useIndex: boolean) {
+    super(useIndex);
     this.filesystem = new IdbFileSystem(this);
   }
 
@@ -138,12 +140,6 @@ export class IdbAccessor {
         }
       };
     });
-  }
-
-  async getObjects(dirPath: string) {
-    return this.useIndex
-      ? await this.getObjectsFromIndex(dirPath)
-      : await this.getObjectsFromDatabase(dirPath);
   }
 
   getObject(fullPath: string) {
@@ -290,6 +286,10 @@ export class IdbAccessor {
     });
   }
 
+  async putIndex(dirPath: string, update: (index: FileSystemIndex) => void) {
+    await this.handleIndex(dirPath, false, update);
+  }
+
   putObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       if (this.useIndex && obj.name === INDEX_FILE_NAME) {
@@ -323,10 +323,6 @@ export class IdbAccessor {
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = onerror;
     });
-  }
-
-  async putIndex(dirPath: string, update: (index: FileSystemIndex) => void) {
-    await this.handleIndex(dirPath, false, update);
   }
 
   private async handleIndex(
