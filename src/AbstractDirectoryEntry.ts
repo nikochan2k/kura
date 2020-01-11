@@ -25,6 +25,19 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     super(params);
   }
 
+  async delete() {
+    const accessor = this.params.accessor;
+    if (await accessor.hasChild(this.fullPath)) {
+      throw new InvalidModificationError(
+        this.filesystem.name,
+        this.fullPath,
+        `${this.fullPath} is not empty`
+      );
+    }
+
+    await accessor.delete(this.fullPath);
+  }
+
   getDirectory(
     path: string,
     options?: Flags | undefined,
@@ -85,6 +98,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       .catch(err => {
         onError(err, errorCallback);
       });
+  }
+
+  getDirectoryObject(path: string): Promise<FileSystemObject> {
+    return this.params.accessor.getObject(path);
   }
 
   getFile(
@@ -149,6 +166,21 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       });
   }
 
+  getFileObject(path: string): Promise<FileSystemObject> {
+    return this.params.accessor.getObject(path);
+  }
+
+  hasChild(): Promise<boolean> {
+    return this.params.accessor.hasChild(this.fullPath);
+  }
+
+  async registerObject(path: string, isFile: boolean) {
+    const obj = this.createObject(path, isFile);
+    const accessor = this.params.accessor;
+    await accessor.putObject(obj);
+    return obj;
+  }
+
   remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
@@ -182,21 +214,19 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
   removeRecursively(
     successCallback: VoidCallback,
-    errorCallback?: ErrorCallback
+    errorCallback?: ErrorCallback | undefined
   ): void {
-    throw new Error("Method not implemented."); // TODO
+    this.params.accessor
+      .deleteRecursively(this.fullPath)
+      .then(() => {
+        successCallback();
+      })
+      .catch(err => {
+        onError(err, errorCallback);
+      });
   }
 
   abstract createReader(): DirectoryReader;
-  abstract async hasChild(): Promise<boolean>;
-  abstract registerObject(
-    path: string,
-    isFile: boolean
-  ): Promise<FileSystemObject>;
 
-  protected abstract getDirectoryObject(
-    path: string
-  ): Promise<FileSystemObject>;
-  protected abstract getFileObject(path: string): Promise<FileSystemObject>;
   protected abstract toFileEntry(obj: FileSystemObject): FileEntry;
 }
