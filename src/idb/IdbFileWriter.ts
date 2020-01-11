@@ -23,7 +23,7 @@ export class IdbFileWriter extends AbstractFileWriter<IdbFileEntry>
       content: string | Blob,
       onsuccess: () => void
     ) => {
-      const accessor = this.fileEntry.filesystem.accessor;
+      const accessor = this.fileEntry.params.accessor;
       accessor
         .putObject(obj)
         .then(() => {
