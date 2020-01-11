@@ -4,6 +4,8 @@ import { FileSystemObject } from "../FileSystemObject";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileEntry } from "./IdbFileEntry";
 import { IdbFileSystem } from "./IdbFileSystem";
+import { AbstractAccessor } from "../AbstractAccessor";
+import { IdbAccessor } from "./IdbAccessor";
 
 export function countSlash(path: string) {
   let result = 0;
@@ -16,21 +18,21 @@ export function countSlash(path: string) {
 }
 
 export function createDirectoryEntry(
-  filesystem: IdbFileSystem,
+  accessor: IdbAccessor,
   obj: FileSystemObject
 ): DirectoryEntry {
   return new IdbDirectoryEntry({
-    filesystem: filesystem,
+    accessor: accessor,
     ...obj
   });
 }
 
 export function createFileEntry(
-  filesystem: IdbFileSystem,
+  accessor: IdbAccessor,
   obj: FileSystemObject
 ): FileEntry {
   return new IdbFileEntry({
-    filesystem: filesystem,
+    accessor: accessor,
     ...obj
   });
 }
