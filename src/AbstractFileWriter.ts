@@ -1,9 +1,10 @@
+import { AbstractAccessor } from "./AbstractAccessor";
+import { AbstractFileEntry } from "./AbstractFileEntry";
 import { blobToFile, createEmptyFile } from "./FileSystemUtil";
-import { FileEntry } from "./filesystem";
 import { FileWriter } from "./filewriter";
 import { NotImplementedError } from "./FileError";
 
-export abstract class AbstractFileWriter<T extends FileEntry>
+export abstract class AbstractFileWriter<T extends AbstractAccessor>
   implements FileWriter {
   DONE: number;
   INIT: number;
@@ -18,7 +19,7 @@ export abstract class AbstractFileWriter<T extends FileEntry>
   position = 0;
   readyState: number;
 
-  constructor(protected fileEntry: T, public file: File) {}
+  constructor(protected fileEntry: AbstractFileEntry<T>, public file: File) {}
 
   get length() {
     return this.file.size;

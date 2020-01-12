@@ -1,11 +1,13 @@
-import { DirectoryReader, EntriesCallback, ErrorCallback } from "../filesystem";
+import { AbstractDirectoryReader } from "../AbstractDirectoryReader";
 import { FileSystemObject } from "../FileSystemObject";
+import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileEntry } from "./IdbFileEntry";
-import { onError } from "../FileSystemUtil";
 
-export class IdbDirectoryReader implements DirectoryReader {
-  constructor(public dirEntry: IdbDirectoryEntry) {}
+export class IdbDirectoryReader extends AbstractDirectoryReader<IdbAccessor> {
+  constructor(public dirEntry: IdbDirectoryEntry) {
+    super(dirEntry);
+  }
 
   createEntry(obj: FileSystemObject) {
     return obj.size != null
@@ -17,25 +19,5 @@ export class IdbDirectoryReader implements DirectoryReader {
           accessor: this.dirEntry.params.accessor,
           ...obj
         });
-  }
-
-  createEntries(objects: FileSystemObject[]) {
-    return objects.map(obj => {
-      return this.createEntry(obj);
-    });
-  }
-
-  readEntries(
-    successCallback: EntriesCallback,
-    errorCallback?: ErrorCallback
-  ): void {
-    this.dirEntry.params.accessor
-      .getObjects(this.dirEntry.params.fullPath)
-      .then(objects => {
-        successCallback(this.createEntries(objects));
-      })
-      .catch(err => {
-        onError(err, errorCallback);
-      });
   }
 }

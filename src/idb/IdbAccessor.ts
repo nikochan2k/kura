@@ -253,10 +253,13 @@ export class IdbAccessor extends AbstractAccessor {
     const self = this;
     return new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(dbName.replace(":", "_"));
+      const onError = (ev: Event) => {
+        console.log(ev);
+      };
       request.onupgradeneeded = function(ev) {
         const request = ev.target as IDBRequest;
         self.db = request.result;
-        self.db.onerror = self.onError;
+        self.db.onerror = onError;
 
         if (!self.db.objectStoreNames.contains(ENTRY_STORE)) {
           self.db.createObjectStore(ENTRY_STORE);
@@ -267,7 +270,7 @@ export class IdbAccessor extends AbstractAccessor {
       };
       request.onsuccess = function(e) {
         self.db = (e.target as IDBRequest).result;
-        self.db.onerror = self.onError;
+        self.db.onerror = onError;
         resolve();
       };
       const onerror = (ev: Event) => reject(ev);
@@ -367,9 +370,5 @@ export class IdbAccessor extends AbstractAccessor {
       await this.putContent(indexPath, index);
     }
     return objects;
-  }
-
-  private onError(this: any, ev: Event) {
-    console.error(ev);
   }
 }
