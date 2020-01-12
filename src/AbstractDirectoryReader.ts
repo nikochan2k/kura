@@ -10,17 +10,6 @@ export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
   implements DirectoryReader {
   constructor(public dirEntry: AbstractDirectoryEntry<T>) {}
 
-  createEntries(objects: FileSystemObject[]) {
-    const entries: AbstractEntry<T>[] = [];
-    for (const obj of objects) {
-      if (obj.name === INDEX_FILE_NAME) {
-        continue;
-      }
-      entries.push(this.createEntry(obj));
-    }
-    return entries;
-  }
-
   readEntries(
     successCallback: EntriesCallback,
     errorCallback?: ErrorCallback
@@ -35,5 +24,16 @@ export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
       });
   }
 
-  abstract createEntry(obj: FileSystemObject): AbstractEntry<T>;
+  protected createEntries(objects: FileSystemObject[]) {
+    const entries: AbstractEntry<T>[] = [];
+    for (const obj of objects) {
+      if (obj.name === INDEX_FILE_NAME) {
+        continue;
+      }
+      entries.push(this.createEntry(obj));
+    }
+    return entries;
+  }
+
+  protected abstract createEntry(obj: FileSystemObject): AbstractEntry<T>;
 }

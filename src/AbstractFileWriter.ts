@@ -51,40 +51,6 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     );
   }
 
-  doWrite(blob: Blob, onsuccess: () => void) {
-    const obj: FileSystemObject = {
-      name: this.fileEntry.name,
-      fullPath: this.fileEntry.fullPath,
-      lastModified: Date.now(),
-      size: blob.size
-    };
-
-    const accessor = this.fileEntry.params.accessor;
-    accessor
-      .putObject(obj)
-      .then(() => {
-        accessor
-          .putContent(obj.fullPath, blob)
-          .then(() => {
-            onsuccess();
-            if (this.onwriteend) {
-              const evt: ProgressEvent<EventTarget> = {
-                loaded: this.position,
-                total: this.length,
-                lengthComputable: true
-              } as any;
-              this.onwriteend(evt);
-            }
-          })
-          .catch(err => {
-            this.handleError(err);
-          });
-      })
-      .catch(err => {
-        this.handleError(err);
-      });
-  }
-
   removeEventListener(
     type: string,
     callback: EventListenerOrEventListenerObject,
@@ -156,6 +122,40 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
         this.position = data.size;
       });
     }
+  }
+
+  protected doWrite(blob: Blob, onsuccess: () => void) {
+    const obj: FileSystemObject = {
+      name: this.fileEntry.name,
+      fullPath: this.fileEntry.fullPath,
+      lastModified: Date.now(),
+      size: blob.size
+    };
+
+    const accessor = this.fileEntry.params.accessor;
+    accessor
+      .putObject(obj)
+      .then(() => {
+        accessor
+          .putContent(obj.fullPath, blob)
+          .then(() => {
+            onsuccess();
+            if (this.onwriteend) {
+              const evt: ProgressEvent<EventTarget> = {
+                loaded: this.position,
+                total: this.length,
+                lengthComputable: true
+              } as any;
+              this.onwriteend(evt);
+            }
+          })
+          .catch(err => {
+            this.handleError(err);
+          });
+      })
+      .catch(err => {
+        this.handleError(err);
+      });
   }
 
   protected handleError(err: Error) {

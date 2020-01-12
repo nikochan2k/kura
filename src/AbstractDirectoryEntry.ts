@@ -170,11 +170,11 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     return this.params.accessor.getObject(path);
   }
 
-  hasChild(): Promise<boolean> {
+  protected hasChild(): Promise<boolean> {
     return this.params.accessor.hasChild(this.fullPath);
   }
 
-  async registerObject(path: string, isFile: boolean) {
+  protected async registerObject(path: string, isFile: boolean) {
     const obj = this.createObject(path, isFile);
     const accessor = this.params.accessor;
     await accessor.putObject(obj);

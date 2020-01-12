@@ -11,14 +11,14 @@ export class IdbFileEntry extends AbstractFileEntry<IdbAccessor> {
     super(params);
   }
 
-  toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
+  protected createFileWriter(file: File): IdbFileWriter {
+    return new IdbFileWriter(this, file);
+  }
+
+  protected toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
       accessor: this.params.accessor,
       ...obj
     });
-  }
-
-  protected createFileWriter(file: File): IdbFileWriter {
-    return new IdbFileWriter(this, file);
   }
 }

@@ -40,15 +40,6 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     throw new NotImplementedError(this.filesystem.name, this.fullPath);
   }
 
-  createObject(path: string, isFile: boolean): FileSystemObject {
-    return {
-      name: path.split(DIR_SEPARATOR).pop(),
-      fullPath: path,
-      lastModified: isFile ? Date.now() : undefined,
-      size: isFile ? 0 : undefined
-    };
-  }
-
   getMetadata(
     successCallback: MetadataCallback,
     errorCallback?: ErrorCallback
@@ -88,5 +79,15 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void;
+
+  protected createObject(path: string, isFile: boolean): FileSystemObject {
+    return {
+      name: path.split(DIR_SEPARATOR).pop(),
+      fullPath: path,
+      lastModified: isFile ? Date.now() : undefined,
+      size: isFile ? 0 : undefined
+    };
+  }
+
   protected abstract toDirectoryEntry(obj: FileSystemObject): DirectoryEntry;
 }

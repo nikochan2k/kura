@@ -9,7 +9,7 @@ export class IdbDirectoryReader extends AbstractDirectoryReader<IdbAccessor> {
     super(dirEntry);
   }
 
-  createEntry(obj: FileSystemObject) {
+  protected createEntry(obj: FileSystemObject) {
     return obj.size != null
       ? new IdbFileEntry({
           accessor: this.dirEntry.params.accessor,
