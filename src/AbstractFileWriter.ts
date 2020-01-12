@@ -23,7 +23,7 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
   constructor(protected fileEntry: AbstractFileEntry<T>, public file: File) {}
 
   get length() {
-    return this.file.size;
+    return this.fileEntry.size;
   }
 
   abort(): void {

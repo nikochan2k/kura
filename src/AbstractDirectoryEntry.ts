@@ -199,7 +199,8 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
           return;
         }
 
-        this.delete()
+        this.params.accessor
+          .delete(this.fullPath)
           .then(() => {
             successCallback();
           })

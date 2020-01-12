@@ -80,12 +80,13 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     throw new NotImplementedError(this.filesystem.name, this.fullPath);
   }
 
-  abstract async delete(): Promise<void>;
+  toURL(): string {
+    throw new NotImplementedError(this.filesystem.name, this.fullPath);
+  }
+
   abstract remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void;
-  abstract toURL(): string;
-
   protected abstract toDirectoryEntry(obj: FileSystemObject): DirectoryEntry;
 }

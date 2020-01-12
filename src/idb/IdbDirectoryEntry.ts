@@ -1,5 +1,4 @@
 import { AbstractDirectoryEntry } from "../AbstractDirectoryEntry";
-import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { DirectoryEntry, DirectoryReader, FileEntry } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
@@ -28,9 +27,5 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
       accessor: this.params.accessor,
       ...obj
     });
-  }
-
-  toURL(): string {
-    return `idb:${location.protocol}:${location.host}:${location.port}${DIR_SEPARATOR}${this.params.fullPath}`;
   }
 }
