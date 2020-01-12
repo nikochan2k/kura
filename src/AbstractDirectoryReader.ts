@@ -3,6 +3,7 @@ import { AbstractDirectoryEntry } from "./AbstractDirectoryEntry";
 import { AbstractEntry } from "./AbstractEntry";
 import { DirectoryReader, EntriesCallback, ErrorCallback } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
+import { INDEX_FILE_NAME } from "./FileSystemConstants";
 import { onError } from "./FileSystemUtil";
 
 export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
@@ -10,9 +11,14 @@ export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
   constructor(public dirEntry: AbstractDirectoryEntry<T>) {}
 
   createEntries(objects: FileSystemObject[]) {
-    return objects.map(obj => {
-      return this.createEntry(obj);
-    });
+    const entries: AbstractEntry<T>[] = [];
+    for (const obj of objects) {
+      if (obj.name === INDEX_FILE_NAME) {
+        continue;
+      }
+      entries.push(this.createEntry(obj));
+    }
+    return entries;
   }
 
   readEntries(
