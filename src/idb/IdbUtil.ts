@@ -1,11 +1,9 @@
 import { DIR_OPEN_BOUND, DIR_SEPARATOR } from "../FileSystemConstants";
 import { DirectoryEntry, FileEntry } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
+import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileEntry } from "./IdbFileEntry";
-import { IdbFileSystem } from "./IdbFileSystem";
-import { AbstractAccessor } from "../AbstractAccessor";
-import { IdbAccessor } from "./IdbAccessor";
 
 export function countSlash(path: string) {
   let result = 0;

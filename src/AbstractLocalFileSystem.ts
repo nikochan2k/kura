@@ -1,9 +1,19 @@
+import { AbstractAccessor } from "./AbstractAccessor";
 import {
   EntryCallback,
   ErrorCallback,
   FileSystemCallback,
   LocalFileSystem
 } from "./filesystem";
+import { NotImplementedError } from "./FileError";
+import { onError } from "./FileSystemUtil";
+
+if (window.TEMPORARY == null) {
+  window.TEMPORARY = 0;
+}
+if (window.PERSISTENT == null) {
+  window.PERSISTENT = 1;
+}
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   constructor(
@@ -13,16 +23,34 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     public TEMPORARY = window.TEMPORARY
   ) {}
 
-  abstract requestFileSystem(
+  requestFileSystem(
     type: number,
     size: number,
     successCallback: FileSystemCallback,
-    errorCallback?: ErrorCallback
-  ): void;
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    if (type === this.TEMPORARY) {
+      throw new Error("No temporary storage");
+    }
 
-  abstract resolveLocalFileSystemURL(
+    this.createAccessor(this.useIndex)
+      .then(accessor => {
+        successCallback(accessor.filesystem);
+      })
+      .catch(err => {
+        onError(err, errorCallback);
+      });
+  }
+
+  resolveLocalFileSystemURL(
     url: string,
     successCallback: EntryCallback,
-    errorCallback?: ErrorCallback
-  ): void;
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    throw new NotImplementedError("", url);
+  }
+
+  protected abstract createAccessor(
+    useIndex: boolean
+  ): Promise<AbstractAccessor>;
 }
