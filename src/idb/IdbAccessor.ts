@@ -14,9 +14,7 @@ const indexedDB: IDBFactory =
   window.indexedDB || window.mozIndexedDB || window.msIndexedDB;
 
 export class IdbAccessor extends AbstractAccessor {
-  static SUPPORTS_BLOB = true;
-
-  private initialized = false;
+  static SUPPORTS_BLOB: boolean;
 
   db: IDBDatabase;
   filesystem: IdbFileSystem;
@@ -28,6 +26,10 @@ export class IdbAccessor extends AbstractAccessor {
 
   get name() {
     return this.db.name;
+  }
+
+  get supportsBlob() {
+    return IdbAccessor.SUPPORTS_BLOB;
   }
 
   close() {
@@ -245,9 +247,8 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   async open(dbName: string) {
-    if (!this.initialized) {
+    if (IdbAccessor.SUPPORTS_BLOB == null) {
       await this.initialize();
-      this.initialized = true;
     }
 
     const self = this;

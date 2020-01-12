@@ -1,6 +1,7 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractFileEntry } from "./AbstractFileEntry";
 import { blobToFile, createEmptyFile } from "./FileSystemUtil";
+import { FileSystemObject } from "./FileSystemObject";
 import { FileWriter } from "./filewriter";
 import { NotImplementedError } from "./FileError";
 
@@ -48,6 +49,54 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
       this.fileEntry.filesystem.name,
       this.fileEntry.fullPath
     );
+  }
+
+  doWrite(file: File, onsuccess: () => void) {
+    const entry: FileSystemObject = {
+      name: this.fileEntry.name,
+      fullPath: this.fileEntry.fullPath,
+      lastModified: Date.now(),
+      size: file.size
+    };
+
+    const writeToIdb = (obj: FileSystemObject, content: string | Blob) => {
+      const accessor = this.fileEntry.params.accessor;
+      accessor
+        .putObject(obj)
+        .then(() => {
+          accessor
+            .putContent(obj.fullPath, content)
+            .then(() => {
+              onsuccess();
+              if (this.onwriteend) {
+                const evt: ProgressEvent<EventTarget> = {
+                  loaded: this.position,
+                  total: this.length,
+                  lengthComputable: true
+                } as any;
+                this.onwriteend(evt);
+              }
+            })
+            .catch(err => {
+              this.handleError(err);
+            });
+        })
+        .catch(err => {
+          this.handleError(err);
+        });
+    };
+
+    if (this.fileEntry.params.accessor.supportsBlob) {
+      writeToIdb(entry, file);
+    } else {
+      const reader = new FileReader();
+      reader.onloadend = function() {
+        const base64Url = reader.result as string;
+        const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
+        writeToIdb(entry, base64);
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   removeEventListener(
@@ -141,6 +190,4 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
       console.error(err);
     }
   }
-
-  protected abstract doWrite(file: File, onsuccess: () => void): void;
 }

@@ -5,6 +5,7 @@ import { FileSystemObject } from "./FileSystemObject";
 export abstract class AbstractAccessor {
   abstract filesystem: FileSystem;
   abstract name: string;
+  abstract supportsBlob: boolean;
 
   constructor(protected useIndex: boolean) {}
 
