@@ -134,24 +134,17 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
 
     const accessor = this.fileEntry.params.accessor;
     accessor
-      .putObject(obj)
+      .putObject(obj, blob)
       .then(() => {
-        accessor
-          .putContent(obj.fullPath, blob)
-          .then(() => {
-            onsuccess();
-            if (this.onwriteend) {
-              const evt: ProgressEvent<EventTarget> = {
-                loaded: this.position,
-                total: this.length,
-                lengthComputable: true
-              } as any;
-              this.onwriteend(evt);
-            }
-          })
-          .catch(err => {
-            this.handleError(err);
-          });
+        onsuccess();
+        if (this.onwriteend) {
+          const evt: ProgressEvent<EventTarget> = {
+            loaded: this.position,
+            total: this.length,
+            lengthComputable: true
+          } as any;
+          this.onwriteend(evt);
+        }
       })
       .catch(err => {
         this.handleError(err);

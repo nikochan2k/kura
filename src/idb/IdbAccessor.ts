@@ -1,19 +1,10 @@
 import { AbstractAccessor } from "../AbstractAccessor";
-import {
-  base64ToBlob,
-  blobToBase64,
-  blobToObject,
-  createPath,
-  getName,
-  getParentPath,
-  objectToBlob
-} from "../FileSystemUtil";
+import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
 import { countSlash, getRange } from "./IdbUtil";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
-import { FileSystemIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { IdbFileSystem } from "./IdbFileSystem";
-import { InvalidModificationError, InvalidStateError } from "../FileError";
+import { InvalidModificationError } from "../FileError";
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -76,7 +67,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  getObjectsFromDatabase(fullPath: string) {
+  doGetObjects(fullPath: string) {
     return new Promise<FileSystemObject[]>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const onerror = (ev: Event) => reject(ev);
@@ -107,10 +98,6 @@ export class IdbAccessor extends AbstractAccessor {
       };
       request.onerror = onerror;
     });
-  }
-
-  async getObjectsFromIndex(dirPath: string) {
-    return await this.handleIndex(dirPath, true);
   }
 
   hasChild(fullPath: string) {
@@ -195,10 +182,6 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  async putIndex(dirPath: string, update: (index: FileSystemIndex) => void) {
-    await this.handleIndex(dirPath, false, update);
-  }
-
   protected doDelete(fullPath: string) {
     return new Promise<void>(async (resolve, reject) => {
       const self = this;
@@ -206,89 +189,12 @@ export class IdbAccessor extends AbstractAccessor {
       const onerror = (ev: Event) => reject(ev);
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
-      entryTx.oncomplete = async function(ev) {
-        if (self.useIndex) {
-          const dirPath = getParentPath(fullPath);
-          await self.putIndex(dirPath, (index: FileSystemIndex) => {
-            let record = index[fullPath];
-            if (record) {
-              record.deleted = Date.now();
-            }
-          });
-        }
-
+      entryTx.oncomplete = function() {
         resolve();
       };
       let range = IDBKeyRange.only(fullPath);
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
       request.onerror = onerror;
-    });
-  }
-
-  protected doDeleteRecursively(fullPath: string) {
-    return new Promise<void>((resolve, reject) => {
-      const range = getRange(fullPath);
-
-      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
-      entryTx.onabort = onerror;
-      entryTx.onerror = onerror;
-      entryTx.oncomplete = function() {
-        const deleted = Date.now();
-        const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-        contentTx.onabort = onerror;
-        contentTx.onerror = onerror;
-        contentTx.oncomplete = () => resolve();
-        const contentReq = contentTx
-          .objectStore(CONTENT_STORE)
-          .openCursor(range);
-        contentReq.onerror = onerror;
-        contentReq.onsuccess = async function(ev) {
-          const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
-          if (cursor) {
-            const fullPath = cursor.key.valueOf() as string;
-            const name = getName(fullPath);
-            if (name !== INDEX_FILE_NAME) {
-              cursor.delete();
-            } else {
-              let updated = false;
-              let blob: Blob;
-              if (IdbAccessor.SUPPORTS_BLOB) {
-                blob = cursor.value;
-              } else {
-                blob = base64ToBlob(cursor.value);
-              }
-              const index = (await blobToObject(blob)) as FileSystemIndex;
-              for (const record of Object.values(index)) {
-                if (record.deleted == null) {
-                  record.deleted = deleted;
-                  updated = true;
-                }
-              }
-              if (updated) {
-                blob = objectToBlob(index);
-                let content: any;
-                if (IdbAccessor.SUPPORTS_BLOB) {
-                  content = blob;
-                } else {
-                  content = await blobToBase64(blob);
-                }
-                cursor.update(content);
-              }
-            }
-            cursor.continue();
-          }
-        };
-      };
-      const entryReq = entryTx.objectStore(ENTRY_STORE).openCursor(range);
-      entryReq.onsuccess = function(ev) {
-        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        }
-      };
-      entryReq.onerror = onerror;
     });
   }
 
@@ -309,20 +215,7 @@ export class IdbAccessor extends AbstractAccessor {
       const onerror = (ev: Event) => reject(ev);
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
-      entryTx.oncomplete = async function() {
-        if (self.useIndex) {
-          const dirPath = getParentPath(obj.fullPath);
-          await self.putIndex(dirPath, (index: FileSystemIndex) => {
-            let record = index[obj.fullPath];
-            if (!record) {
-              record = { obj: obj, updated: Date.now() };
-              index[obj.fullPath] = record;
-            } else {
-              record.updated = Date.now();
-            }
-            delete record.deleted;
-          });
-        }
+      entryTx.oncomplete = function() {
         resolve();
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
@@ -363,50 +256,5 @@ export class IdbAccessor extends AbstractAccessor {
         .put(content, fullPath);
       contentReq.onerror = onerror;
     });
-  }
-
-  private async handleIndex(
-    dirPath: string,
-    needObjects: boolean,
-    update?: (index: FileSystemIndex) => void
-  ) {
-    if (!this.useIndex) {
-      throw new InvalidStateError(this.name, dirPath, "useIndex");
-    }
-
-    const indexPath = createPath(dirPath, INDEX_FILE_NAME);
-    const blob = await this.getContent(indexPath);
-    const index = (await blobToObject(blob)) as FileSystemIndex;
-
-    let objects: FileSystemObject[];
-    if (index) {
-      if (needObjects) {
-        objects = [];
-        for (const record of Object.values(index)) {
-          if (record.deleted == null) {
-            objects.push(record.obj);
-          }
-        }
-      }
-      if (update) {
-        update(index);
-        const blob = objectToBlob(index);
-        await this.putContent(indexPath, blob);
-      }
-    } else {
-      objects = await this.getObjectsFromDatabase(dirPath);
-      const index: FileSystemIndex = {};
-      for (const obj of objects) {
-        if (obj.name !== INDEX_FILE_NAME) {
-          index[obj.fullPath] = { obj: obj, updated: obj.lastModified };
-        }
-      }
-      if (update) {
-        update(index);
-      }
-      const blob = objectToBlob(index);
-      await this.putContent(indexPath, blob);
-    }
-    return objects;
   }
 }
