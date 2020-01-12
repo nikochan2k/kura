@@ -27,23 +27,6 @@ export class IdbAccessor extends AbstractAccessor {
     return this.db.name;
   }
 
-  close() {
-    this.db.close();
-    delete this.db;
-  }
-
-  drop() {
-    return new Promise<void>((resolve, reject) => {
-      const dbName = this.db.name;
-      const request = indexedDB.deleteDatabase(dbName);
-      const onerror = (ev: Event) => reject(ev);
-      request.onblocked = onerror;
-      request.onerror = onerror;
-      request.onsuccess = () => resolve();
-      this.close();
-    });
-  }
-
   async getContent(fullPath: string) {
     const content = await this.doGetConent(fullPath);
     if (content == null) {
@@ -67,39 +50,6 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetObjects(fullPath: string) {
-    return new Promise<FileSystemObject[]>((resolve, reject) => {
-      const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      const onerror = (ev: Event) => reject(ev);
-      tx.onabort = onerror;
-      tx.onerror = onerror;
-      const objects: FileSystemObject[] = [];
-      tx.oncomplete = () => resolve(objects);
-
-      let slashCount: number;
-      if (fullPath === DIR_SEPARATOR) {
-        slashCount = 1;
-      } else {
-        slashCount = countSlash(fullPath) + 1; // + 1 is the last slash for directory
-      }
-      const range = getRange(fullPath);
-      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onsuccess = function(ev) {
-        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
-        if (cursor) {
-          const obj = cursor.value as FileSystemObject;
-
-          if (slashCount === countSlash(obj.fullPath)) {
-            objects.push(obj);
-          }
-
-          cursor.continue();
-        }
-      };
-      request.onerror = onerror;
-    });
-  }
-
   hasChild(fullPath: string) {
     return new Promise<boolean>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
@@ -117,33 +67,6 @@ export class IdbAccessor extends AbstractAccessor {
         if (cursor) {
           result = true;
         }
-      };
-    });
-  }
-
-  initialize() {
-    return new Promise((resolve, reject) => {
-      const dbName = "blob-support";
-      indexedDB.deleteDatabase(dbName).onsuccess = function() {
-        const request = indexedDB.open(dbName, 1);
-        request.onupgradeneeded = () =>
-          request.result.createObjectStore("store");
-        request.onsuccess = function() {
-          const db = request.result;
-          try {
-            const blob = new Blob(["test"]);
-            const transaction = db.transaction("store", "readwrite");
-            transaction.objectStore("store").put(blob, "key");
-            IdbAccessor.SUPPORTS_BLOB = true;
-          } catch (err) {
-            IdbAccessor.SUPPORTS_BLOB = false;
-          } finally {
-            db.close();
-            indexedDB.deleteDatabase(dbName);
-          }
-          resolve();
-        };
-        request.onerror = (ev: Event) => reject(ev);
       };
     });
   }
@@ -182,9 +105,13 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  protected close() {
+    this.db.close();
+    delete this.db;
+  }
+
   protected doDelete(fullPath: string) {
     return new Promise<void>(async (resolve, reject) => {
-      const self = this;
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) => reject(ev);
       entryTx.onabort = onerror;
@@ -194,6 +121,39 @@ export class IdbAccessor extends AbstractAccessor {
       };
       let range = IDBKeyRange.only(fullPath);
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
+      request.onerror = onerror;
+    });
+  }
+
+  protected doGetObjects(fullPath: string) {
+    return new Promise<FileSystemObject[]>((resolve, reject) => {
+      const tx = this.db.transaction([ENTRY_STORE], "readonly");
+      const onerror = (ev: Event) => reject(ev);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
+      const objects: FileSystemObject[] = [];
+      tx.oncomplete = () => resolve(objects);
+
+      let slashCount: number;
+      if (fullPath === DIR_SEPARATOR) {
+        slashCount = 1;
+      } else {
+        slashCount = countSlash(fullPath) + 1; // + 1 is the last slash for directory
+      }
+      const range = getRange(fullPath);
+      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
+      request.onsuccess = function(ev) {
+        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
+        if (cursor) {
+          const obj = cursor.value as FileSystemObject;
+
+          if (slashCount === countSlash(obj.fullPath)) {
+            objects.push(obj);
+          }
+
+          cursor.continue();
+        }
+      };
       request.onerror = onerror;
     });
   }
@@ -220,6 +180,45 @@ export class IdbAccessor extends AbstractAccessor {
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = onerror;
+    });
+  }
+
+  protected drop() {
+    return new Promise<void>((resolve, reject) => {
+      const dbName = this.db.name;
+      const request = indexedDB.deleteDatabase(dbName);
+      const onerror = (ev: Event) => reject(ev);
+      request.onblocked = onerror;
+      request.onerror = onerror;
+      request.onsuccess = () => resolve();
+      this.close();
+    });
+  }
+
+  protected initialize() {
+    return new Promise((resolve, reject) => {
+      const dbName = "blob-support";
+      indexedDB.deleteDatabase(dbName).onsuccess = function() {
+        const request = indexedDB.open(dbName, 1);
+        request.onupgradeneeded = () =>
+          request.result.createObjectStore("store");
+        request.onsuccess = function() {
+          const db = request.result;
+          try {
+            const blob = new Blob(["test"]);
+            const transaction = db.transaction("store", "readwrite");
+            transaction.objectStore("store").put(blob, "key");
+            IdbAccessor.SUPPORTS_BLOB = true;
+          } catch (err) {
+            IdbAccessor.SUPPORTS_BLOB = false;
+          } finally {
+            db.close();
+            indexedDB.deleteDatabase(dbName);
+          }
+          resolve();
+        };
+        request.onerror = (ev: Event) => reject(ev);
+      };
     });
   }
 

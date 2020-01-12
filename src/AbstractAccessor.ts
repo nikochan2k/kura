@@ -17,10 +17,13 @@ export abstract class AbstractAccessor {
   constructor(protected useIndex: boolean) {}
 
   async delete(fullPath: string) {
+    if (fullPath === "/") {
+      return;
+    }
     await this.doDelete(fullPath);
     if (this.useIndex) {
       const dirPath = getParentPath(fullPath);
-      this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
+      await this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
         let record = index[fullPath];
         if (record) {
           record.deleted = Date.now();
