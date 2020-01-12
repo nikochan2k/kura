@@ -1,20 +1,19 @@
-import { DIR_SEPARATOR } from "../FileSystemConstants";
-import { FileSystem } from "../filesystem";
+import { AbstractDirectoryEntry } from "../AbstractDirectoryEntry";
+import { AbstractFileSystem } from "../AbstractFileSystem";
+import { FileSystemParams } from "../FileSystemParams";
 import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 
-export class IdbFileSystem implements FileSystem {
+export class IdbFileSystem extends AbstractFileSystem<IdbAccessor> {
   root: IdbDirectoryEntry;
 
-  constructor(public accessor: IdbAccessor) {
-    this.root = new IdbDirectoryEntry({
-      accessor: accessor,
-      name: "",
-      fullPath: DIR_SEPARATOR
-    });
+  constructor(accessor: IdbAccessor) {
+    super(accessor);
   }
 
-  get name() {
-    return this.accessor.name;
+  protected createRoot(
+    params: FileSystemParams<IdbAccessor>
+  ): AbstractDirectoryEntry<IdbAccessor> {
+    return new IdbDirectoryEntry(params);
   }
 }
