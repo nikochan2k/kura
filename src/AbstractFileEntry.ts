@@ -1,7 +1,8 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
 import { AbstractFileWriter } from "./AbstractFileWriter";
-import { base64ToFile, blobToFile, onError } from "./FileSystemUtil";
+import { CONTENT_TYPE } from "./FileSystemConstants";
+import { createEmptyFile, onError } from "./FileSystemUtil";
 import {
   ErrorCallback,
   FileCallback,
@@ -48,27 +49,20 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       return;
     }
     if (this.size === 0) {
-      const file = blobToFile([], this.name, this.params.lastModified);
+      const file = createEmptyFile(this.params.name);
       this.fileWriter = this.createFileWriter(file);
       successCallback(file);
       return;
     }
     const accessor = this.params.accessor;
     accessor
-      .getObject(this.fullPath)
-      .then(entry => {
-        accessor
-          .getContent(this.fullPath)
-          .then(content => {
-            const file = accessor.supportsBlob
-              ? blobToFile([content as Blob], entry.name, entry.lastModified)
-              : base64ToFile(content as string, entry.name, entry.lastModified);
-            this.fileWriter = this.createFileWriter(file);
-            successCallback(file);
-          })
-          .catch(error => {
-            onError(error, errorCallback);
-          });
+      .getContent(this.fullPath)
+      .then(blob => {
+        const file = new File([blob], this.params.name, {
+          type: CONTENT_TYPE
+        });
+        this.fileWriter = this.createFileWriter(file);
+        successCallback(file);
       })
       .catch(error => {
         onError(error, errorCallback);

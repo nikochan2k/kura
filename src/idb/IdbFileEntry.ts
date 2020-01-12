@@ -1,11 +1,5 @@
 import { AbstractFileEntry } from "../AbstractFileEntry";
-import { base64ToFile, blobToFile, onError } from "../FileSystemUtil";
-import {
-  DirectoryEntry,
-  ErrorCallback,
-  FileCallback,
-  FileWriterCallback
-} from "../filesystem";
+import { DirectoryEntry } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
 import { IdbAccessor } from "./IdbAccessor";

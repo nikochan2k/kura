@@ -5,7 +5,6 @@ import { FileSystemObject } from "./FileSystemObject";
 export abstract class AbstractAccessor {
   abstract filesystem: FileSystem;
   abstract name: string;
-  abstract supportsBlob: boolean;
 
   constructor(protected useIndex: boolean) {}
 
@@ -17,14 +16,14 @@ export abstract class AbstractAccessor {
 
   abstract delete(fullPath: string): Promise<void>;
   abstract deleteRecursively(fullPath: string): Promise<void>;
-  abstract getContent(fullPath: string): Promise<any>;
+  abstract getContent(fullPath: string): Promise<Blob>;
   abstract getObject(fullPath: string): Promise<FileSystemObject>;
   abstract getObjectsFromDatabase(
     fullPath: string
   ): Promise<FileSystemObject[]>;
   abstract getObjectsFromIndex(dirPath: string): Promise<FileSystemObject[]>;
   abstract hasChild(fullPath: string): Promise<boolean>;
-  abstract putContent(fullPath: string, content: any): Promise<void>;
+  abstract putContent(fullPath: string, content: Blob): Promise<void>;
   abstract putIndex(
     dirPath: string,
     update: (index: FileSystemIndex) => void

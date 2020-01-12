@@ -1,11 +1,19 @@
 import { AbstractAccessor } from "../AbstractAccessor";
+import {
+  base64ToBlob,
+  blobToBase64,
+  blobToObject,
+  createPath,
+  getName,
+  getParentPath,
+  objectToBlob
+} from "../FileSystemUtil";
 import { countSlash, getRange } from "./IdbUtil";
-import { createPath, getName, getParentPath } from "../FileSystemUtil";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileSystemIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
-import { InvalidModificationError, InvalidStateError } from "../FileError";
 import { IdbFileSystem } from "./IdbFileSystem";
+import { InvalidModificationError, InvalidStateError } from "../FileError";
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -26,10 +34,6 @@ export class IdbAccessor extends AbstractAccessor {
 
   get name() {
     return this.db.name;
-  }
-
-  get supportsBlob() {
-    return IdbAccessor.SUPPORTS_BLOB;
   }
 
   close() {
@@ -90,7 +94,13 @@ export class IdbAccessor extends AbstractAccessor {
               cursor.delete();
             } else {
               let updated = false;
-              const index = (await cursor.value) as FileSystemIndex;
+              let blob: Blob;
+              if (IdbAccessor.SUPPORTS_BLOB) {
+                blob = cursor.value;
+              } else {
+                blob = base64ToBlob(cursor.value);
+              }
+              const index = (await blobToObject(blob)) as FileSystemIndex;
               for (const record of Object.values(index)) {
                 if (record.deleted == null) {
                   record.deleted = deleted;
@@ -98,7 +108,14 @@ export class IdbAccessor extends AbstractAccessor {
                 }
               }
               if (updated) {
-                cursor.update(index);
+                blob = objectToBlob(index);
+                let content: any;
+                if (IdbAccessor.SUPPORTS_BLOB) {
+                  content = blob;
+                } else {
+                  content = await blobToBase64(blob);
+                }
+                cursor.update(content);
               }
             }
             cursor.continue();
@@ -129,23 +146,14 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  getContent(fullPath: string) {
-    return new Promise<any>((resolve, reject) => {
-      const onerror = (ev: Event) => reject(ev);
-      const tx = this.db.transaction([CONTENT_STORE], "readonly");
-      const range = IDBKeyRange.only(fullPath);
-      tx.onabort = onerror;
-      tx.onerror = onerror;
-      const request = tx.objectStore(CONTENT_STORE).get(range);
-      request.onerror = onerror;
-      tx.oncomplete = function(ev) {
-        if (request.result != null) {
-          resolve(request.result);
-        } else {
-          resolve(null);
-        }
-      };
-    });
+  async getContent(fullPath: string) {
+    const content = await this.doGetConent(fullPath);
+    if (content == null) {
+      return null;
+    }
+    return IdbAccessor.SUPPORTS_BLOB
+      ? (content as Blob)
+      : base64ToBlob(content as string);
   }
 
   getObject(fullPath: string) {
@@ -229,7 +237,7 @@ export class IdbAccessor extends AbstractAccessor {
         request.onsuccess = function() {
           const db = request.result;
           try {
-            const blob = new Blob(["test"], { type: "text/plain" });
+            const blob = new Blob(["test"]);
             const transaction = db.transaction("store", "readwrite");
             transaction.objectStore("store").put(blob, "key");
             IdbAccessor.SUPPORTS_BLOB = true;
@@ -280,18 +288,9 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  putContent(fullPath: string, content: any) {
-    return new Promise<void>((resolve, reject) => {
-      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
-      contentTx.onabort = onerror;
-      contentTx.onerror = onerror;
-      contentTx.oncomplete = () => resolve();
-      const contentReq = contentTx
-        .objectStore(CONTENT_STORE)
-        .put(content, fullPath);
-      contentReq.onerror = onerror;
-    });
+  async putContent(fullPath: string, blob: Blob) {
+    const content = IdbAccessor.SUPPORTS_BLOB ? blob : await blobToBase64(blob);
+    await this.doPutContent(fullPath, content);
   }
 
   async putIndex(dirPath: string, update: (index: FileSystemIndex) => void) {
@@ -331,6 +330,41 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  private doGetConent(fullPath: string) {
+    return new Promise<any>((resolve, reject) => {
+      const onerror = (ev: Event) => reject(ev);
+      const tx = this.db.transaction([CONTENT_STORE], "readonly");
+      const range = IDBKeyRange.only(fullPath);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
+      const request = tx.objectStore(CONTENT_STORE).get(range);
+      request.onerror = onerror;
+      tx.oncomplete = function(ev) {
+        if (request.result != null) {
+          resolve(request.result);
+        } else {
+          resolve(null);
+        }
+      };
+    });
+  }
+
+  private doPutContent(fullPath: string, content: any) {
+    return new Promise<void>((resolve, reject) => {
+      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
+      const onerror = (ev: Event) => reject(ev);
+      contentTx.onabort = onerror;
+      contentTx.onerror = onerror;
+      contentTx.oncomplete = () => {
+        resolve();
+      };
+      const contentReq = contentTx
+        .objectStore(CONTENT_STORE)
+        .put(content, fullPath);
+      contentReq.onerror = onerror;
+    });
+  }
+
   private async handleIndex(
     dirPath: string,
     needObjects: boolean,
@@ -341,7 +375,8 @@ export class IdbAccessor extends AbstractAccessor {
     }
 
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
-    const index = (await this.getContent(indexPath)) as FileSystemIndex;
+    const blob = await this.getContent(indexPath);
+    const index = (await blobToObject(blob)) as FileSystemIndex;
 
     let objects: FileSystemObject[];
     if (index) {
@@ -355,7 +390,8 @@ export class IdbAccessor extends AbstractAccessor {
       }
       if (update) {
         update(index);
-        await this.putContent(indexPath, index);
+        const blob = objectToBlob(index);
+        await this.putContent(indexPath, blob);
       }
     } else {
       objects = await this.getObjectsFromDatabase(dirPath);
@@ -368,7 +404,8 @@ export class IdbAccessor extends AbstractAccessor {
       if (update) {
         update(index);
       }
-      await this.putContent(indexPath, index);
+      const blob = objectToBlob(index);
+      await this.putContent(indexPath, blob);
     }
     return objects;
   }

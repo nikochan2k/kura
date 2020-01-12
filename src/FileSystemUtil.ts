@@ -1,4 +1,4 @@
-import { DIR_SEPARATOR } from "./FileSystemConstants";
+import { CONTENT_TYPE, DIR_SEPARATOR, EMPTY_BLOB } from "./FileSystemConstants";
 import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
@@ -71,16 +71,26 @@ export function blobToFile(
 ) {
   const file = new File(fileBits, name, {
     lastModified: lastModified,
-    type: type || "application/octet-stream"
+    type: type || CONTENT_TYPE
   });
   return file;
 }
 
-export async function dataToString(data: string | Blob) {
-  if (typeof data === "string") {
-    return data;
-  }
-  return await blobToString(data);
+export async function blobToBase64(blob: Blob) {
+  return new Promise<string>(resolve => {
+    if (!blob || blob.size === 0) {
+      resolve("");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      const base64Url = reader.result as string;
+      const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
+      resolve(base64);
+    };
+    reader.readAsDataURL(blob);
+  });
 }
 
 export function blobToString(blob: Blob) {
@@ -94,27 +104,41 @@ export function blobToString(blob: Blob) {
   });
 }
 
-export function base64ToFile(
-  base64: string,
-  name: string,
-  lastModified: number
-) {
+export function base64ToBlob(base64: string) {
+  if (!base64) {
+    return EMPTY_BLOB;
+  }
+
   const bin = atob(base64);
   const array = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) {
     array[i] = bin.charCodeAt(i);
   }
-  const file = new File([array.buffer], name, {
-    lastModified: lastModified,
-    type: "application/octet-stream"
-  });
-  return file;
+  const blob = new Blob([array.buffer]);
+  return blob;
+}
+
+export function objectToBlob(obj: any) {
+  if (!obj) {
+    return EMPTY_BLOB;
+  }
+  const str = JSON.stringify(obj);
+  return new Blob([str]);
+}
+
+export async function blobToObject(blob: Blob) {
+  if (!blob || blob.size === 0) {
+    return null;
+  }
+  const str = await blobToString(blob);
+  const obj = JSON.parse(str);
+  return obj;
 }
 
 export function createEmptyFile(name: string) {
   return new File([], name, {
     lastModified: Date.now(),
-    type: "application/octet-stream"
+    type: CONTENT_TYPE
   });
 }
 

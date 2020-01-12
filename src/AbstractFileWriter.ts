@@ -51,52 +51,38 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     );
   }
 
-  doWrite(file: File, onsuccess: () => void) {
-    const entry: FileSystemObject = {
+  doWrite(blob: Blob, onsuccess: () => void) {
+    const obj: FileSystemObject = {
       name: this.fileEntry.name,
       fullPath: this.fileEntry.fullPath,
       lastModified: Date.now(),
-      size: file.size
+      size: blob.size
     };
 
-    const writeToIdb = (obj: FileSystemObject, content: string | Blob) => {
-      const accessor = this.fileEntry.params.accessor;
-      accessor
-        .putObject(obj)
-        .then(() => {
-          accessor
-            .putContent(obj.fullPath, content)
-            .then(() => {
-              onsuccess();
-              if (this.onwriteend) {
-                const evt: ProgressEvent<EventTarget> = {
-                  loaded: this.position,
-                  total: this.length,
-                  lengthComputable: true
-                } as any;
-                this.onwriteend(evt);
-              }
-            })
-            .catch(err => {
-              this.handleError(err);
-            });
-        })
-        .catch(err => {
-          this.handleError(err);
-        });
-    };
-
-    if (this.fileEntry.params.accessor.supportsBlob) {
-      writeToIdb(entry, file);
-    } else {
-      const reader = new FileReader();
-      reader.onloadend = function() {
-        const base64Url = reader.result as string;
-        const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
-        writeToIdb(entry, base64);
-      };
-      reader.readAsDataURL(file);
-    }
+    const accessor = this.fileEntry.params.accessor;
+    accessor
+      .putObject(obj)
+      .then(() => {
+        accessor
+          .putContent(obj.fullPath, blob)
+          .then(() => {
+            onsuccess();
+            if (this.onwriteend) {
+              const evt: ProgressEvent<EventTarget> = {
+                loaded: this.position,
+                total: this.length,
+                lengthComputable: true
+              } as any;
+              this.onwriteend(evt);
+            }
+          })
+          .catch(err => {
+            this.handleError(err);
+          });
+      })
+      .catch(err => {
+        this.handleError(err);
+      });
   }
 
   removeEventListener(
@@ -146,18 +132,13 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
   write(data: Blob): void {
     const current = this.file;
     if (current) {
-      // Calc the head and tail fragments
       const head = current.slice(0, this.position);
       const tail = current.slice(this.position + data.size);
-
-      // Calc the padding
       let padding = this.position - head.size;
       if (padding < 0) {
         padding = 0;
       }
 
-      // Do the "write". In fact, a full overwrite of the Blob.
-      // TODO: figure out if data.type should overwrite the exist blob's type.
       const file = blobToFile(
         [head, new Uint8Array(padding), data, tail],
         current.name,
