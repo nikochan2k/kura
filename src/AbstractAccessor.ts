@@ -8,14 +8,28 @@ export abstract class AbstractAccessor {
 
   constructor(protected useIndex: boolean) {}
 
+  async delete(fullPath: string) {
+    await this.doDelete(fullPath);
+  }
+
+  async deleteRecursively(fullPath: string) {
+    await this.doDeleteRecursively(fullPath);
+  }
+
   async getObjects(dirPath: string) {
     return this.useIndex
       ? await this.getObjectsFromIndex(dirPath)
       : await this.getObjectsFromDatabase(dirPath);
   }
 
-  abstract delete(fullPath: string): Promise<void>;
-  abstract deleteRecursively(fullPath: string): Promise<void>;
+  async putContent(fullPath: string, content: Blob) {
+    await this.doPutContent(fullPath, content);
+  }
+
+  async putObject(obj: FileSystemObject) {
+    await this.doPutObject(obj);
+  }
+
   abstract getContent(fullPath: string): Promise<Blob>;
   abstract getObject(fullPath: string): Promise<FileSystemObject>;
   abstract getObjectsFromDatabase(
@@ -23,10 +37,16 @@ export abstract class AbstractAccessor {
   ): Promise<FileSystemObject[]>;
   abstract getObjectsFromIndex(dirPath: string): Promise<FileSystemObject[]>;
   abstract hasChild(fullPath: string): Promise<boolean>;
-  abstract putContent(fullPath: string, content: Blob): Promise<void>;
   abstract putIndex(
     dirPath: string,
     update: (index: FileSystemIndex) => void
   ): Promise<void>;
-  abstract putObject(obj: FileSystemObject): Promise<void>;
+
+  protected abstract doDelete(fullPath: string): Promise<void>;
+  protected abstract doDeleteRecursively(fullPath: string): Promise<void>;
+  protected abstract doPutContent(
+    fullPath: string,
+    content: Blob
+  ): Promise<void>;
+  protected abstract doPutObject(obj: FileSystemObject): Promise<void>;
 }
