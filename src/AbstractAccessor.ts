@@ -14,7 +14,7 @@ export abstract class AbstractAccessor {
   abstract filesystem: FileSystem;
   abstract name: string;
 
-  constructor(protected useIndex: boolean) {}
+  constructor(public useIndex: boolean) {}
 
   async delete(fullPath: string) {
     if (fullPath === "/") {
