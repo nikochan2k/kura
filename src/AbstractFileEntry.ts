@@ -35,6 +35,10 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void {
+    if (!this.canCopy(parent, newName, errorCallback)) {
+      return;
+    }
+
     parent.getFile(
       newName || this.name,
       { create: true, exclusive: true },
@@ -100,19 +104,14 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    parent.getFile(
-      newName || this.name,
-      { create: true, exclusive: true },
+    this.copyTo(
+      parent,
+      newName,
       fileEntry => {
-        fileEntry.createWriter(writer => {
-          this.file(file => {
-            writer.write(file);
-            this.remove(() => {
-              if (successCallback) {
-                successCallback(fileEntry);
-              }
-            }, errorCallback);
-          }, errorCallback);
+        this.remove(() => {
+          if (successCallback) {
+            successCallback(fileEntry);
+          }
         }, errorCallback);
       },
       errorCallback

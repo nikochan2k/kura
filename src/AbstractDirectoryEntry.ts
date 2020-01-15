@@ -32,6 +32,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void {
+    if (!this.canCopy(parent, newName, errorCallback)) {
+      return;
+    }
+
     parent.getDirectory(
       newName || this.name,
       { create: true },
@@ -214,6 +218,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void {
+    if (!this.canCopy(parent, newName, errorCallback)) {
+      return;
+    }
+
     parent.getDirectory(
       newName || this.name,
       { create: true },

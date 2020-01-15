@@ -11,8 +11,8 @@ import {
 } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
-import { getParentPath } from "./FileSystemUtil";
-import { NotImplementedError } from "./FileError";
+import { getParentPath, onError } from "./FileSystemUtil";
+import { InvalidModificationError, NotImplementedError } from "./FileError";
 
 export abstract class AbstractEntry<T extends AbstractAccessor>
   implements Entry {
@@ -75,6 +75,26 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void;
+
+  protected canCopy(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ) {
+    const fullPath = parent.fullPath + "/" + (newName || this.name);
+    if (this.fullPath === fullPath) {
+      onError(
+        new InvalidModificationError(
+          this.filesystem.name,
+          this.fullPath,
+          "A entry can't be copied into itself"
+        ),
+        errorCallback
+      );
+      return false;
+    }
+    return true;
+  }
 
   protected createObject(path: string, isFile: boolean): FileSystemObject {
     return {
