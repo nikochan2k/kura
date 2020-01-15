@@ -31,14 +31,12 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     return this.params.name;
   }
 
-  copyTo(
+  abstract copyTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
-  ): void {
-    throw new NotImplementedError(this.filesystem.name, this.fullPath);
-  }
+  ): void;
 
   getMetadata(
     successCallback: MetadataCallback,
@@ -62,14 +60,12 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback(this.toDirectoryEntry(obj));
   }
 
-  moveTo(
+  abstract moveTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
-  ): void {
-    throw new NotImplementedError(this.filesystem.name, this.fullPath);
-  }
+  ): void;
 
   toURL(): string {
     throw new NotImplementedError(this.filesystem.name, this.fullPath);

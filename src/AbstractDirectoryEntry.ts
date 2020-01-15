@@ -4,6 +4,7 @@ import {
   DirectoryEntry,
   DirectoryEntryCallback,
   DirectoryReader,
+  EntryCallback,
   ErrorCallback,
   FileEntry,
   FileEntryCallback,
@@ -23,6 +24,39 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
   constructor(params: FileSystemParams<T>) {
     super(params);
+  }
+
+  copyTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    parent.getDirectory(
+      newName || this.name,
+      { create: true },
+      dirEntry => {
+        const reader = this.createReader();
+        reader.readEntries(entries => {
+          const promises: Promise<void>[] = [];
+          for (const entry of entries) {
+            promises.push(
+              new Promise<void>((resolve, reject) => {
+                entry.copyTo(dirEntry, entry.name, () => resolve, reject);
+              })
+            );
+          }
+          Promise.all(promises)
+            .then(() => {
+              successCallback(dirEntry);
+            })
+            .catch(errors => {
+              onError(errors, errorCallback);
+            });
+        }, errorCallback);
+      },
+      errorCallback
+    );
   }
 
   async delete() {
@@ -172,6 +206,39 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
   protected hasChild(): Promise<boolean> {
     return this.params.accessor.hasChild(this.fullPath);
+  }
+
+  moveTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    parent.getDirectory(
+      newName || this.name,
+      { create: true },
+      dirEntry => {
+        const reader = this.createReader();
+        reader.readEntries(entries => {
+          const promises: Promise<void>[] = [];
+          for (const entry of entries) {
+            promises.push(
+              new Promise<void>((resolve, reject) => {
+                entry.moveTo(dirEntry, entry.name, () => resolve, reject);
+              })
+            );
+          }
+          Promise.all(promises)
+            .then(() => {
+              successCallback(dirEntry);
+            })
+            .catch(errors => {
+              onError(errors, errorCallback);
+            });
+        }, errorCallback);
+      },
+      errorCallback
+    );
   }
 
   protected async registerObject(path: string, isFile: boolean) {

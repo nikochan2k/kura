@@ -4,6 +4,8 @@ import { AbstractFileWriter } from "./AbstractFileWriter";
 import { CONTENT_TYPE } from "./FileSystemConstants";
 import { createEmptyFile, onError } from "./FileSystemUtil";
 import {
+  DirectoryEntry,
+  EntryCallback,
   ErrorCallback,
   FileCallback,
   FileEntry,
@@ -25,6 +27,29 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
 
   get size() {
     return this.params.size;
+  }
+
+  copyTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    parent.getFile(
+      newName || this.name,
+      { create: true, exclusive: true },
+      fileEntry => {
+        fileEntry.createWriter(writer => {
+          this.file(file => {
+            writer.write(file);
+            if (successCallback) {
+              successCallback(fileEntry);
+            }
+          }, errorCallback);
+        }, errorCallback);
+      },
+      errorCallback
+    );
   }
 
   createWriter(
@@ -67,6 +92,31 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       .catch(error => {
         onError(error, errorCallback);
       });
+  }
+
+  moveTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void {
+    parent.getFile(
+      newName || this.name,
+      { create: true, exclusive: true },
+      fileEntry => {
+        fileEntry.createWriter(writer => {
+          this.file(file => {
+            writer.write(file);
+            this.remove(() => {
+              if (successCallback) {
+                successCallback(fileEntry);
+              }
+            }, errorCallback);
+          }, errorCallback);
+        }, errorCallback);
+      },
+      errorCallback
+    );
   }
 
   remove(
