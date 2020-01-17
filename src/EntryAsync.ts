@@ -4,7 +4,7 @@ import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileSystemAsync } from "./FileSystemAsync";
 
 export abstract class EntryAsync<T extends Entry> {
-  constructor(protected fileSystemAsync: FileSystemAsync, protected entry: T) {}
+  constructor(protected fileSystemAsync: FileSystemAsync, public entry: T) {}
 
   get filesystem() {
     return this.fileSystemAsync;
@@ -29,7 +29,7 @@ export abstract class EntryAsync<T extends Entry> {
     return new Promise<EntryAsync<FileEntry | DirectoryEntry>>(
       (resolve, reject) => {
         this.entry.copyTo(
-          parent,
+          parent.entry,
           newName,
           entry => {
             resolve(createEntry(this.fileSystemAsync, entry));
@@ -75,7 +75,7 @@ export abstract class EntryAsync<T extends Entry> {
     return new Promise<EntryAsync<FileEntry | DirectoryEntry>>(
       (resolve, reject) => {
         this.entry.moveTo(
-          parent,
+          parent.entry,
           newName,
           entry => {
             resolve(createEntry(this.fileSystemAsync, entry));

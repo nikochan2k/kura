@@ -39,25 +39,18 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       return;
     }
 
-    this.filesystem.root.getDirectory(
-      parent.fullPath,
-      null,
-      parent => {
-        parent.getFile(
-          newName || this.name,
-          { create: true, exclusive: true },
-          fileEntry => {
-            fileEntry.createWriter(writer => {
-              this.file(file => {
-                writer.write(file);
-                if (successCallback) {
-                  successCallback(fileEntry);
-                }
-              }, errorCallback);
-            }, errorCallback);
-          },
-          errorCallback
-        );
+    parent.getFile(
+      newName || this.name,
+      { create: true, exclusive: true },
+      fileEntry => {
+        fileEntry.createWriter(writer => {
+          this.file(file => {
+            writer.write(file);
+            if (successCallback) {
+              successCallback(fileEntry);
+            }
+          }, errorCallback);
+        }, errorCallback);
       },
       errorCallback
     );
