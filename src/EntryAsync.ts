@@ -1,6 +1,7 @@
 import { createEntry } from "./FileSystemUtil";
-import { DirectoryEntry, Entry, FileEntry, Metadata } from "./filesystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
+import { Entry, Metadata } from "./filesystem";
+import { FileEntryAsync } from "./FileEntryAsync";
 import { FileSystemAsync } from "./FileSystemAsync";
 
 export abstract class EntryAsync<T extends Entry> {
@@ -25,14 +26,15 @@ export abstract class EntryAsync<T extends Entry> {
   copyTo(
     parent: DirectoryEntryAsync,
     newName?: string
-  ): Promise<EntryAsync<FileEntry | DirectoryEntry>> {
-    return new Promise<EntryAsync<FileEntry | DirectoryEntry>>(
+  ): Promise<FileEntryAsync | DirectoryEntryAsync> {
+    return new Promise<FileEntryAsync | DirectoryEntryAsync>(
       (resolve, reject) => {
         this.entry.copyTo(
           parent.entry,
           newName,
           entry => {
-            resolve(createEntry(this.fileSystemAsync, entry));
+            const entryAsync = createEntry(this.fileSystemAsync, entry);
+            resolve(entryAsync);
           },
           error => {
             reject(error);
@@ -71,14 +73,15 @@ export abstract class EntryAsync<T extends Entry> {
   moveTo(
     parent: DirectoryEntryAsync,
     newName?: string
-  ): Promise<EntryAsync<FileEntry | DirectoryEntry>> {
-    return new Promise<EntryAsync<FileEntry | DirectoryEntry>>(
+  ): Promise<FileEntryAsync | DirectoryEntryAsync> {
+    return new Promise<FileEntryAsync | DirectoryEntryAsync>(
       (resolve, reject) => {
         this.entry.moveTo(
           parent.entry,
           newName,
           entry => {
-            resolve(createEntry(this.fileSystemAsync, entry));
+            const entryAsync = createEntry(this.fileSystemAsync, entry);
+            resolve(entryAsync);
           },
           error => {
             reject(error);

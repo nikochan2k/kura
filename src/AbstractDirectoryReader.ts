@@ -15,7 +15,7 @@ export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
     errorCallback?: ErrorCallback
   ): void {
     this.dirEntry.params.accessor
-      .getObjects(this.dirEntry.params.fullPath)
+      .getObjects(this.dirEntry.fullPath)
       .then(objects => {
         successCallback(this.createEntries(objects));
       })
