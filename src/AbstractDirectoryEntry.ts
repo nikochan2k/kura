@@ -4,6 +4,7 @@ import {
   DirectoryEntry,
   DirectoryEntryCallback,
   DirectoryReader,
+  Entry,
   EntryCallback,
   ErrorCallback,
   FileEntry,
@@ -42,11 +43,11 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       dirEntry => {
         const reader = this.createReader();
         reader.readEntries(entries => {
-          const promises: Promise<void>[] = [];
+          const promises: Promise<Entry>[] = [];
           for (const entry of entries) {
             promises.push(
-              new Promise<void>((resolve, reject) => {
-                entry.copyTo(dirEntry, entry.name, () => resolve, reject);
+              new Promise<Entry>((resolve, reject) => {
+                entry.copyTo(dirEntry, entry.name, resolve, reject);
               })
             );
           }
@@ -232,11 +233,11 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       dirEntry => {
         const reader = this.createReader();
         reader.readEntries(entries => {
-          const promises: Promise<void>[] = [];
+          const promises: Promise<Entry>[] = [];
           for (const entry of entries) {
             promises.push(
-              new Promise<void>((resolve, reject) => {
-                entry.moveTo(dirEntry, entry.name, () => resolve, reject);
+              new Promise<Entry>((resolve, reject) => {
+                entry.moveTo(dirEntry, entry.name, resolve, reject);
               })
             );
           }
