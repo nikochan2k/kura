@@ -170,7 +170,6 @@ export class IdbAccessor extends AbstractAccessor {
         return;
       }
 
-      const self = this;
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) => reject(ev);
       entryTx.onabort = onerror;
