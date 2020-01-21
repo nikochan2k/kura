@@ -13,6 +13,7 @@ import {
   VoidCallback
 } from "./filesystem";
 import { FileSystemParams } from "./FileSystemParams";
+import { FileWriterAsync } from "./FileWriterAsync";
 
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
@@ -45,10 +46,15 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       fileEntry => {
         fileEntry.createWriter(writer => {
           this.file(file => {
-            writer.write(file);
-            if (successCallback) {
-              successCallback(fileEntry);
-            }
+            const writerAsync = new FileWriterAsync(writer);
+            writerAsync
+              .write(file)
+              .then(() => {
+                if (successCallback) {
+                  successCallback(fileEntry);
+                }
+              })
+              .catch(err => onError(err, errorCallback));
           }, errorCallback);
         }, errorCallback);
       },
