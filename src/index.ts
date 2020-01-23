@@ -1,3 +1,8 @@
+if (!Blob) {
+  (global as any).Blob = require("./node/NodeBlob");
+  (global as any).File = require("./node/NodeFile");
+}
+
 import * as Default from "./default";
 import * as Embedded from "./embedded";
 import * as Idb from "./idb";
