@@ -76,6 +76,22 @@ export function blobToFile(
   return file;
 }
 
+export async function blobToArrayBuffer(blob: Blob) {
+  return new Promise<ArrayBuffer>(resolve => {
+    if (!blob || blob.size === 0) {
+      resolve(new ArrayBuffer(0));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      const buffer = reader.result as ArrayBuffer;
+      resolve(buffer);
+    };
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 export async function blobToBase64(blob: Blob) {
   return new Promise<string>(resolve => {
     if (!blob || blob.size === 0) {
