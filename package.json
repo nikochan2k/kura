@@ -26,8 +26,9 @@
     "compile": "tsc",
     "build": "npm-run-all clean compile",
     "npm-version": "npm version patch",
+    "npm-login": "npm login",
     "npm-publish": "npm publish",
-    "release": "npm-run-all clean compile npm-version npm-publish",
+    "release": "npm-run-all clean compile npm-version npm-login npm-publish",
     "test": "jest --runInBand"
   },
   "jest": {
