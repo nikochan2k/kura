@@ -74,7 +74,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       );
     }
 
-    await accessor.delete(this.fullPath);
+    await accessor.delete(this.fullPath, false);
   }
 
   getDirectory(
@@ -280,7 +280,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         }
 
         this.params.accessor
-          .delete(this.fullPath)
+          .delete(this.fullPath, false)
           .then(() => {
             successCallback();
           })

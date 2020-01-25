@@ -110,7 +110,7 @@ export class IdbAccessor extends AbstractAccessor {
     delete this.db;
   }
 
-  protected doDelete(fullPath: string) {
+  protected doDelete(fullPath: string, isFile: boolean) {
     return new Promise<void>(async (resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) => reject(ev);

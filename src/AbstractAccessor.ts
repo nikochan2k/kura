@@ -16,11 +16,11 @@ export abstract class AbstractAccessor {
 
   constructor(public readonly useIndex: boolean) {}
 
-  async delete(fullPath: string) {
+  async delete(fullPath: string, isFile: boolean) {
     if (fullPath === "/") {
       return;
     }
-    await this.doDelete(fullPath);
+    await this.doDelete(fullPath, isFile);
     if (this.useIndex) {
       const dirPath = getParentPath(fullPath);
       await this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
@@ -39,9 +39,9 @@ export abstract class AbstractAccessor {
         await this.deleteRecursively(obj.fullPath);
         continue;
       }
-      await this.delete(obj.fullPath);
+      await this.delete(obj.fullPath, true);
     }
-    await this.delete(fullPath);
+    await this.delete(fullPath, false);
   }
 
   async getObjects(dirPath: string) {
@@ -139,7 +139,7 @@ export abstract class AbstractAccessor {
     return objects;
   }
 
-  protected abstract doDelete(fullPath: string): Promise<void>;
+  protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   protected abstract doGetObjects(
     fullPath: string
   ): Promise<FileSystemObject[]>;

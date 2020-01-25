@@ -129,7 +129,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback | undefined
   ): void {
     this.params.accessor
-      .delete(this.fullPath)
+      .delete(this.fullPath, true)
       .then(() => {
         successCallback();
       })
