@@ -16,12 +16,13 @@ if (window.PERSISTENT == null) {
 }
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
-  constructor(
-    public bucket: string,
-    protected useIndex = false,
-    public PERSISTENT = window.PERSISTENT,
-    public TEMPORARY = window.TEMPORARY
-  ) {}
+  PERSISTENT: number;
+  TEMPORARY: number;
+
+  constructor(protected useIndex = false) {
+    this.PERSISTENT = window.PERSISTENT;
+    this.TEMPORARY = window.TEMPORARY;
+  }
 
   requestFileSystem(
     type: number,

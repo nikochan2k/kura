@@ -3,6 +3,10 @@ import { AbstractLocalFileSystem } from "../AbstractLocalFileSystem";
 import { IdbAccessor } from "./IdbAccessor";
 
 export class IdbLocalFileSystem extends AbstractLocalFileSystem {
+  constructor(private dbName: string, useIndex = false) {
+    super(useIndex);
+  }
+
   protected createAccessor(
     temporary: boolean,
     size: number,
@@ -13,9 +17,9 @@ export class IdbLocalFileSystem extends AbstractLocalFileSystem {
     }
 
     return new Promise<IdbAccessor>((resolve, reject) => {
-      const accessor = new IdbAccessor(temporary, size, useIndex);
+      const accessor = new IdbAccessor(this.dbName, temporary, size, useIndex);
       accessor
-        .open(this.bucket)
+        .open(this.dbName)
         .then(() => {
           resolve(accessor);
         })

@@ -18,13 +18,18 @@ export class IdbAccessor extends AbstractAccessor {
   db: IDBDatabase;
   filesystem: IdbFileSystem;
 
-  constructor(temporary: boolean, size: number, useIndex: boolean) {
+  constructor(
+    private dbName: string,
+    temporary: boolean,
+    size: number,
+    useIndex: boolean
+  ) {
     super(temporary, size, useIndex);
     this.filesystem = new IdbFileSystem(this);
   }
 
   get name() {
-    return this.db.name;
+    return this.dbName;
   }
 
   async getContent(fullPath: string) {
