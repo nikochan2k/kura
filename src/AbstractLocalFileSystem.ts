@@ -29,11 +29,7 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     successCallback: FileSystemCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    if (type === this.TEMPORARY) {
-      throw new Error("No temporary storage");
-    }
-
-    this.createAccessor(this.useIndex)
+    this.createAccessor(type === this.TEMPORARY, size, this.useIndex)
       .then(accessor => {
         successCallback(accessor.filesystem);
       })
@@ -51,6 +47,8 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   }
 
   protected abstract createAccessor(
+    temporary: boolean,
+    size: number,
     useIndex: boolean
   ): Promise<AbstractAccessor>;
 }

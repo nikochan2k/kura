@@ -18,8 +18,8 @@ export class IdbAccessor extends AbstractAccessor {
   db: IDBDatabase;
   filesystem: IdbFileSystem;
 
-  constructor(useIndex: boolean) {
-    super(useIndex);
+  constructor(temporary: boolean, size: number, useIndex: boolean) {
+    super(temporary, size, useIndex);
     this.filesystem = new IdbFileSystem(this);
   }
 
