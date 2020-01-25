@@ -11,13 +11,13 @@ import { INDEX_FILE_NAME } from "./FileSystemConstants";
 import { InvalidStateError } from "./FileError";
 
 export abstract class AbstractAccessor {
-  abstract filesystem: FileSystem;
-  abstract name: string;
+  abstract readonly filesystem: FileSystem;
+  abstract readonly name: string;
 
   constructor(
-    protected temporary: boolean,
-    protected size: number,
-    protected useIndex: boolean
+    protected readonly temporary: boolean,
+    protected readonly size: number,
+    public readonly useIndex: boolean
   ) {}
 
   async delete(fullPath: string) {
