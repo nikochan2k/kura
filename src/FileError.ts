@@ -8,7 +8,7 @@ export abstract class AbstractFileError implements FileError {
   stack: string;
 
   constructor(
-    public bucket: string,
+    public key: string,
     public filePath: string,
     public detail?: string
   ) {
@@ -20,8 +20,8 @@ export class InvalidStateError extends AbstractFileError {
   code = 7;
   name = "Invalid state error";
 
-  constructor(bucket: string, filePath: string, detail?: string) {
-    super(bucket, filePath, detail);
+  constructor(key: string, filePath: string, detail?: string) {
+    super(key, filePath, detail);
   }
 }
 
@@ -29,8 +29,8 @@ export class InvalidModificationError extends AbstractFileError {
   code = 9;
   name = "Invalid modification error";
 
-  constructor(bucket: string, filePath: string, detail?: string) {
-    super(bucket, filePath, detail);
+  constructor(key: string, filePath: string, detail?: string) {
+    super(key, filePath, detail);
   }
 }
 
@@ -38,8 +38,8 @@ export class NotFoundError extends AbstractFileError {
   code = 1;
   name = "Not found";
 
-  constructor(bucket: string, filePath: string, detail?: string) {
-    super(bucket, filePath, detail);
+  constructor(key: string, filePath: string, detail?: string) {
+    super(key, filePath, detail);
   }
 }
 
@@ -47,7 +47,7 @@ export class NotImplementedError extends AbstractFileError {
   code = -1;
   name = "Not implemented";
 
-  constructor(bucket: string, filePath: string, detail?: string) {
-    super(bucket, filePath, detail);
+  constructor(key: string, filePath: string, detail?: string) {
+    super(key, filePath, detail);
   }
 }
