@@ -7,17 +7,9 @@ export class IdbLocalFileSystem extends AbstractLocalFileSystem {
     super(useIndex);
   }
 
-  protected createAccessor(
-    temporary: boolean,
-    size: number,
-    useIndex: boolean
-  ): Promise<AbstractAccessor> {
-    if (temporary) {
-      throw new Error("No temporary storage");
-    }
-
+  protected createAccessor(useIndex: boolean): Promise<AbstractAccessor> {
     return new Promise<IdbAccessor>((resolve, reject) => {
-      const accessor = new IdbAccessor(this.dbName, temporary, size, useIndex);
+      const accessor = new IdbAccessor(this.dbName, useIndex);
       accessor
         .open(this.dbName)
         .then(() => {
