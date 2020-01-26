@@ -81,6 +81,20 @@ export abstract class AbstractAccessor {
     }
   }
 
+  async updateIndex(obj: FileSystemObject) {
+    const dirPath = getParentPath(obj.fullPath);
+    await this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
+      let record = index[obj.fullPath];
+      if (!record) {
+        record = { obj: obj, updated: Date.now() };
+        index[obj.fullPath] = record;
+      } else {
+        record.updated = Date.now();
+      }
+      delete record.deleted;
+    });
+  }
+
   abstract getContent(fullPath: string): Promise<Blob>;
   abstract getObject(fullPath: string): Promise<FileSystemObject>;
 
@@ -138,20 +152,6 @@ export abstract class AbstractAccessor {
       await this.putIndex(dirPath, index);
     }
     return objects;
-  }
-
-  protected async updateIndex(obj: FileSystemObject) {
-    const dirPath = getParentPath(obj.fullPath);
-    await this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
-      let record = index[obj.fullPath];
-      if (!record) {
-        record = { obj: obj, updated: Date.now() };
-        index[obj.fullPath] = record;
-      } else {
-        record.updated = Date.now();
-      }
-      delete record.deleted;
-    });
   }
 
   protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
