@@ -89,6 +89,7 @@ export abstract class AbstractAccessor {
         record = { obj: obj, updated: Date.now() };
         index[obj.fullPath] = record;
       } else {
+        record.obj = obj;
         record.updated = Date.now();
       }
       delete record.deleted;
