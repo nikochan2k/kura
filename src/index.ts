@@ -1,6 +1,3 @@
-import * as Default from "./default";
-import * as Embedded from "./embedded";
-import * as Idb from "./idb";
 export * from "./AbstractAccessor";
 export * from "./AbstractDirectoryEntry";
 export * from "./AbstractDirectoryReader";
@@ -23,4 +20,6 @@ export * from "./FileSystemUtil";
 export * from "./filewriter";
 export * from "./FileWriterAsync";
 export * from "./LocalFileSystemAsync";
-export { Default, Embedded, Idb };
+export * from "./default";
+export * from "./embedded";
+export * from "./idb";
