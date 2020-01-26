@@ -1,5 +1,6 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
+import { InvalidModificationError, NotFoundError } from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
@@ -14,7 +15,6 @@ import {
 } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
-import { InvalidModificationError, NotFoundError } from "./FileError";
 import { onError, resolveToFullPath } from "./FileSystemUtil";
 
 export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
@@ -66,7 +66,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
   async delete() {
     const accessor = this.params.accessor;
-    if (await accessor.hasChild(this.fullPath)) {
+    if (await this.hasChild()) {
       throw new InvalidModificationError(
         this.filesystem.name,
         this.fullPath,
@@ -213,10 +213,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     return this.params.accessor.getObject(path);
   }
 
-  protected hasChild(): Promise<boolean> {
-    return this.params.accessor.hasChild(this.fullPath);
-  }
-
   moveTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
@@ -252,13 +248,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       },
       errorCallback
     );
-  }
-
-  protected async registerObject(path: string, isFile: boolean) {
-    const obj = this.createObject(path, isFile);
-    const accessor = this.params.accessor;
-    await accessor.putObject(obj);
-    return obj;
   }
 
   remove(
@@ -308,6 +297,18 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   }
 
   abstract createReader(): DirectoryReader;
+
+  protected async hasChild(): Promise<boolean> {
+    const objects = await this.params.accessor.getObjects(this.fullPath);
+    return 0 < objects.length;
+  }
+
+  protected async registerObject(path: string, isFile: boolean) {
+    const obj = this.createObject(path, isFile);
+    const accessor = this.params.accessor;
+    await accessor.putObject(obj);
+    return obj;
+  }
 
   protected abstract toFileEntry(obj: FileSystemObject): FileEntry;
 }

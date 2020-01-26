@@ -1,10 +1,9 @@
 import { AbstractAccessor } from "../AbstractAccessor";
-import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
-import { countSlash, getRange } from "./IdbUtil";
-import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
+import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
+import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
-import { InvalidModificationError } from "../FileError";
+import { countSlash, getRange } from "./IdbUtil";
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -47,27 +46,6 @@ export class IdbAccessor extends AbstractAccessor {
       const request = tx.objectStore(ENTRY_STORE).get(range);
       tx.oncomplete = () => resolve(request.result);
       request.onerror = onerror;
-    });
-  }
-
-  hasChild(fullPath: string) {
-    return new Promise<boolean>((resolve, reject) => {
-      const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      const onerror = (ev: Event) => reject(ev);
-      tx.onabort = onerror;
-      tx.onerror = onerror;
-      let result = false;
-      tx.oncomplete = () => resolve(result);
-
-      const range = getRange(fullPath);
-      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onerror = onerror;
-      request.onsuccess = function(ev) {
-        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
-        if (cursor) {
-          result = true;
-        }
-      };
     });
   }
 
@@ -165,11 +143,6 @@ export class IdbAccessor extends AbstractAccessor {
 
   protected doPutObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
-      if (this.useIndex && obj.name === INDEX_FILE_NAME) {
-        reject(new InvalidModificationError(this.name, obj.fullPath));
-        return;
-      }
-
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) => reject(ev);
       entryTx.onabort = onerror;

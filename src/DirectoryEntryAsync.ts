@@ -3,6 +3,7 @@ import { DirectoryReaderAsync } from "./DirectoryReaderAsync";
 import { EntryAsync } from "./EntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { FileSystemAsync } from "./FileSystemAsync";
+import { NotFoundError } from "./FileError";
 
 export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
   constructor(
@@ -28,6 +29,10 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
           resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
         },
         error => {
+          if (error instanceof NotFoundError) {
+            resolve(null);
+            return;
+          }
           reject(error);
         }
       );
@@ -43,6 +48,10 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
           resolve(new FileEntryAsync(this.fileSystemAsync, entry));
         },
         error => {
+          if (error instanceof NotFoundError) {
+            resolve(null);
+            return;
+          }
           reject(error);
         }
       );

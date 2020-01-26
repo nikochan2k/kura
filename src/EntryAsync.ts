@@ -3,6 +3,7 @@ import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { Entry, Metadata } from "./filesystem";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { FileSystemAsync } from "./FileSystemAsync";
+import { NotFoundError, InvalidModificationError } from "./FileError";
 
 export abstract class EntryAsync<T extends Entry> {
   constructor(protected fileSystemAsync: FileSystemAsync, public entry: T) {}
@@ -98,6 +99,10 @@ export abstract class EntryAsync<T extends Entry> {
           resolve();
         },
         error => {
+          if (error instanceof NotFoundError) {
+            resolve();
+            return;
+          }
           reject(error);
         }
       );
