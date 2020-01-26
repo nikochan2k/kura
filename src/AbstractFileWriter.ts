@@ -135,7 +135,8 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     const accessor = this.fileEntry.params.accessor;
     accessor
       .putObject(obj, blob)
-      .then(() => {
+      .then(async () => {
+        await accessor.updateIndex(obj);
         onsuccess();
         if (this.onwriteend) {
           const evt: ProgressEvent<EventTarget> = {
