@@ -2,7 +2,7 @@ import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileSystem } from "./filesystem";
 
 export class FileSystemAsync {
-  constructor(private fileSystem: FileSystem) {}
+  constructor(public fileSystem: FileSystem) {}
 
   get name(): string {
     return this.fileSystem.name;
