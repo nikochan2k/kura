@@ -24,11 +24,11 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   constructor();
   constructor(useIndex: boolean);
   constructor(permission: Permission);
-  constructor(value?: any) {
-    if (value) {
-      if (typeof value === "object") {
-        this.permission = value;
-      } else if (value === true) {
+  constructor(config?: any) {
+    if (config) {
+      if (typeof config === "object") {
+        this.permission = config;
+      } else if (config === true) {
         this.permission = {};
       }
     }
