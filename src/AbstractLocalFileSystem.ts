@@ -7,6 +7,7 @@ import {
 } from "./filesystem";
 import { NotImplementedError } from "./FileError";
 import { onError } from "./FileSystemUtil";
+import { Permission } from "./FileSystemIndex";
 
 if (window.TEMPORARY == null) {
   window.TEMPORARY = 0;
@@ -18,8 +19,19 @@ if (window.PERSISTENT == null) {
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   PERSISTENT: number;
   TEMPORARY: number;
+  protected permission: Permission;
 
-  constructor(protected useIndex = false) {
+  constructor();
+  constructor(useIndex: boolean);
+  constructor(permission: Permission);
+  constructor(value?: any) {
+    if (value) {
+      if (typeof value === "object") {
+        this.permission = value;
+      } else if (value === true) {
+        this.permission = {};
+      }
+    }
     this.PERSISTENT = window.PERSISTENT;
     this.TEMPORARY = window.TEMPORARY;
   }
@@ -30,7 +42,7 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     successCallback: FileSystemCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    this.createAccessor(this.useIndex)
+    this.createAccessor(this.permission)
       .then(accessor => {
         successCallback(accessor.filesystem);
       })
@@ -48,6 +60,6 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   }
 
   protected abstract createAccessor(
-    useIndex: boolean
+    permission: Permission
   ): Promise<AbstractAccessor>;
 }

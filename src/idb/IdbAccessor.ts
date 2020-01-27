@@ -1,5 +1,6 @@
 import { AbstractAccessor } from "../AbstractAccessor";
 import { DIR_SEPARATOR } from "../FileSystemConstants";
+import { Permission } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
@@ -17,8 +18,8 @@ export class IdbAccessor extends AbstractAccessor {
   db: IDBDatabase;
   filesystem: IdbFileSystem;
 
-  constructor(private dbName: string, useIndex: boolean) {
-    super(useIndex);
+  constructor(private dbName: string, permission: Permission) {
+    super(permission);
     this.filesystem = new IdbFileSystem(this);
   }
 
@@ -26,7 +27,7 @@ export class IdbAccessor extends AbstractAccessor {
     return this.dbName;
   }
 
-  async getContent(fullPath: string) {
+  async doGetContent(fullPath: string) {
     const content = await this.doGetConent(fullPath);
     if (content == null) {
       return null;
@@ -36,7 +37,7 @@ export class IdbAccessor extends AbstractAccessor {
       : base64ToBlob(content as string);
   }
 
-  getObject(fullPath: string) {
+  doGetObject(fullPath: string) {
     return new Promise<FileSystemObject>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);

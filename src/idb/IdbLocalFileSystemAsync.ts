@@ -1,8 +1,12 @@
 import { IdbLocalFileSystem } from "./IdbLocalFileSystem";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
+import { Permission } from "../FileSystemIndex";
 
 export class IdbLocalFileSystemAsync extends LocalFileSystemAsync {
-  constructor(bucket: string, useIndex?: boolean) {
-    super(new IdbLocalFileSystem(bucket, useIndex));
+  constructor(dbName: string);
+  constructor(dbName: string, useIndex: boolean);
+  constructor(dbName: string, permission: Permission);
+  constructor(dbName: string, value?: any) {
+    super(new IdbLocalFileSystem(dbName, value));
   }
 }

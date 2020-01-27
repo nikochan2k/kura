@@ -1,1 +1,2 @@
-Typescriptのままnpm publishする方法
+・Indexをキャッシュする
+・Typescriptのままnpm publishする方法

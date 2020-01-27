@@ -1,7 +1,7 @@
-import { InvalidModificationError, InvalidStateError } from "./FileError";
+import { InvalidModificationError, NotFoundError } from "./FileError";
 import { FileSystem } from "./filesystem";
 import { INDEX_FILE_NAME } from "./FileSystemConstants";
-import { FileSystemIndex } from "./FileSystemIndex";
+import { FileSystemIndex, Permission, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import {
   blobToObject,
@@ -12,23 +12,29 @@ import {
 
 export abstract class AbstractAccessor {
   abstract readonly filesystem: FileSystem;
+  readonly hasIndex: boolean;
   abstract readonly name: string;
 
-  constructor(public readonly useIndex: boolean) {}
+  constructor(public readonly permission: Permission) {
+    this.hasIndex = this.permission ? true : false;
+  }
 
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === "/") {
       return;
     }
-    await this.doDelete(fullPath, isFile);
-    if (this.useIndex) {
+    if (this.hasIndex) {
       const dirPath = getParentPath(fullPath);
-      await this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
+      await this.handleIndex(dirPath, false, async (index: FileSystemIndex) => {
         let record = index[fullPath];
         if (record) {
+          await this.checkDeletePermission(fullPath, record);
           record.deleted = Date.now();
         }
+        await this.doDelete(fullPath, isFile);
       });
+    } else {
+      await this.doDelete(fullPath, isFile);
     }
   }
 
@@ -44,15 +50,25 @@ export abstract class AbstractAccessor {
     await this.delete(fullPath, false);
   }
 
+  async getContent(fullPath: string) {
+    await this.checkGetPermission(fullPath);
+    return this.doGetContent(fullPath);
+  }
+
   public async getIndex(dirPath: string) {
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
-    const blob = await this.getContent(indexPath);
+    const blob = await this.doGetContent(indexPath);
     const index = (await blobToObject(blob)) as FileSystemIndex;
     return index;
   }
 
+  async getObject(fullPath: string) {
+    await this.checkGetPermission(fullPath);
+    return this.doGetObject(fullPath);
+  }
+
   async getObjects(dirPath: string) {
-    return this.useIndex
+    return this.hasIndex
       ? await this.getObjectsFromIndex(dirPath)
       : await this.getObjectsFromDatabase(dirPath);
   }
@@ -64,7 +80,7 @@ export abstract class AbstractAccessor {
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {
-    if (this.useIndex && obj.name === INDEX_FILE_NAME) {
+    if (this.hasIndex && obj.name === INDEX_FILE_NAME) {
       throw new InvalidModificationError(
         this.name,
         obj.fullPath,
@@ -76,28 +92,27 @@ export abstract class AbstractAccessor {
     if (content) {
       await this.doPutContent(obj.fullPath, content);
     }
-    if (this.useIndex) {
+    if (this.hasIndex) {
       await this.updateIndex(obj);
     }
   }
 
   async updateIndex(obj: FileSystemObject) {
     const dirPath = getParentPath(obj.fullPath);
-    await this.handleIndex(dirPath, false, (index: FileSystemIndex) => {
+    await this.handleIndex(dirPath, false, async (index: FileSystemIndex) => {
       let record = index[obj.fullPath];
       if (!record) {
         record = { obj: obj, updated: Date.now() };
+        await this.checkAddPermission(obj.fullPath, record);
         index[obj.fullPath] = record;
       } else {
         record.obj = obj;
         record.updated = Date.now();
+        await this.checkUpdatePermission(obj.fullPath, record);
       }
       delete record.deleted;
     });
   }
-
-  abstract getContent(fullPath: string): Promise<Blob>;
-  abstract getObject(fullPath: string): Promise<FileSystemObject>;
 
   protected async getObjectsFromDatabase(dirPath: string) {
     const objects = await this.doGetObjects(dirPath);
@@ -118,25 +133,26 @@ export abstract class AbstractAccessor {
   protected async handleIndex(
     dirPath: string,
     needObjects: boolean,
-    update?: (index: FileSystemIndex) => void
+    update?: (index: FileSystemIndex) => Promise<void>
   ) {
-    if (!this.useIndex) {
-      throw new InvalidStateError(this.name, dirPath, "useIndex");
-    }
-
     const index = await this.getIndex(dirPath);
     let objects: FileSystemObject[];
     if (index) {
       if (needObjects) {
         objects = [];
         for (const record of Object.values(index)) {
+          try {
+            await this.checkGetPermission(record.obj.fullPath, record);
+          } catch (e) {
+            continue;
+          }
           if (record.deleted == null) {
             objects.push(record.obj);
           }
         }
       }
       if (update) {
-        update(index);
+        await update(index);
         await this.putIndex(dirPath, index);
       }
     } else {
@@ -144,11 +160,17 @@ export abstract class AbstractAccessor {
       const index: FileSystemIndex = {};
       for (const obj of objects) {
         if (obj.name !== INDEX_FILE_NAME) {
-          index[obj.fullPath] = { obj: obj, updated: obj.lastModified };
+          const record: Record = { obj: obj, updated: obj.lastModified };
+          try {
+            await this.checkAddPermission(obj.fullPath, record);
+          } catch (e) {
+            continue;
+          }
+          index[obj.fullPath] = record;
         }
       }
       if (update) {
-        update(index);
+        await update(index);
       }
       await this.putIndex(dirPath, index);
     }
@@ -156,6 +178,8 @@ export abstract class AbstractAccessor {
   }
 
   protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
+  protected abstract doGetContent(fullPath: string): Promise<Blob>;
+  protected abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   protected abstract doGetObjects(
     fullPath: string
   ): Promise<FileSystemObject[]>;
@@ -164,4 +188,55 @@ export abstract class AbstractAccessor {
     content: Blob
   ): Promise<void>;
   protected abstract doPutObject(obj: FileSystemObject): Promise<void>;
+
+  private async checkAddPermission(fullPath: string, record: Record) {
+    if (!this.permission.onAdd) {
+      return;
+    }
+    if (!this.permission.onAdd(record)) {
+      throw new InvalidModificationError(this.name, fullPath, "Cannot add");
+    }
+  }
+
+  private async checkDeletePermission(fullPath: string, record: Record) {
+    if (!this.permission.onDelete) {
+      return;
+    }
+    if (!this.permission.onDelete(record)) {
+      throw new InvalidModificationError(this.name, fullPath, "Cannot delete");
+    }
+  }
+
+  private async checkGetPermission(fullPath: string, record?: Record) {
+    if (!this.hasIndex) {
+      return;
+    }
+    if (!record) {
+      const dirPath = getParentPath(fullPath);
+      const index = await this.getIndex(dirPath);
+      if (!index) {
+        return;
+      }
+      record = index[fullPath];
+      if (!record) {
+        return;
+      }
+    }
+
+    if (!this.permission.onGet) {
+      return;
+    }
+    if (!this.permission.onGet(record)) {
+      throw new NotFoundError(this.name, fullPath);
+    }
+  }
+
+  private async checkUpdatePermission(fullPath: string, record: Record) {
+    if (!this.permission.onUpdate) {
+      return;
+    }
+    if (!this.permission.onUpdate(record)) {
+      throw new InvalidModificationError(this.name, fullPath, "Cannot update");
+    }
+  }
 }
