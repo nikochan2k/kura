@@ -42,7 +42,7 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     successCallback: FileSystemCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    this.createAccessor(this.permission)
+    this.createAccessor()
       .then(accessor => {
         successCallback(accessor.filesystem);
       })
@@ -59,7 +59,5 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     throw new NotImplementedError("", url);
   }
 
-  protected abstract createAccessor(
-    permission: Permission
-  ): Promise<AbstractAccessor>;
+  protected abstract createAccessor(): Promise<AbstractAccessor>;
 }
