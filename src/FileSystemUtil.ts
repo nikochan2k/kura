@@ -1,8 +1,8 @@
-import { CONTENT_TYPE, DIR_SEPARATOR, EMPTY_BLOB } from "./FileSystemConstants";
-import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
+import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
+import { CONTENT_TYPE, DIR_SEPARATOR, EMPTY_BLOB } from "./FileSystemConstants";
 
 const LastPathPart = /\/([^\/]*)$/;
 

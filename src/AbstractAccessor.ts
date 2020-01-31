@@ -1,4 +1,8 @@
-import { InvalidModificationError, NotFoundError } from "./FileError";
+import {
+  InvalidModificationError,
+  NoModificationAllowedError,
+  NotFoundError
+} from "./FileError";
 import { FileSystem } from "./filesystem";
 import { INDEX_FILE_NAME } from "./FileSystemConstants";
 import { FileSystemIndex, Permission, Record } from "./FileSystemIndex";
@@ -194,7 +198,7 @@ export abstract class AbstractAccessor {
       return;
     }
     if (!this.permission.onAdd(record)) {
-      throw new InvalidModificationError(this.name, fullPath, "Cannot add");
+      throw new NoModificationAllowedError(this.name, fullPath, "Cannot add");
     }
   }
 
@@ -203,7 +207,11 @@ export abstract class AbstractAccessor {
       return;
     }
     if (!this.permission.onDelete(record)) {
-      throw new InvalidModificationError(this.name, fullPath, "Cannot delete");
+      throw new NoModificationAllowedError(
+        this.name,
+        fullPath,
+        "Cannot delete"
+      );
     }
   }
 
@@ -236,7 +244,11 @@ export abstract class AbstractAccessor {
       return;
     }
     if (!this.permission.onUpdate(record)) {
-      throw new InvalidModificationError(this.name, fullPath, "Cannot update");
+      throw new NoModificationAllowedError(
+        this.name,
+        fullPath,
+        "Cannot update"
+      );
     }
   }
 }

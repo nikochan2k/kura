@@ -1,9 +1,9 @@
-import { createEntry } from "./FileSystemUtil";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
-import { Entry, Metadata } from "./filesystem";
 import { FileEntryAsync } from "./FileEntryAsync";
+import { NotFoundError } from "./FileError";
+import { Entry, Metadata } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
-import { NotFoundError, InvalidModificationError } from "./FileError";
+import { createEntry } from "./FileSystemUtil";
 
 export abstract class EntryAsync<T extends Entry> {
   constructor(protected fileSystemAsync: FileSystemAsync, public entry: T) {}

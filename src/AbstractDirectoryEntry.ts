@@ -1,6 +1,10 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
-import { InvalidModificationError, NotFoundError } from "./FileError";
+import {
+  InvalidModificationError,
+  NotFoundError,
+  PathExistsError
+} from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
@@ -101,7 +105,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         if (obj) {
           if (obj.size != null) {
             onError(
-              new InvalidModificationError(
+              new PathExistsError(
                 this.filesystem.name,
                 path,
                 `${path} is not a directory`
@@ -114,7 +118,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
           if (options.create) {
             if (options.exclusive) {
               onError(
-                new InvalidModificationError(path, `${path} already exists`),
+                new PathExistsError(path, `${path} already exists`),
                 errorCallback
               );
               return;
@@ -166,7 +170,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         if (obj) {
           if (obj.size == null) {
             onError(
-              new InvalidModificationError(
+              new PathExistsError(
                 this.filesystem.name,
                 path,
                 `${path} is not a file`
@@ -177,7 +181,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
           }
           if (options.create && options.exclusive) {
             onError(
-              new InvalidModificationError(
+              new PathExistsError(
                 this.filesystem.name,
                 path,
                 `${path} already exists`

@@ -1,9 +1,9 @@
 require("fake-indexeddb/auto");
-import { blobToString } from "../FileSystemUtil";
-import { FileSystemAsync } from "../FileSystemAsync";
-import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";
-import { InvalidModificationError, NotFoundError } from "../FileError";
 import { DirectoryEntryAsync } from "../DirectoryEntryAsync";
+import { InvalidModificationError } from "../FileError";
+import { FileSystemAsync } from "../FileSystemAsync";
+import { blobToString } from "../FileSystemUtil";
+import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";
 
 let fs: FileSystemAsync;
 beforeAll(async () => {
