@@ -120,7 +120,7 @@ export function blobToString(blob: Blob) {
   });
 }
 
-export function base64ToBlob(base64: string) {
+export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
   if (!base64) {
     return EMPTY_BLOB;
   }
@@ -130,7 +130,7 @@ export function base64ToBlob(base64: string) {
   for (let i = 0; i < bin.length; i++) {
     array[i] = bin.charCodeAt(i);
   }
-  const blob = new Blob([array.buffer]);
+  const blob = new Blob([array.buffer], { type: type });
   return blob;
 }
 
@@ -139,7 +139,7 @@ export function objectToBlob(obj: any) {
     return EMPTY_BLOB;
   }
   const str = JSON.stringify(obj);
-  return new Blob([str]);
+  return new Blob([str], { type: "application/json" });
 }
 
 export async function blobToObject(blob: Blob) {
