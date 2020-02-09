@@ -1,7 +1,7 @@
 require("fake-indexeddb/auto");
 import { DefaultLocalFileSystemAsync } from "../default/DefaultLocalFileSystemAsync";
 import { DirectoryEntryAsync } from "../DirectoryEntryAsync";
-import { InvalidModificationError } from "../FileError";
+import { InvalidModificationError, PathExistsError } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
 import { blobToString } from "../FileSystemUtil";
 
@@ -37,7 +37,7 @@ test("add text file", async done => {
   expect(fileEntry.isFile).toBe(true);
 
   let writer = await fileEntry.createWriter();
-  await writer.write(new Blob(["hoge"], { type: "text/plain" }));
+  await writer.writeFile(new Blob(["hoge"], { type: "text/plain" }));
   expect(writer.position).toBe(4);
   let file = await fileEntry.file();
   expect(file.size).toBe(4);
@@ -54,7 +54,7 @@ test("add text file", async done => {
     });
     fail();
   } catch (e) {
-    expect(e).toBeInstanceOf(InvalidModificationError);
+    expect(e).toBeInstanceOf(PathExistsError);
   }
   fileEntry = await fs.root.getFile("test.txt");
   file = await fileEntry.file();
