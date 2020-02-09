@@ -147,8 +147,13 @@ export async function blobToObject(blob: Blob) {
     return null;
   }
   const str = await blobToString(blob);
-  const obj = JSON.parse(str);
-  return obj;
+  try {
+    const obj = JSON.parse(str);
+    return obj;
+  } catch (e) {
+    console.warn(e, str);
+    return null;
+  }
 }
 
 export function createEmptyFile(name: string) {
