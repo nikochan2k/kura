@@ -9,12 +9,12 @@ export interface LocalFileSystem {
   /**
    * Used for storage with no guarantee of persistence.
    */
-  TEMPORARY: number;
+  readonly TEMPORARY: number;
 
   /**
    * Used for storage that should not be removed by the user agent without application or user permission.
    */
-  PERSISTENT: number;
+  readonly PERSISTENT: number;
 
   /**
    * Requests a filesystem in which to store application data.
@@ -47,13 +47,13 @@ export interface Metadata {
   /**
    * This is the time at which the file or directory was last modified.
    */
-  modificationTime: Date;
+  readonly modificationTime: Date;
 
   /**
    * The size of the file, in bytes. This must return 0 for directories.
    * @readonly
    */
-  size: number;
+  readonly size: number;
 }
 
 export interface Flags {
@@ -76,25 +76,25 @@ export interface FileSystem {
    * This is the name of the file system. The specifics of naming filesystems is unspecified, but a name must be unique across the list of exposed file systems.
    * @readonly
    */
-  name: string;
+  readonly name: string;
 
   /**
    * The root directory of the file system.
    * @readonly
    */
-  root: DirectoryEntry;
+  readonly root: DirectoryEntry;
 }
 
 export interface Entry {
   /**
    * Entry is a file.
    */
-  isFile: boolean;
+  readonly isFile: boolean;
 
   /**
    * Entry is a directory.
    */
-  isDirectory: boolean;
+  readonly isDirectory: boolean;
 
   /**
    * Look up metadata about this entry.
@@ -109,17 +109,17 @@ export interface Entry {
   /**
    * The name of the entry, excluding the path leading to it.
    */
-  name: string;
+  readonly name: string;
 
   /**
    * The full absolute path from the root to the entry.
    */
-  fullPath: string;
+  readonly fullPath: string;
 
   /**
    * The file system on which the entry resides.
    */
-  filesystem: FileSystem;
+  readonly filesystem: FileSystem;
 
   /**
    * Move an entry to a different location on the file system. It is an error to try to:
@@ -278,7 +278,7 @@ export interface FileEntry extends Entry {
   /**
    * The size of the file.
    */
-  size: number;
+  readonly size: number;
 
   /**
    * Creates a new FileWriter associated with the file that this FileEntry represents.

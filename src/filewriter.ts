@@ -105,12 +105,12 @@ export interface FileWriter extends FileSaver {
    * The byte offset at which the next write to the file will occur. This must be no greater than length.
    * A newly-created FileWriter must have position set to 0.
    */
-  position: number;
+  readonly position: number;
 
   /**
    * The length of the file. If the user does not have read access to the file, this must be the highest byte offset at which the user has written.
    */
-  length: number;
+  readonly length: number;
 
   /**
    * Write the supplied data to the file at position.
