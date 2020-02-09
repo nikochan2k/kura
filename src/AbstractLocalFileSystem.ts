@@ -10,10 +10,10 @@ import { onError } from "./FileSystemUtil";
 import { Permission } from "./FileSystemIndex";
 
 if (window.TEMPORARY == null) {
-  window.TEMPORARY = 0;
+  (window as any).TEMPORARY = 0;
 }
 if (window.PERSISTENT == null) {
-  window.PERSISTENT = 1;
+  (window as any).PERSISTENT = 1;
 }
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
