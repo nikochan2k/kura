@@ -62,6 +62,9 @@ export abstract class AbstractAccessor {
   public async getIndex(dirPath: string) {
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
     const blob = await this.doGetContent(indexPath);
+    if (!blob) {
+      return null;
+    }
     const index = (await blobToObject(blob)) as FileSystemIndex;
     return index;
   }
