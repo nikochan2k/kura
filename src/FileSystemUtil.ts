@@ -1,3 +1,4 @@
+import { decode } from "base-64";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
@@ -125,7 +126,7 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
     return EMPTY_BLOB;
   }
 
-  const bin = atob(base64);
+  const bin = atob ? atob(base64) : decode(base64);
   const array = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) {
     array[i] = bin.charCodeAt(i);
