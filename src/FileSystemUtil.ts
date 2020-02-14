@@ -82,22 +82,6 @@ export function blobToFile(
   return file;
 }
 
-export async function blobToArrayBuffer(blob: Blob) {
-  return new Promise<ArrayBuffer>(resolve => {
-    if (!blob || blob.size === 0) {
-      resolve(new ArrayBuffer(0));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = function() {
-      const buffer = reader.result as ArrayBuffer;
-      resolve(buffer);
-    };
-    reader.readAsArrayBuffer(blob);
-  });
-}
-
 export async function blobToBase64(blob: Blob) {
   return new Promise<string>(resolve => {
     if (!blob || blob.size === 0) {
@@ -132,11 +116,7 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
   }
 
   const bin = atob(base64);
-  const array = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) {
-    array[i] = bin.charCodeAt(i);
-  }
-  const blob = new Blob([array.buffer], { type: type });
+  const blob = new Blob([bin], { type: type });
   return blob;
 }
 
@@ -167,17 +147,6 @@ export function createEmptyFile(name: string) {
     lastModified: Date.now(),
     type: CONTENT_TYPE
   });
-}
-
-export function toArrayBuffer(
-  blob: Blob,
-  onload: (result: ArrayBuffer) => void
-) {
-  const reader = new FileReader();
-  reader.onloadend = function() {
-    onload(reader.result as ArrayBuffer);
-  };
-  reader.readAsArrayBuffer(blob);
 }
 
 export function onError(err: DOMError, errorCallback?: ErrorCallback) {
