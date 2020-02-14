@@ -5,8 +5,9 @@ import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import { CONTENT_TYPE, DIR_SEPARATOR, EMPTY_BLOB } from "./FileSystemConstants";
 
-if (!globalThis.atob) {
-  globalThis.atob = decode;
+const g: any = window || global;
+if (!g.atob) {
+  g.atob = decode;
 }
 
 const LastPathPart = /\/([^\/]*)$/;
