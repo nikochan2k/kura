@@ -87,14 +87,14 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     successCallback?: DirectoryEntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    path = resolveToFullPath(this.fullPath, path);
-    if (path === "/") {
+    const fullPath = resolveToFullPath(this.fullPath, path);
+    if (fullPath === "/") {
       successCallback(this.filesystem.root);
       return;
     }
 
-    this.getDirectoryObject(path)
-      .then(obj => {
+    this.getDirectoryObject(fullPath)
+      .then(async obj => {
         if (!options) {
           options = {};
         }
@@ -107,8 +107,8 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
             onError(
               new PathExistsError(
                 this.filesystem.name,
-                path,
-                `${path} is not a directory`
+                fullPath,
+                `${fullPath} is not a directory`
               ),
               errorCallback
             );
@@ -118,16 +118,17 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
           if (options.create) {
             if (options.exclusive) {
               onError(
-                new PathExistsError(path, `${path} already exists`),
+                new PathExistsError(fullPath, `${fullPath} already exists`),
                 errorCallback
               );
               return;
             }
+            obj = await this.params.accessor.resetObject(fullPath);
           }
           successCallback(this.toDirectoryEntry(obj));
         } else {
           if (options.create) {
-            this.registerObject(path, false)
+            this.registerObject(fullPath, false)
               .then(newObj => {
                 successCallback(this.toDirectoryEntry(newObj));
               })
@@ -136,7 +137,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
               });
           } else {
             onError(
-              new NotFoundError(this.filesystem.name, path),
+              new NotFoundError(this.filesystem.name, fullPath),
               errorCallback
             );
           }
@@ -157,9 +158,9 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     successCallback?: FileEntryCallback,
     errorCallback?: ErrorCallback
   ): void {
-    path = resolveToFullPath(this.fullPath, path);
-    this.getFileObject(path)
-      .then(obj => {
+    const fullPath = resolveToFullPath(this.fullPath, path);
+    this.getFileObject(fullPath)
+      .then(async obj => {
         if (!options) {
           options = {};
         }
@@ -172,28 +173,31 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
             onError(
               new PathExistsError(
                 this.filesystem.name,
-                path,
-                `${path} is not a file`
+                fullPath,
+                `${fullPath} is not a file`
               ),
               errorCallback
             );
             return;
           }
-          if (options.create && options.exclusive) {
-            onError(
-              new PathExistsError(
-                this.filesystem.name,
-                path,
-                `${path} already exists`
-              ),
-              errorCallback
-            );
-            return;
+          if (options.create) {
+            if (options.exclusive) {
+              onError(
+                new PathExistsError(
+                  this.filesystem.name,
+                  fullPath,
+                  `${fullPath} already exists`
+                ),
+                errorCallback
+              );
+              return;
+            }
+            obj = await this.params.accessor.resetObject(fullPath);
           }
           successCallback(this.toFileEntry(obj));
         } else {
           if (options.create) {
-            this.registerObject(path, true)
+            this.registerObject(fullPath, true)
               .then(newObj => {
                 successCallback(this.toFileEntry(newObj));
               })
@@ -202,7 +206,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
               });
           } else {
             onError(
-              new NotFoundError(this.filesystem.name, path),
+              new NotFoundError(this.filesystem.name, fullPath),
               errorCallback
             );
           }
@@ -307,9 +311,13 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     return 0 < objects.length;
   }
 
-  protected async registerObject(path: string, isFile: boolean) {
-    const obj = this.createObject(path, isFile);
+  protected async registerObject(fullPath: string, isFile: boolean) {
     const accessor = this.params.accessor;
+    let obj = await accessor.resetObject(fullPath);
+    if (obj) {
+      return obj;
+    }
+    obj = this.createObject(fullPath, isFile);
     await accessor.putObject(obj);
     return obj;
   }

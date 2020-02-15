@@ -83,18 +83,16 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       successCallback(this.fileWriter.file);
       return;
     }
-    if (this.size === 0) {
-      const file = createEmptyFile(this.params.name);
-      this.fileWriter = this.createFileWriter(file);
-      successCallback(file);
-      return;
-    }
     const accessor = this.params.accessor;
     accessor
       .getContent(this.fullPath)
-      .then(blob => {
+      .then(async blob => {
+        if (this.size !== blob.size) {
+          await this.params.accessor.resetObject(this.fullPath, blob.size);
+        }
         const file = new File([blob], this.params.name, {
-          type: CONTENT_TYPE
+          type: CONTENT_TYPE,
+          lastModified: this.params.lastModified
         });
         this.fileWriter = this.createFileWriter(file);
         successCallback(file);

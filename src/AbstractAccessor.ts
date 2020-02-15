@@ -1,3 +1,4 @@
+import { Accessor } from "./Accessor";
 import {
   InvalidModificationError,
   NoModificationAllowedError,
@@ -14,7 +15,7 @@ import {
   objectToBlob
 } from "./FileSystemUtil";
 
-export abstract class AbstractAccessor {
+export abstract class AbstractAccessor implements Accessor {
   abstract readonly filesystem: FileSystem;
   readonly hasIndex: boolean;
   abstract readonly name: string;
@@ -59,7 +60,7 @@ export abstract class AbstractAccessor {
     return this.doGetContent(fullPath);
   }
 
-  public async getIndex(dirPath: string) {
+  async getIndex(dirPath: string) {
     const indexPath = createPath(dirPath, INDEX_FILE_NAME);
     const blob = await this.doGetContent(indexPath);
     if (!blob) {
@@ -102,6 +103,18 @@ export abstract class AbstractAccessor {
     if (this.hasIndex) {
       await this.updateIndex(obj);
     }
+  }
+
+  async resetObject(fullPath: string, size?: number) {
+    const obj = await this.doGetObject(fullPath);
+    if (!obj) {
+      return null;
+    }
+    if (size) {
+      obj.size = size;
+    }
+    await this.putObject(obj);
+    return obj;
   }
 
   async updateIndex(obj: FileSystemObject) {
