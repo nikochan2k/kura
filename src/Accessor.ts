@@ -10,5 +10,6 @@ export interface Accessor {
   getObjects(dirPath: string): Promise<FileSystemObject[]>;
   putIndex(dirPath: string, index: FileSystemIndex): Promise<void>;
   resetObject(fullPath: string, size?: number): Promise<FileSystemObject>;
+  toURL(path: string): string;
   updateIndex(obj: FileSystemObject): Promise<void>;
 }

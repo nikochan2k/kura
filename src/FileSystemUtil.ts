@@ -41,7 +41,7 @@ export function createEntry(fileSystemAsync: FileSystemAsync, entry: Entry) {
 
 export function resolveToFullPath(cwdFullPath: string, path: string) {
   let fullPath = path;
-
+  cwdFullPath = cwdFullPath.replace(LAST_DIR_SEPARATORS, "");
   const relativePath = path[0] != DIR_SEPARATOR;
   if (relativePath) {
     fullPath = cwdFullPath + DIR_SEPARATOR + path;

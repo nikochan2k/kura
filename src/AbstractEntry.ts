@@ -12,7 +12,7 @@ import {
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import { getParentPath, onError } from "./FileSystemUtil";
-import { InvalidModificationError, NotImplementedError } from "./FileError";
+import { InvalidModificationError } from "./FileError";
 
 export abstract class AbstractEntry<T extends AbstractAccessor>
   implements Entry {
@@ -24,19 +24,14 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
   get filesystem() {
     return this.params.accessor.filesystem;
   }
+
   get fullPath() {
     return this.params.fullPath;
   }
+
   get name() {
     return this.params.name;
   }
-
-  abstract copyTo(
-    parent: DirectoryEntry,
-    newName?: string | undefined,
-    successCallback?: EntryCallback | undefined,
-    errorCallback?: ErrorCallback | undefined
-  ): void;
 
   getMetadata(
     successCallback: MetadataCallback,
@@ -60,17 +55,22 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback(this.toDirectoryEntry(obj));
   }
 
+  toURL(): string {
+    return this.params.accessor.toURL(this.fullPath);
+  }
+
+  abstract copyTo(
+    parent: DirectoryEntry,
+    newName?: string | undefined,
+    successCallback?: EntryCallback | undefined,
+    errorCallback?: ErrorCallback | undefined
+  ): void;
   abstract moveTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void;
-
-  toURL(): string {
-    throw new NotImplementedError(this.filesystem.name, this.fullPath);
-  }
-
   abstract remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined

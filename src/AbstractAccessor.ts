@@ -2,7 +2,8 @@ import { Accessor } from "./Accessor";
 import {
   InvalidModificationError,
   NoModificationAllowedError,
-  NotFoundError
+  NotFoundError,
+  NotImplementedError
 } from "./FileError";
 import { FileSystem } from "./filesystem";
 import { INDEX_FILE_NAME } from "./FileSystemConstants";
@@ -195,6 +196,10 @@ export abstract class AbstractAccessor implements Accessor {
       await this.putIndex(dirPath, index);
     }
     return objects;
+  }
+
+  toURL(path: string): string {
+    throw new NotImplementedError(this.filesystem.name, path);
   }
 
   protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
