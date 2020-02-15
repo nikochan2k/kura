@@ -92,9 +92,9 @@ export async function blobToBase64(blob: Blob) {
     }
 
     const reader = new FileReader();
-    const onError = (ev: any) => reject(ev);
-    reader.onerror = onError;
-    reader.onabort = onError;
+    const handleError = (ev: any) => reject(ev);
+    reader.onerror = handleError;
+    reader.onabort = handleError;
     reader.onloadend = () => {
       const base64Url = reader.result as string;
       const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
@@ -105,12 +105,15 @@ export async function blobToBase64(blob: Blob) {
 }
 
 export function blobToString(blob: Blob) {
-  return new Promise<string>(resolve => {
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.addEventListener("loadend", e => {
-      const str = (e.srcElement as FileReader).result as string;
+    const handleError = (ev: any) => reject(ev);
+    reader.onerror = handleError;
+    reader.onabort = handleError;
+    reader.onloadend = () => {
+      const str = reader.result as string;
       resolve(str);
-    });
+    };
     reader.readAsText(blob);
   });
 }
