@@ -187,9 +187,7 @@ export abstract class AbstractAccessor {
   protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   protected abstract doGetContent(fullPath: string): Promise<Blob>;
   protected abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
-  protected abstract doGetObjects(
-    fullPath: string
-  ): Promise<FileSystemObject[]>;
+  protected abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
   protected abstract doPutContent(
     fullPath: string,
     content: Blob
