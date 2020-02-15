@@ -1,8 +1,6 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
 import { AbstractFileWriter } from "./AbstractFileWriter";
-import { CONTENT_TYPE } from "./FileSystemConstants";
-import { createEmptyFile, onError } from "./FileSystemUtil";
 import {
   DirectoryEntry,
   EntryCallback,
@@ -12,7 +10,9 @@ import {
   FileWriterCallback,
   VoidCallback
 } from "./filesystem";
+import { CONTENT_TYPE, EMPTY_BLOB } from "./FileSystemConstants";
 import { FileSystemParams } from "./FileSystemParams";
+import { onError } from "./FileSystemUtil";
 import { FileWriterAsync } from "./FileWriterAsync";
 
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
@@ -87,7 +87,9 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     accessor
       .getContent(this.fullPath)
       .then(async blob => {
-        if (this.size !== blob.size) {
+        if (!blob) {
+          blob = EMPTY_BLOB;
+        } else if (this.size !== blob.size) {
           await this.params.accessor.resetObject(this.fullPath, blob.size);
         }
         const file = new File([blob], this.params.name, {
