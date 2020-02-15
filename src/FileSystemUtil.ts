@@ -85,14 +85,17 @@ export function blobToFile(
 }
 
 export async function blobToBase64(blob: Blob) {
-  return new Promise<string>(resolve => {
+  return new Promise<string>((resolve, reject) => {
     if (!blob || blob.size === 0) {
       resolve("");
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = function() {
+    const onError = (ev: any) => reject(ev);
+    reader.onerror = onError;
+    reader.onabort = onError;
+    reader.onloadend = () => {
       const base64Url = reader.result as string;
       const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
       resolve(base64);
