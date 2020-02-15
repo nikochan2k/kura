@@ -9,6 +9,7 @@ import {
   EMPTY_BLOB,
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
+import { rejects } from "assert";
 
 const g: any = window || global;
 if (!g.atob) {
@@ -84,6 +85,27 @@ export function blobToFile(
   return file;
 }
 
+function createFileReader(
+  resolveAction: () => void,
+  reject: (reason?: any) => void
+) {
+  const reader = new FileReader();
+  const handleError = (ev: any) => reject(ev);
+  reader.onerror = handleError;
+  reader.onabort = handleError;
+  reader.onloadend = ev => {
+    if (reader.readyState === FileReader.DONE) {
+      resolveAction();
+    } else {
+      // for EXPO FileSystem bug
+      setTimeout(() => {
+        reader.onloadend(ev);
+      }, 10);
+    }
+  };
+  return reader;
+}
+
 export async function blobToBase64(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     if (!blob || blob.size === 0) {
@@ -91,29 +113,20 @@ export async function blobToBase64(blob: Blob) {
       return;
     }
 
-    const reader = new FileReader();
-    const handleError = (ev: any) => reject(ev);
-    reader.onerror = handleError;
-    reader.onabort = handleError;
-    reader.onloadend = () => {
+    const reader = createFileReader(() => {
       const base64Url = reader.result as string;
       const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
       resolve(base64);
-    };
+    }, reject);
     reader.readAsDataURL(blob);
   });
 }
 
 export function blobToString(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    const handleError = (ev: any) => reject(ev);
-    reader.onerror = handleError;
-    reader.onabort = handleError;
-    reader.onloadend = () => {
-      const str = reader.result as string;
-      resolve(str);
-    };
+    const reader = createFileReader(() => {
+      resolve(reader.result as string);
+    }, reject);
     reader.readAsText(blob);
   });
 }
