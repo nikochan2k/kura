@@ -41,37 +41,13 @@ export class FileWriterAsync {
     });
   }
 
-  writeFile(data: Blob): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.fileWriter.onwriteend = () => {
-        this.fileWriter.onwriteend = () => {
-          resolve();
-        };
-        try {
-          this.fileWriter.write(data);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      try {
-        this.fileWriter.truncate(0);
-      } catch (err) {
-        reject(err);
-      }
-    });
+  async writeFile(data: Blob) {
+    await this.truncate(0);
+    await this.write(data);
   }
 
-  appendFile(data: Blob): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.seek(this.fileWriter.length);
-      this.fileWriter.onwriteend = () => {
-        resolve();
-      };
-      try {
-        this.fileWriter.write(data);
-      } catch (err) {
-        reject(err);
-      }
-    });
+  async appendFile(data: Blob) {
+    this.seek(this.length);
+    await this.write(data);
   }
 }
