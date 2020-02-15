@@ -3,30 +3,32 @@ import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
-import { CONTENT_TYPE, DIR_SEPARATOR, EMPTY_BLOB } from "./FileSystemConstants";
+import {
+  CONTENT_TYPE,
+  DIR_SEPARATOR,
+  EMPTY_BLOB,
+  LAST_DIR_SEPARATORS
+} from "./FileSystemConstants";
 
 const g: any = window || global;
 if (!g.atob) {
   g.atob = decode;
 }
 
-const LastPathPart = /\/([^\/]*)$/;
+const LAST_PATH_PART = /\/([^\/]*)$/;
 
 export function createPath(parentPath: string, name: string) {
-  if (parentPath === DIR_SEPARATOR) {
-    return parentPath + name;
-  } else {
-    return parentPath + DIR_SEPARATOR + name;
-  }
+  parentPath = parentPath.replace(LAST_DIR_SEPARATORS, "");
+  return parentPath + DIR_SEPARATOR + name;
 }
 
 export function getParentPath(filePath: string) {
-  const parentPath = filePath.replace(LastPathPart, "");
+  const parentPath = filePath.replace(LAST_PATH_PART, "");
   return parentPath === "" ? DIR_SEPARATOR : parentPath;
 }
 
 export function getName(filePath: string) {
-  const result = LastPathPart.exec(filePath);
+  const result = LAST_PATH_PART.exec(filePath);
   return result[1];
 }
 

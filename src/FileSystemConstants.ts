@@ -1,5 +1,6 @@
 export const CONTENT_TYPE = "application/octet-stream";
 export const DIR_SEPARATOR = "/";
+export const LAST_DIR_SEPARATORS = /\/+$/;
 export const DIR_OPEN_BOUND = String.fromCharCode(
   DIR_SEPARATOR.charCodeAt(0) + 1
 );
