@@ -110,7 +110,10 @@ export async function blobToBase64(blob: Blob) {
       const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
       resolve(base64);
     }, reject);
-    reader.readAsDataURL(blob);
+    setTimeout(() => {
+      // for React Native bugs
+      reader.readAsDataURL(blob);
+    }, 0);
   });
 }
 
@@ -119,7 +122,10 @@ export function blobToString(blob: Blob) {
     const reader = createFileReader(() => {
       resolve(reader.result as string);
     }, reject);
-    reader.readAsText(blob);
+    setTimeout(() => {
+      // for React Native bugs
+      reader.readAsText(blob);
+    }, 0);
   });
 }
 
