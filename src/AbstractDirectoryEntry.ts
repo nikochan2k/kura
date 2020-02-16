@@ -17,6 +17,7 @@ import {
   Flags,
   VoidCallback
 } from "./filesystem";
+import { EMPTY_BLOB } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import { onError, resolveToFullPath } from "./FileSystemUtil";
@@ -316,7 +317,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       return obj;
     }
     obj = this.createObject(fullPath, isFile);
-    await accessor.putObject(obj);
+    await accessor.putObject(obj, EMPTY_BLOB);
     return obj;
   }
 
