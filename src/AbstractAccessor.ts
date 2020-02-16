@@ -113,8 +113,8 @@ export abstract class AbstractAccessor implements Accessor {
     }
     if (size) {
       obj.size = size;
+      await this.putObject(obj);
     }
-    await this.putObject(obj);
     return obj;
   }
 
