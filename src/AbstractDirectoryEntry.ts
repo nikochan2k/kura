@@ -317,7 +317,11 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       return obj;
     }
     obj = this.createObject(fullPath, isFile);
-    await accessor.putObject(obj, EMPTY_BLOB);
+    if (isFile) {
+      await accessor.putObject(obj, EMPTY_BLOB);
+    } else {
+      await accessor.putObject(obj);
+    }
     return obj;
   }
 
