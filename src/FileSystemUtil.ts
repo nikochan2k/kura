@@ -17,6 +17,14 @@ if (!g.atob) {
 
 const LAST_PATH_PART = /\/([^\/]*)$/;
 
+function stringifyEscaped(obj: any) {
+  const json = JSON.stringify(obj);
+  const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
+    return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
+  });
+  return escaped;
+}
+
 export function createPath(parentPath: string, name: string) {
   parentPath = parentPath.replace(LAST_DIR_SEPARATORS, "");
   return parentPath + DIR_SEPARATOR + name;
@@ -124,7 +132,7 @@ export function blobToString(blob: Blob) {
     }, reject);
     setTimeout(() => {
       // for React Native bugs
-      reader.readAsText(blob, "UTF-8");
+      reader.readAsText(blob);
     }, 0);
   });
 }
@@ -143,7 +151,7 @@ export function objectToBlob(obj: any) {
   if (!obj) {
     return EMPTY_BLOB;
   }
-  const str = JSON.stringify(obj);
+  const str = stringifyEscaped(obj);
   return new Blob([str], { type: "application/json; charset=utf-8" });
 }
 
