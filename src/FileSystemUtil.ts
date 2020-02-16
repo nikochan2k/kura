@@ -124,7 +124,7 @@ export function blobToString(blob: Blob) {
     }, reject);
     setTimeout(() => {
       // for React Native bugs
-      reader.readAsText(blob);
+      reader.readAsText(blob, "UTF-8");
     }, 0);
   });
 }
@@ -144,7 +144,7 @@ export function objectToBlob(obj: any) {
     return EMPTY_BLOB;
   }
   const str = JSON.stringify(obj);
-  return new Blob([str], { type: "application/json" });
+  return new Blob([str], { type: "application/json; charset=utf-8" });
 }
 
 export async function blobToObject(blob: Blob) {
