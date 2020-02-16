@@ -123,7 +123,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
               );
               return;
             }
-            obj = await this.params.accessor.resetObject(fullPath);
           }
           successCallback(this.toDirectoryEntry(obj));
         } else {
@@ -192,7 +191,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
               );
               return;
             }
-            obj = await this.params.accessor.resetObject(fullPath);
           }
           successCallback(this.toFileEntry(obj));
         } else {

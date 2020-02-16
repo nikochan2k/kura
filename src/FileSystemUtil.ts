@@ -9,7 +9,6 @@ import {
   EMPTY_BLOB,
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
-import { rejects } from "assert";
 
 const g: any = window || global;
 if (!g.atob) {
@@ -111,10 +110,7 @@ export async function blobToBase64(blob: Blob) {
       const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
       resolve(base64);
     }, reject);
-    setTimeout(() => {
-      // for React Native bugs
-      reader.readAsDataURL(blob);
-    }, 0);
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -123,10 +119,7 @@ export function blobToString(blob: Blob) {
     const reader = createFileReader(() => {
       resolve(reader.result as string);
     }, reject);
-    setTimeout(() => {
-      // for React Native bugs
-      reader.readAsText(blob);
-    }, 0);
+    reader.readAsText(blob);
   });
 }
 
