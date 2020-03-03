@@ -8,8 +8,12 @@ export interface Record {
   [key: string]: any;
 }
 
-export interface FileSystemIndex {
-  [key: string]: Record;
+export interface FileNameIndex {
+  [name: string]: Record;
+}
+
+export interface DirPathIndex {
+  [dirPath: string]: FileNameIndex;
 }
 
 export interface Permission {

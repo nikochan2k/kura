@@ -2,8 +2,8 @@ import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractDirectoryEntry } from "./AbstractDirectoryEntry";
 import { AbstractEntry } from "./AbstractEntry";
 import { DirectoryReader, EntriesCallback, ErrorCallback } from "./filesystem";
+import { INDEX_FILE_PATH } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
-import { INDEX_FILE_NAME } from "./FileSystemConstants";
 import { onError } from "./FileSystemUtil";
 
 export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
@@ -27,7 +27,7 @@ export abstract class AbstractDirectoryReader<T extends AbstractAccessor>
   protected createEntries(objects: FileSystemObject[]) {
     const entries: AbstractEntry<T>[] = [];
     for (const obj of objects) {
-      if (obj.name === INDEX_FILE_NAME) {
+      if (obj.fullPath === INDEX_FILE_PATH) {
         continue;
       }
       entries.push(this.createEntry(obj));
