@@ -23,3 +23,5 @@ export * from "./LocalFileSystemAsync";
 export * from "./default";
 export * from "./embedded";
 export * from "./idb";
+
+export { testAll } from "./__tests__/filesystem";
