@@ -1,4 +1,3 @@
-require("fake-indexeddb/auto");
 import { DirectoryEntryAsync } from "../DirectoryEntryAsync";
 import { InvalidModificationError, PathExistsError } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
