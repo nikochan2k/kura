@@ -4,9 +4,15 @@ import { FileSystemAsync } from "../FileSystemAsync";
 import { blobToString } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 
-export function testAll(factory: LocalFileSystemAsync) {
+export function testAll(
+  factory: LocalFileSystemAsync,
+  prepare?: () => Promise<void>
+) {
   let fs: FileSystemAsync;
   beforeAll(async () => {
+    if (prepare) {
+      await prepare();
+    }
     fs = await factory.requestFileSystemAsync(
       window.PERSISTENT,
       Number.MAX_VALUE
