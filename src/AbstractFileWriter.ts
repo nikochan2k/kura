@@ -139,6 +139,8 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
         if (accessor.hasIndex) {
           await accessor.updateIndex(obj);
         }
+        this.fileEntry.params.lastModified = obj.lastModified;
+        this.fileEntry.params.size = obj.size;
         onsuccess();
         if (this.onwriteend) {
           const evt: ProgressEvent<EventTarget> = {
