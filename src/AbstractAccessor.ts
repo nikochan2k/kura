@@ -104,6 +104,11 @@ export abstract class AbstractAccessor implements Accessor {
     if (!this.dirPathIndex) {
       this.dirPathIndex = {};
     }
+    if (AbstractAccessor.PUT_INDEX_THROTTLE <= 0) {
+      await this.doPutDirPathIndex();
+      return;
+    }
+
     this.dirPathIndex[dirPath] = fileNameIndex;
     if (this.putIndexTimeout) {
       if (window) {
