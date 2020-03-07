@@ -10,7 +10,7 @@ import {
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
 
-const LAST_PATH_PART = /\/([^\/]*)$/;
+const LAST_PATH_PART = /\/([^\/]+)\/?$/;
 
 function stringifyEscaped(obj: any) {
   const json = JSON.stringify(obj);
@@ -20,11 +20,6 @@ function stringifyEscaped(obj: any) {
   return escaped;
 }
 
-export function createPath(parentPath: string, name: string) {
-  parentPath = parentPath.replace(LAST_DIR_SEPARATORS, "");
-  return parentPath + DIR_SEPARATOR + name;
-}
-
 export function getParentPath(filePath: string) {
   const parentPath = filePath.replace(LAST_PATH_PART, "");
   return parentPath === "" ? DIR_SEPARATOR : parentPath;
@@ -32,6 +27,9 @@ export function getParentPath(filePath: string) {
 
 export function getName(filePath: string) {
   const result = LAST_PATH_PART.exec(filePath);
+  if (!result || result.length === 0) {
+    return "";
+  }
   return result[1];
 }
 
@@ -48,7 +46,10 @@ export function resolveToFullPath(cwdFullPath: string, path: string) {
   if (relativePath) {
     fullPath = cwdFullPath + DIR_SEPARATOR + path;
   }
+  return normalizePath(fullPath);
+}
 
+export function normalizePath(fullPath: string) {
   // Normalize '.'s,  '..'s and '//'s.
   const parts = fullPath.split(DIR_SEPARATOR);
   const finalParts = [];

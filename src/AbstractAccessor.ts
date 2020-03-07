@@ -113,15 +113,13 @@ export abstract class AbstractAccessor implements Accessor {
       }
     }
     if (window) {
-      this.putIndexTimeout = window.setTimeout(
-        this.doPutDirPathIndex,
-        AbstractAccessor.PUT_INDEX_THROTTLE
-      );
+      this.putIndexTimeout = window.setTimeout(async () => {
+        await this.doPutDirPathIndex();
+      }, AbstractAccessor.PUT_INDEX_THROTTLE);
     } else {
-      this.putIndexTimeout = setTimeout(
-        this.doPutDirPathIndex,
-        AbstractAccessor.PUT_INDEX_THROTTLE
-      );
+      this.putIndexTimeout = setTimeout(async () => {
+        await this.doPutDirPathIndex();
+      }, AbstractAccessor.PUT_INDEX_THROTTLE);
     }
   }
 
@@ -180,9 +178,9 @@ export abstract class AbstractAccessor implements Accessor {
     );
   }
 
-  protected doPutDirPathIndex() {
+  protected async doPutDirPathIndex() {
     const blob = objectToBlob(this.dirPathIndex);
-    this.doPutContent(INDEX_FILE_PATH, blob);
+    await this.doPutContent(INDEX_FILE_PATH, blob);
   }
 
   protected async getObjectsFromDatabase(dirPath: string) {
