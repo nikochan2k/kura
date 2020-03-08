@@ -105,12 +105,7 @@ export abstract class AbstractAccessor {
       throw new Error("No index");
     }
     if (this.dirPathIndex == null) {
-      let blob: Blob;
-      try {
-        blob = await this.doGetContent(INDEX_FILE_PATH);
-      } catch (e) {
-        console.log(e);
-      }
+      const blob = await this.doGetContent(INDEX_FILE_PATH);
       if (blob) {
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
       } else {
