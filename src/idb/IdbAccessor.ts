@@ -27,6 +27,40 @@ export class IdbAccessor extends AbstractAccessor {
     return this.dbName;
   }
 
+  doDelete(fullPath: string, isFile: boolean) {
+    return new Promise<void>(async (resolve, reject) => {
+      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
+      const onerror = (ev: Event) => reject(ev);
+      entryTx.onabort = onerror;
+      entryTx.onerror = onerror;
+      entryTx.oncomplete = function() {
+        resolve();
+      };
+      let range = IDBKeyRange.only(fullPath);
+      const request = entryTx.objectStore(ENTRY_STORE).delete(range);
+      request.onerror = onerror;
+    });
+  }
+
+  doGetConent(fullPath: string) {
+    return new Promise<any>((resolve, reject) => {
+      const onerror = (ev: Event) => reject(ev);
+      const tx = this.db.transaction([CONTENT_STORE], "readonly");
+      const range = IDBKeyRange.only(fullPath);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
+      const request = tx.objectStore(CONTENT_STORE).get(range);
+      request.onerror = onerror;
+      tx.oncomplete = function(ev) {
+        if (request.result != null) {
+          resolve(request.result);
+        } else {
+          resolve(null);
+        }
+      };
+    });
+  }
+
   async doGetContent(fullPath: string) {
     const content = await this.doGetConent(fullPath);
     if (content == null) {
@@ -47,6 +81,58 @@ export class IdbAccessor extends AbstractAccessor {
       const request = tx.objectStore(ENTRY_STORE).get(range);
       tx.oncomplete = () => resolve(request.result);
       request.onerror = onerror;
+    });
+  }
+
+  doGetObjects(fullPath: string) {
+    return new Promise<FileSystemObject[]>((resolve, reject) => {
+      const tx = this.db.transaction([ENTRY_STORE], "readonly");
+      const onerror = (ev: Event) => reject(ev);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
+      const objects: FileSystemObject[] = [];
+      tx.oncomplete = () => resolve(objects);
+
+      let slashCount: number;
+      if (fullPath === DIR_SEPARATOR) {
+        slashCount = 1;
+      } else {
+        slashCount = countSlash(fullPath) + 1; // + 1 is the last slash for directory
+      }
+      const range = getRange(fullPath);
+      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
+      request.onsuccess = function(ev) {
+        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
+        if (cursor) {
+          const obj = cursor.value as FileSystemObject;
+
+          if (slashCount === countSlash(obj.fullPath)) {
+            objects.push(obj);
+          }
+
+          cursor.continue();
+        }
+      };
+      request.onerror = onerror;
+    });
+  }
+
+  async doPutContent(fullPath: string, blob: Blob) {
+    const content = IdbAccessor.SUPPORTS_BLOB ? blob : await blobToBase64(blob);
+    await this.doPutContentToIdb(fullPath, content);
+  }
+
+  doPutObject(obj: FileSystemObject) {
+    return new Promise<void>((resolve, reject) => {
+      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
+      const onerror = (ev: Event) => reject(ev);
+      entryTx.onabort = onerror;
+      entryTx.onerror = onerror;
+      entryTx.oncomplete = function() {
+        resolve();
+      };
+      const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
+      entryReq.onerror = onerror;
     });
   }
 
@@ -89,73 +175,6 @@ export class IdbAccessor extends AbstractAccessor {
     delete this.db;
   }
 
-  protected doDelete(fullPath: string, isFile: boolean) {
-    return new Promise<void>(async (resolve, reject) => {
-      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
-      entryTx.onabort = onerror;
-      entryTx.onerror = onerror;
-      entryTx.oncomplete = function() {
-        resolve();
-      };
-      let range = IDBKeyRange.only(fullPath);
-      const request = entryTx.objectStore(ENTRY_STORE).delete(range);
-      request.onerror = onerror;
-    });
-  }
-
-  protected doGetObjects(fullPath: string) {
-    return new Promise<FileSystemObject[]>((resolve, reject) => {
-      const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      const onerror = (ev: Event) => reject(ev);
-      tx.onabort = onerror;
-      tx.onerror = onerror;
-      const objects: FileSystemObject[] = [];
-      tx.oncomplete = () => resolve(objects);
-
-      let slashCount: number;
-      if (fullPath === DIR_SEPARATOR) {
-        slashCount = 1;
-      } else {
-        slashCount = countSlash(fullPath) + 1; // + 1 is the last slash for directory
-      }
-      const range = getRange(fullPath);
-      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onsuccess = function(ev) {
-        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
-        if (cursor) {
-          const obj = cursor.value as FileSystemObject;
-
-          if (slashCount === countSlash(obj.fullPath)) {
-            objects.push(obj);
-          }
-
-          cursor.continue();
-        }
-      };
-      request.onerror = onerror;
-    });
-  }
-
-  protected async doPutContent(fullPath: string, blob: Blob) {
-    const content = IdbAccessor.SUPPORTS_BLOB ? blob : await blobToBase64(blob);
-    await this.doPutContentToIdb(fullPath, content);
-  }
-
-  protected doPutObject(obj: FileSystemObject) {
-    return new Promise<void>((resolve, reject) => {
-      const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
-      entryTx.onabort = onerror;
-      entryTx.onerror = onerror;
-      entryTx.oncomplete = function() {
-        resolve();
-      };
-      const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
-      entryReq.onerror = onerror;
-    });
-  }
-
   protected drop() {
     return new Promise<void>((resolve, reject) => {
       const dbName = this.db.name;
@@ -191,25 +210,6 @@ export class IdbAccessor extends AbstractAccessor {
           resolve();
         };
         request.onerror = (ev: Event) => reject(ev);
-      };
-    });
-  }
-
-  private doGetConent(fullPath: string) {
-    return new Promise<any>((resolve, reject) => {
-      const onerror = (ev: Event) => reject(ev);
-      const tx = this.db.transaction([CONTENT_STORE], "readonly");
-      const range = IDBKeyRange.only(fullPath);
-      tx.onabort = onerror;
-      tx.onerror = onerror;
-      const request = tx.objectStore(CONTENT_STORE).get(range);
-      request.onerror = onerror;
-      tx.oncomplete = function(ev) {
-        if (request.result != null) {
-          resolve(request.result);
-        } else {
-          resolve(null);
-        }
       };
     });
   }
