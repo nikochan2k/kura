@@ -136,7 +136,7 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     accessor
       .putObject(obj, blob)
       .then(async () => {
-        if (accessor.hasIndex) {
+        if (accessor.options.useIndex) {
           await accessor.updateIndex(obj);
         }
         this.fileEntry.params.lastModified = obj.lastModified;

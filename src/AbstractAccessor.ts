@@ -7,13 +7,9 @@ import {
 } from "./FileError";
 import { FileSystem } from "./filesystem";
 import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
-import {
-  DirPathIndex,
-  FileNameIndex,
-  Permission,
-  Record
-} from "./FileSystemIndex";
+import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
+import { FileSystemOptions } from "./FileSystemOptions";
 import {
   blobToObject,
   getName,
@@ -37,20 +33,17 @@ export abstract class AbstractAccessor {
   private putIndexTimeout: number | NodeJS.Timeout;
 
   abstract readonly filesystem: FileSystem;
-  readonly hasIndex: boolean;
   abstract readonly name: string;
 
   static PUT_INDEX_THROTTLE = 3000;
 
-  constructor(public readonly permission: Permission) {
-    this.hasIndex = this.permission ? true : false;
-  }
+  constructor(public readonly options: FileSystemOptions) {}
 
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === DIR_SEPARATOR) {
       return;
     }
-    if (this.hasIndex) {
+    if (this.options.useIndex) {
       const record = await this.getRecord(fullPath);
       if (!record || record.deleted) {
         return;
@@ -67,7 +60,7 @@ export abstract class AbstractAccessor {
   }
 
   async deleteRecursively(fullPath: string) {
-    if (this.hasIndex && fullPath !== DIR_SEPARATOR) {
+    if (this.options.useIndex && fullPath !== DIR_SEPARATOR) {
       const record = await this.getRecord(fullPath);
       if (!record || record.deleted) {
         return;
@@ -91,7 +84,7 @@ export abstract class AbstractAccessor {
       return null;
     }
     await this.checkGetPermission(fullPath);
-    if (this.hasIndex) {
+    if (this.options.useIndex) {
       const record = await this.getRecord(fullPath);
       if (!record || record.deleted) {
         return null;
@@ -101,7 +94,7 @@ export abstract class AbstractAccessor {
   }
 
   async getDirPathIndex() {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       throw new Error("No index");
     }
     if (this.dirPathIndex == null) {
@@ -116,7 +109,7 @@ export abstract class AbstractAccessor {
   }
 
   async getFileNameIndex(dirPath: string) {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       throw new Error("No index");
     }
     const dirPathIndex = await this.getDirPathIndex();
@@ -128,7 +121,7 @@ export abstract class AbstractAccessor {
       return ROOT_OBJECT;
     }
     await this.checkGetPermission(fullPath);
-    if (this.hasIndex) {
+    if (this.options.useIndex) {
       const record = await this.getRecord(fullPath);
       if (!record || record.deleted) {
         return null;
@@ -138,13 +131,13 @@ export abstract class AbstractAccessor {
   }
 
   async getObjects(dirPath: string) {
-    return this.hasIndex
+    return this.options.useIndex
       ? await this.getObjectsFromIndex(dirPath)
       : await this.getObjectsFromDatabase(dirPath);
   }
 
   async getRecord(fullPath: string) {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       throw new Error("No index");
     }
     if (fullPath === DIR_SEPARATOR) {
@@ -160,7 +153,7 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       throw new Error("No index");
     }
     const blob = objectToBlob(dirPathIndex);
@@ -168,7 +161,7 @@ export abstract class AbstractAccessor {
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       throw new Error("No index");
     }
 
@@ -206,7 +199,7 @@ export abstract class AbstractAccessor {
         `cannot write to root "${DIR_SEPARATOR}"`
       );
     }
-    if (this.hasIndex && obj.fullPath === INDEX_FILE_PATH) {
+    if (this.options.useIndex && obj.fullPath === INDEX_FILE_PATH) {
       throw new InvalidModificationError(
         this.name,
         obj.fullPath,
@@ -218,7 +211,7 @@ export abstract class AbstractAccessor {
     if (content) {
       await this.doPutContent(obj.fullPath, content);
     }
-    if (this.hasIndex) {
+    if (this.options.useIndex) {
       await this.updateIndex(obj);
     }
   }
@@ -243,7 +236,7 @@ export abstract class AbstractAccessor {
   }
 
   async updateIndex(obj: FileSystemObject) {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       throw new Error("No index");
     }
     const dirPath = getParentPath(obj.fullPath);
@@ -343,19 +336,19 @@ export abstract class AbstractAccessor {
   }
 
   private async checkAddPermission(fullPath: string, record: Record) {
-    if (!this.permission.onAdd) {
+    if (!this.options.permission.onAdd) {
       return;
     }
-    if (!this.permission.onAdd(record)) {
+    if (!this.options.permission.onAdd(record)) {
       throw new NoModificationAllowedError(this.name, fullPath, "Cannot add");
     }
   }
 
   private async checkDeletePermission(fullPath: string, record: Record) {
-    if (!this.permission.onDelete) {
+    if (!this.options.permission.onDelete) {
       return;
     }
-    if (!this.permission.onDelete(record)) {
+    if (!this.options.permission.onDelete(record)) {
       throw new NoModificationAllowedError(
         this.name,
         fullPath,
@@ -365,7 +358,7 @@ export abstract class AbstractAccessor {
   }
 
   private async checkGetPermission(fullPath: string, record?: Record) {
-    if (!this.hasIndex) {
+    if (!this.options.useIndex) {
       return;
     }
     if (!record) {
@@ -380,19 +373,19 @@ export abstract class AbstractAccessor {
       }
     }
 
-    if (!this.permission.onGet) {
+    if (!this.options.permission.onGet) {
       return;
     }
-    if (!this.permission.onGet(record)) {
+    if (!this.options.permission.onGet(record)) {
       throw new NotFoundError(this.name, fullPath);
     }
   }
 
   private async checkUpdatePermission(fullPath: string, record: Record) {
-    if (!this.permission.onUpdate) {
+    if (!this.options.permission.onUpdate) {
       return;
     }
-    if (!this.permission.onUpdate(record)) {
+    if (!this.options.permission.onUpdate(record)) {
       throw new NoModificationAllowedError(
         this.name,
         fullPath,

@@ -1,7 +1,7 @@
 import { AbstractAccessor } from "../AbstractAccessor";
 import { DIR_SEPARATOR } from "../FileSystemConstants";
-import { Permission } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
+import { FileSystemOptions } from "../FileSystemOptions";
 import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
@@ -18,8 +18,8 @@ export class IdbAccessor extends AbstractAccessor {
   db: IDBDatabase;
   filesystem: IdbFileSystem;
 
-  constructor(private dbName: string, permission: Permission) {
-    super(permission);
+  constructor(private dbName: string, options: FileSystemOptions) {
+    super(options);
     this.filesystem = new IdbFileSystem(this);
   }
 
