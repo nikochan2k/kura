@@ -39,6 +39,36 @@ export abstract class AbstractAccessor {
 
   constructor(public readonly options: FileSystemOptions) {}
 
+  _delete(fullPath: string, isFile: boolean): Promise<void> {
+    this.debug("delete", fullPath);
+    return this.doDelete(fullPath, isFile);
+  }
+
+  _getContent(fullPath: string): Promise<Blob> {
+    this.debug("getContent", fullPath);
+    return this.doGetContent(fullPath);
+  }
+
+  _getObject(fullPath: string): Promise<FileSystemObject> {
+    this.debug("getObject", fullPath);
+    return this.doGetObject(fullPath);
+  }
+
+  _getObjects(dirPath: string): Promise<FileSystemObject[]> {
+    this.debug("getObjects(", dirPath);
+    return this.doGetObjects(dirPath);
+  }
+
+  _putContent(fullPath: string, content: Blob): Promise<void> {
+    this.debug("putContent", fullPath, content);
+    return this.doPutContent(fullPath, content);
+  }
+
+  _putObject(obj: FileSystemObject): Promise<void> {
+    this.debug("putObject", obj);
+    return this.doPutObject(obj);
+  }
+
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === DIR_SEPARATOR) {
       return;
@@ -52,10 +82,10 @@ export abstract class AbstractAccessor {
       const dirPath = getParentPath(fullPath);
       await this.handleIndex(dirPath, false, async () => {
         record.deleted = Date.now();
-        await this.doDelete(fullPath, isFile);
+        await this._delete(fullPath, isFile);
       });
     } else {
-      await this.doDelete(fullPath, isFile);
+      await this._delete(fullPath, isFile);
     }
   }
 
@@ -90,7 +120,7 @@ export abstract class AbstractAccessor {
         return null;
       }
     }
-    return this.doGetContent(fullPath);
+    return this._getContent(fullPath);
   }
 
   async getDirPathIndex() {
@@ -98,7 +128,7 @@ export abstract class AbstractAccessor {
       throw new Error("No index");
     }
     if (this.dirPathIndex == null) {
-      const blob = await this.doGetContent(INDEX_FILE_PATH);
+      const blob = await this._getContent(INDEX_FILE_PATH);
       if (blob) {
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
       } else {
@@ -127,7 +157,7 @@ export abstract class AbstractAccessor {
         return null;
       }
     }
-    return this.doGetObject(fullPath);
+    return this._getObject(fullPath);
   }
 
   async getObjects(dirPath: string) {
@@ -157,7 +187,7 @@ export abstract class AbstractAccessor {
       throw new Error("No index");
     }
     const blob = objectToBlob(dirPathIndex);
-    await this.doPutContent(INDEX_FILE_PATH, blob);
+    await this._putContent(INDEX_FILE_PATH, blob);
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
@@ -207,9 +237,9 @@ export abstract class AbstractAccessor {
       );
     }
 
-    await this.doPutObject(obj);
+    await this._putObject(obj);
     if (content) {
-      await this.doPutContent(obj.fullPath, content);
+      await this._putContent(obj.fullPath, content);
     }
     if (this.options.useIndex) {
       await this.updateIndex(obj);
@@ -220,7 +250,7 @@ export abstract class AbstractAccessor {
     if (fullPath === DIR_SEPARATOR) {
       return null;
     }
-    const obj = await this.doGetObject(fullPath);
+    const obj = await this._getObject(fullPath);
     if (!obj) {
       return null;
     }
@@ -259,15 +289,8 @@ export abstract class AbstractAccessor {
     );
   }
 
-  abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  abstract doGetContent(fullPath: string): Promise<Blob>;
-  abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
-  abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
-  abstract doPutContent(fullPath: string, content: Blob): Promise<void>;
-  abstract doPutObject(obj: FileSystemObject): Promise<void>;
-
   protected async getObjectsFromDatabase(dirPath: string) {
-    const objects = await this.doGetObjects(dirPath);
+    const objects = await this._getObjects(dirPath);
     const newObjects: FileSystemObject[] = [];
     for (const obj of objects) {
       if (obj.fullPath === INDEX_FILE_PATH) {
@@ -314,7 +337,7 @@ export abstract class AbstractAccessor {
         await this.putFileNameIndex(dirPath, fileNameIndex);
       }
     } else {
-      objects = await this.doGetObjects(dirPath);
+      objects = await this._getObjects(dirPath);
       fileNameIndex = {};
       for (const obj of objects) {
         if (obj.fullPath !== INDEX_FILE_PATH) {
@@ -334,6 +357,16 @@ export abstract class AbstractAccessor {
     }
     return objects;
   }
+
+  protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
+  protected abstract doGetContent(fullPath: string): Promise<Blob>;
+  protected abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
+  protected abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
+  protected abstract doPutContent(
+    fullPath: string,
+    content: Blob
+  ): Promise<void>;
+  protected abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   private async checkAddPermission(fullPath: string, record: Record) {
     if (!this.options.permission.onAdd) {
@@ -390,6 +423,24 @@ export abstract class AbstractAccessor {
         this.name,
         fullPath,
         "Cannot update"
+      );
+    }
+  }
+
+  private debug(
+    title: string,
+    value: string | FileSystemObject,
+    content?: Blob
+  ) {
+    if (!this.options.verbose) {
+      return;
+    }
+    if (typeof value === "string") {
+      const sizeMessage = content ? `, size=${content.size}` : "";
+      console.log(`${title}: fullPath=${value}${sizeMessage}`);
+    } else {
+      console.log(
+        `${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
   }

@@ -6,6 +6,7 @@ import { testAll } from "./filesystem";
 AbstractAccessor.PUT_INDEX_THROTTLE = 0;
 
 const factory = new IdbLocalFileSystemAsync("web-file-system-test", {
-  useIndex: true
+  useIndex: true,
+  verbose: true
 });
 testAll(factory);
