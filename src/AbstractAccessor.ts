@@ -6,7 +6,7 @@ import {
   NotImplementedError
 } from "./FileError";
 import { FileSystem } from "./filesystem";
-import { INDEX_FILE_PATH, DIR_SEPARATOR } from "./FileSystemConstants";
+import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import {
   DirPathIndex,
   FileNameIndex,
@@ -105,7 +105,12 @@ export abstract class AbstractAccessor {
       throw new Error("No index");
     }
     if (this.dirPathIndex == null) {
-      const blob = await this.doGetContent(INDEX_FILE_PATH);
+      let blob: Blob;
+      try {
+        blob = await this.doGetContent(INDEX_FILE_PATH);
+      } catch (e) {
+        console.log(e);
+      }
       if (blob) {
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
       } else {
