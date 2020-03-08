@@ -5,9 +5,11 @@ export interface Accessor {
   delete(fullPath: string, isFile: boolean): Promise<void>;
   deleteRecursively(fullPath: string): Promise<void>;
   getContent(fullPath: string): Promise<Blob>;
+  getDirPathIndex(): Promise<DirPathIndex>;
   getFileNameIndex(dirPath: string): Promise<DirPathIndex>;
   getObject(fullPath: string): Promise<FileSystemObject>;
   getObjects(dirPath: string): Promise<FileSystemObject[]>;
+  putDirPathIndex(dirPathIndex: DirPathIndex): Promise<void>;
   putFileNameIndex(dirPath: string, index: DirPathIndex): Promise<void>;
   putObject(obj: FileSystemObject, content?: Blob): Promise<void>;
   resetObject(fullPath: string, size?: number): Promise<FileSystemObject>;

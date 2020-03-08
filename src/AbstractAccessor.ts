@@ -77,7 +77,7 @@ export abstract class AbstractAccessor implements Accessor {
     return this.doGetContent(fullPath);
   }
 
-  async getFileNameIndex(dirPath: string) {
+  async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       const blob = await this.doGetContent(INDEX_FILE_PATH);
       if (blob) {
@@ -86,7 +86,12 @@ export abstract class AbstractAccessor implements Accessor {
         this.dirPathIndex = {};
       }
     }
-    return this.dirPathIndex[dirPath];
+    return this.dirPathIndex;
+  }
+
+  async getFileNameIndex(dirPath: string) {
+    const dirPathIndex = await this.getDirPathIndex();
+    return dirPathIndex[dirPath];
   }
 
   async getObject(fullPath: string) {
@@ -100,14 +105,17 @@ export abstract class AbstractAccessor implements Accessor {
       : await this.getObjectsFromDatabase(dirPath);
   }
 
+  async putDirPathIndex(dirPathIndex: DirPathIndex) {
+    const blob = objectToBlob(dirPathIndex);
+    await this.doPutContent(INDEX_FILE_PATH, blob);
+  }
+
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
-    if (!this.dirPathIndex) {
-      this.dirPathIndex = {};
-    }
-    this.dirPathIndex[dirPath] = fileNameIndex;
+    const dirPathIndex = await this.getDirPathIndex();
+    dirPathIndex[dirPath] = fileNameIndex;
 
     if (AbstractAccessor.PUT_INDEX_THROTTLE <= 0) {
-      await this.doPutDirPathIndex();
+      await this.putDirPathIndex(dirPathIndex);
       return;
     }
 
@@ -120,11 +128,11 @@ export abstract class AbstractAccessor implements Accessor {
     }
     if (window) {
       this.putIndexTimeout = window.setTimeout(async () => {
-        await this.doPutDirPathIndex();
+        await this.putDirPathIndex(dirPathIndex);
       }, AbstractAccessor.PUT_INDEX_THROTTLE);
     } else {
       this.putIndexTimeout = setTimeout(async () => {
-        await this.doPutDirPathIndex();
+        await this.putDirPathIndex(dirPathIndex);
       }, AbstractAccessor.PUT_INDEX_THROTTLE);
     }
   }
@@ -182,11 +190,6 @@ export abstract class AbstractAccessor implements Accessor {
         delete record.deleted;
       }
     );
-  }
-
-  protected async doPutDirPathIndex() {
-    const blob = objectToBlob(this.dirPathIndex);
-    await this.doPutContent(INDEX_FILE_PATH, blob);
   }
 
   protected async getObjectsFromDatabase(dirPath: string) {
