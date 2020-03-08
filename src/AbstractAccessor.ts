@@ -55,7 +55,7 @@ export abstract class AbstractAccessor {
   }
 
   _getObjects(dirPath: string): Promise<FileSystemObject[]> {
-    this.debug("getObjects(", dirPath);
+    this.debug("getObjects", dirPath);
     return this.doGetObjects(dirPath);
   }
 
@@ -437,10 +437,10 @@ export abstract class AbstractAccessor {
     }
     if (typeof value === "string") {
       const sizeMessage = content ? `, size=${content.size}` : "";
-      console.log(`${title}: fullPath=${value}${sizeMessage}`);
+      console.log(`${this.name} - ${title}: fullPath=${value}${sizeMessage}`);
     } else {
       console.log(
-        `${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
+        `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
   }
