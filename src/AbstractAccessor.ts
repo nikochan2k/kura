@@ -43,21 +43,28 @@ export abstract class AbstractAccessor {
   _delete(fullPath: string, isFile: boolean): Promise<void> {
     this.debug("delete", fullPath);
     try {
+      this.doGetObject(fullPath); // Check existance.
       return this.doDelete(fullPath, isFile);
     } catch (e) {
-      if (e instanceof AbstractFileError) {
+      if (e instanceof NotFoundError) {
+        this.removeFromIndex(fullPath);
+        return;
+      } else if (e instanceof AbstractFileError) {
         throw e;
       }
       throw new InvalidModificationError(this.name, fullPath, e);
     }
   }
 
-  _getContent(fullPath: string): Promise<Blob> {
+  async _getContent(fullPath: string): Promise<Blob> {
     this.debug("getContent", fullPath);
     try {
       return this.doGetContent(fullPath);
     } catch (e) {
-      if (e instanceof AbstractFileError) {
+      if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
+        throw e;
+      } else if (e instanceof AbstractFileError) {
         throw e;
       }
       throw new NotReadableError(this.name, fullPath, e);
@@ -149,7 +156,6 @@ export abstract class AbstractAccessor {
     }
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
-      await this.getRecord(fullPath);
     }
     return this._getContent(fullPath);
   }
@@ -184,8 +190,7 @@ export abstract class AbstractAccessor {
       return ROOT_OBJECT;
     }
     if (this.options.useIndex) {
-      await this.checkGetPermission(fullPath);
-      const record = await this.getRecord(fullPath);
+      const record = await this.checkGetPermission(fullPath);
       return record.obj;
     }
     return this._getObject(fullPath);
@@ -406,19 +411,17 @@ export abstract class AbstractAccessor {
   }
 
   private async checkGetPermission(fullPath: string, record?: Record) {
-    if (!this.options.useIndex) {
-      return;
-    }
     if (!record) {
       record = await this.getRecord(fullPath);
     }
 
     if (!this.options.permission.onGet) {
-      return;
+      return record;
     }
     if (!this.options.permission.onGet(record)) {
       throw new NotFoundError(this.name, fullPath);
     }
+    return record;
   }
 
   private async checkUpdatePermission(fullPath: string, record: Record) {
@@ -449,6 +452,27 @@ export abstract class AbstractAccessor {
       console.log(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
+    }
+  }
+
+  private async removeFromIndex(fullPath: string) {
+    if (!this.options.useIndex) {
+      return;
+    }
+    const dirPath = getParentPath(fullPath);
+    const name = getName(fullPath);
+    try {
+      const index = await this.getFileNameIndex(dirPath);
+      const record = index[name];
+      if (record && !record.deleted) {
+        record.deleted = Date.now();
+        this.putFileNameIndex(dirPath, index);
+      }
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return;
+      }
+      console.warn(err);
     }
   }
 }
