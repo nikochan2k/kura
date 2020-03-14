@@ -16,7 +16,10 @@ import {
   objectToBlob
 } from "./FileSystemUtil";
 
-if (typeof process === "object") {
+if (
+  !(global && global.setTimeout && global.clearTimeout) &&
+  !(window && window.setTimeout && window.clearTimeout)
+) {
   const timers = require("timers");
   global.clearTimeout = timers.clearTimeout;
   global.setTimeout = timers.setTimeout;
@@ -133,12 +136,7 @@ export abstract class AbstractAccessor {
       throw new Error("No index");
     }
     if (this.dirPathIndex == null) {
-      let blob: Blob;
-      try {
-        blob = await this._getContent(INDEX_FILE_PATH);
-      } catch (e) {
-        console.warn(e);
-      }
+      const blob = await this._getContent(INDEX_FILE_PATH);
       if (blob) {
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
       } else {
@@ -323,6 +321,7 @@ export abstract class AbstractAccessor {
           try {
             await this.checkGetPermission(record.obj.fullPath, record);
           } catch (e) {
+            this.debug(e, record.obj);
             continue;
           }
           if (record.deleted == null) {
@@ -343,6 +342,7 @@ export abstract class AbstractAccessor {
           try {
             await this.checkAddPermission(obj.fullPath, record);
           } catch (e) {
+            this.debug(e, record.obj);
             continue;
           }
           fileNameIndex[obj.name] = record;
