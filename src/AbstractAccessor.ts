@@ -278,6 +278,9 @@ export abstract class AbstractAccessor {
 
   protected async getObjectsFromDatabase(dirPath: string) {
     const objects = await this._getObjects(dirPath);
+    if (!objects) {
+      return null;
+    }
     const newObjects: FileSystemObject[] = [];
     for (const obj of objects) {
       if (obj.fullPath === INDEX_FILE_PATH) {
@@ -326,6 +329,9 @@ export abstract class AbstractAccessor {
       }
     } else {
       objects = await this._getObjects(dirPath);
+      if (!objects) {
+        return;
+      }
       fileNameIndex = {};
       for (const obj of objects) {
         if (obj.fullPath !== INDEX_FILE_PATH) {

@@ -88,8 +88,10 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       .getContent(this.fullPath)
       .then(async blob => {
         if (!blob) {
-          blob = EMPTY_BLOB;
-        } else if (this.size !== blob.size) {
+          successCallback(null);
+          return;
+        }
+        if (this.size !== blob.size) {
           await this.params.accessor.resetObject(this.fullPath, blob.size);
         }
         const file = new File([blob], this.params.name, {
