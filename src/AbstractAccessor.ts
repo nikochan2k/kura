@@ -1,8 +1,10 @@
 import {
+  AbstractFileError,
   InvalidModificationError,
   NoModificationAllowedError,
   NotFoundError,
-  NotImplementedError
+  NotImplementedError,
+  NotReadableError
 } from "./FileError";
 import { FileSystem } from "./filesystem";
 import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
@@ -40,32 +42,74 @@ export abstract class AbstractAccessor {
 
   _delete(fullPath: string, isFile: boolean): Promise<void> {
     this.debug("delete", fullPath);
-    return this.doDelete(fullPath, isFile);
+    try {
+      return this.doDelete(fullPath, isFile);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
   }
 
   _getContent(fullPath: string): Promise<Blob> {
     this.debug("getContent", fullPath);
-    return this.doGetContent(fullPath);
+    try {
+      return this.doGetContent(fullPath);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, fullPath, e);
+    }
   }
 
   _getObject(fullPath: string): Promise<FileSystemObject> {
     this.debug("getObject", fullPath);
-    return this.doGetObject(fullPath);
+    try {
+      return this.doGetObject(fullPath);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, fullPath, e);
+    }
   }
 
   _getObjects(dirPath: string): Promise<FileSystemObject[]> {
     this.debug("getObjects", dirPath);
-    return this.doGetObjects(dirPath);
+    try {
+      return this.doGetObjects(dirPath);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, dirPath, e);
+    }
   }
 
   _putContent(fullPath: string, content: Blob): Promise<void> {
     this.debug("putContent", fullPath, content);
-    return this.doPutContent(fullPath, content);
+    try {
+      return this.doPutContent(fullPath, content);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
   }
 
   _putObject(obj: FileSystemObject): Promise<void> {
     this.debug("putObject", obj);
-    return this.doPutObject(obj);
+    try {
+      return this.doPutObject(obj);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, obj.fullPath, e);
+    }
   }
 
   async delete(fullPath: string, isFile: boolean) {
