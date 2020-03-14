@@ -1,5 +1,9 @@
 import { DirectoryEntryAsync } from "../DirectoryEntryAsync";
-import { InvalidModificationError, PathExistsError } from "../FileError";
+import {
+  InvalidModificationError,
+  PathExistsError,
+  NotFoundError
+} from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
 import { blobToString } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
@@ -99,8 +103,11 @@ export function testAll(
       exclusive: true
     });
     expect(fileEntry.fullPath).toBe("/folder/in.txt");
-    const file = await dirEntry.getFile("out.txt");
-    expect(file).toBeNull();
+    try {
+      await dirEntry.getFile("out.txt");
+    } catch (e) {
+      expect(e).toBeInstanceOf(NotFoundError);
+    }
 
     const parent = await fileEntry.getParent();
     expect(parent.fullPath).toBe(dirEntry.fullPath);
@@ -197,8 +204,11 @@ export function testAll(
   test("remove a file", async done => {
     const entry = await fs.root.getFile("empty.txt");
     await entry.remove();
-    const file = await fs.root.getFile("empty.txt");
-    expect(file).toBeNull();
+    try {
+      await fs.root.getFile("empty.txt");
+    } catch (e) {
+      expect(e).toBeInstanceOf(NotFoundError);
+    }
 
     const reader = fs.root.createReader();
     const entries = await reader.readEntries();

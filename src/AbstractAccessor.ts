@@ -118,12 +118,9 @@ export abstract class AbstractAccessor {
     }
     if (this.options.useIndex) {
       const record = await this.getRecord(fullPath);
-      if (!record || record.deleted) {
-        return;
-      }
       await this.checkDeletePermission(fullPath, record);
       const dirPath = getParentPath(fullPath);
-      await this.handleIndex(dirPath, false, async () => {
+      await this.handleIndex(dirPath, async () => {
         record.deleted = Date.now();
         await this._delete(fullPath, isFile);
       });
@@ -133,12 +130,6 @@ export abstract class AbstractAccessor {
   }
 
   async deleteRecursively(fullPath: string) {
-    if (this.options.useIndex && fullPath !== DIR_SEPARATOR) {
-      const record = await this.getRecord(fullPath);
-      if (!record || record.deleted) {
-        return;
-      }
-    }
     const objects = await this.getObjects(fullPath);
     for (const obj of objects) {
       if (obj.size == null) {
@@ -156,49 +147,46 @@ export abstract class AbstractAccessor {
     if (fullPath === DIR_SEPARATOR) {
       return null;
     }
-    await this.checkGetPermission(fullPath);
     if (this.options.useIndex) {
-      const record = await this.getRecord(fullPath);
-      if (!record || record.deleted) {
-        return null;
-      }
+      await this.checkGetPermission(fullPath);
+      await this.getRecord(fullPath);
     }
     return this._getContent(fullPath);
   }
 
   async getDirPathIndex() {
-    if (!this.options.useIndex) {
-      throw new Error("No index");
-    }
     if (this.dirPathIndex == null) {
-      const blob = await this._getContent(INDEX_FILE_PATH);
-      if (blob) {
+      try {
+        const blob = await this._getContent(INDEX_FILE_PATH);
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
-      } else {
-        this.dirPathIndex = {};
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          this.dirPathIndex = {};
+        } else {
+          throw e;
+        }
       }
     }
     return this.dirPathIndex;
   }
 
   async getFileNameIndex(dirPath: string) {
-    if (!this.options.useIndex) {
-      throw new Error("No index");
-    }
     const dirPathIndex = await this.getDirPathIndex();
-    return dirPathIndex[dirPath];
+    const index = dirPathIndex[dirPath];
+    if (!index) {
+      throw new NotFoundError(this.name, dirPath);
+    }
+    return index;
   }
 
   async getObject(fullPath: string) {
     if (fullPath === DIR_SEPARATOR) {
       return ROOT_OBJECT;
     }
-    await this.checkGetPermission(fullPath);
     if (this.options.useIndex) {
+      await this.checkGetPermission(fullPath);
       const record = await this.getRecord(fullPath);
-      if (!record || record.deleted) {
-        return null;
-      }
+      return record.obj;
     }
     return this._getObject(fullPath);
   }
@@ -210,19 +198,17 @@ export abstract class AbstractAccessor {
   }
 
   async getRecord(fullPath: string) {
-    if (!this.options.useIndex) {
-      throw new Error("No index");
-    }
     if (fullPath === DIR_SEPARATOR) {
       return ROOT_RECORD;
     }
     const dirPath = getParentPath(fullPath);
     const name = getName(fullPath);
-    const fileNameIndex = await this.getFileNameIndex(dirPath);
-    if (!fileNameIndex) {
-      return null;
+    const index = await this.getFileNameIndex(dirPath);
+    const record = index[name];
+    if (!record || record.deleted) {
+      throw new NotFoundError(this.name, fullPath);
     }
-    return fileNameIndex[name];
+    return record;
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
@@ -297,27 +283,20 @@ export abstract class AbstractAccessor {
   }
 
   async updateIndex(obj: FileSystemObject) {
-    if (!this.options.useIndex) {
-      throw new Error("No index");
-    }
     const dirPath = getParentPath(obj.fullPath);
-    await this.handleIndex(
-      dirPath,
-      false,
-      async (fileNameIndex: FileNameIndex) => {
-        let record = fileNameIndex[obj.name];
-        if (!record) {
-          record = { obj: obj, updated: Date.now() };
-          await this.checkAddPermission(obj.fullPath, record);
-          fileNameIndex[obj.name] = record;
-        } else {
-          record.obj = obj;
-          record.updated = Date.now();
-          await this.checkUpdatePermission(obj.fullPath, record);
-        }
-        delete record.deleted;
+    await this.handleIndex(dirPath, async (fileNameIndex: FileNameIndex) => {
+      let record = fileNameIndex[obj.name];
+      if (!record) {
+        record = { obj: obj, updated: Date.now() };
+        await this.checkAddPermission(obj.fullPath, record);
+        fileNameIndex[obj.name] = record;
+      } else {
+        record.obj = obj;
+        record.updated = Date.now();
+        await this.checkUpdatePermission(obj.fullPath, record);
       }
-    );
+      delete record.deleted;
+    });
   }
 
   protected async getObjectsFromDatabase(dirPath: string) {
@@ -336,24 +315,21 @@ export abstract class AbstractAccessor {
   }
 
   protected async getObjectsFromIndex(dirPath: string) {
-    if (dirPath !== DIR_SEPARATOR) {
-      const record = await this.getRecord(dirPath);
-      if (!record || record.deleted) {
-        return [];
-      }
-    }
-    return await this.handleIndex(dirPath, true);
+    return await this.handleIndex(dirPath);
   }
 
   protected async handleIndex(
     dirPath: string,
-    needObjects: boolean,
     update?: (fileNameIndex: FileNameIndex) => Promise<void>
   ) {
-    let fileNameIndex = await this.getFileNameIndex(dirPath);
     let objects: FileSystemObject[];
-    if (fileNameIndex) {
-      if (needObjects) {
+    let fileNameIndex: FileNameIndex;
+    try {
+      fileNameIndex = await this.getFileNameIndex(dirPath);
+      if (update) {
+        await update(fileNameIndex);
+        await this.putFileNameIndex(dirPath, fileNameIndex);
+      } else {
         objects = [];
         for (const record of Object.values(fileNameIndex)) {
           try {
@@ -367,34 +343,34 @@ export abstract class AbstractAccessor {
           }
         }
       }
-      if (update) {
-        await update(fileNameIndex);
-        await this.putFileNameIndex(dirPath, fileNameIndex);
-      }
-    } else {
-      objects = await this._getObjects(dirPath);
-      if (!objects) {
-        return;
-      }
-      fileNameIndex = {};
-      for (const obj of objects) {
-        if (obj.fullPath !== INDEX_FILE_PATH) {
-          const record: Record = { obj: obj, updated: obj.lastModified };
-          try {
-            await this.checkAddPermission(obj.fullPath, record);
-          } catch (e) {
-            this.debug(e, record.obj);
-            continue;
-          }
-          fileNameIndex[obj.name] = record;
+      return objects;
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        objects = await this._getObjects(dirPath);
+        if (!objects) {
+          return;
         }
+        fileNameIndex = {};
+        for (const obj of objects) {
+          if (obj.fullPath !== INDEX_FILE_PATH) {
+            const record: Record = { obj: obj, updated: Date.now() };
+            try {
+              await this.checkAddPermission(obj.fullPath, record);
+            } catch (e) {
+              this.debug(e, record.obj);
+              continue;
+            }
+            fileNameIndex[obj.name] = record;
+          }
+        }
+        if (update) {
+          await update(fileNameIndex);
+        }
+        await this.putFileNameIndex(dirPath, fileNameIndex);
+        return objects;
       }
-      if (update) {
-        await update(fileNameIndex);
-      }
-      await this.putFileNameIndex(dirPath, fileNameIndex);
+      throw e;
     }
-    return objects;
   }
 
   protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
@@ -434,15 +410,7 @@ export abstract class AbstractAccessor {
       return;
     }
     if (!record) {
-      const dirPath = getParentPath(fullPath);
-      const index = await this.getFileNameIndex(dirPath);
-      if (!index) {
-        return;
-      }
-      record = index[fullPath];
-      if (!record) {
-        return;
-      }
+      record = await this.getRecord(fullPath);
     }
 
     if (!this.options.permission.onGet) {

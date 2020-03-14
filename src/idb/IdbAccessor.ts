@@ -5,6 +5,11 @@ import { FileSystemOptions } from "../FileSystemOptions";
 import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
+import {
+  NotReadableError,
+  NotFoundError,
+  InvalidModificationError
+} from "../FileError";
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -30,7 +35,8 @@ export class IdbAccessor extends AbstractAccessor {
   doDelete(fullPath: string, isFile: boolean) {
     return new Promise<void>(async (resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
+      const onerror = (ev: Event) =>
+        reject(new InvalidModificationError(this.name, fullPath, ev));
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
       entryTx.oncomplete = function() {
@@ -42,44 +48,50 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetConent(fullPath: string) {
+  async doGetContent(fullPath: string) {
+    const content = await this.doGetContentInternal(fullPath);
+    return IdbAccessor.SUPPORTS_BLOB
+      ? (content as Blob)
+      : base64ToBlob(content as string);
+  }
+
+  private doGetContentInternal(fullPath: string) {
     return new Promise<any>((resolve, reject) => {
-      const onerror = (ev: Event) => reject(ev);
+      const onerror = (ev: Event) =>
+        reject(new NotReadableError(this.name, fullPath, ev));
       const tx = this.db.transaction([CONTENT_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
       tx.onabort = onerror;
       tx.onerror = onerror;
       const request = tx.objectStore(CONTENT_STORE).get(range);
       request.onerror = onerror;
+      const name = this.name;
       tx.oncomplete = function(ev) {
         if (request.result != null) {
           resolve(request.result);
         } else {
-          resolve(null);
+          reject(new NotFoundError(name, fullPath));
         }
       };
     });
-  }
-
-  async doGetContent(fullPath: string) {
-    const content = await this.doGetConent(fullPath);
-    if (content == null) {
-      return null;
-    }
-    return IdbAccessor.SUPPORTS_BLOB
-      ? (content as Blob)
-      : base64ToBlob(content as string);
   }
 
   doGetObject(fullPath: string) {
     return new Promise<FileSystemObject>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
-      const onerror = (ev: Event) => reject(ev);
+      const onerror = (ev: Event) =>
+        reject(new NotReadableError(this.name, fullPath, ev));
       tx.onabort = onerror;
       tx.onerror = onerror;
       const request = tx.objectStore(ENTRY_STORE).get(range);
-      tx.oncomplete = () => resolve(request.result);
+      tx.oncomplete = function(ev) {
+        if (request.result != null) {
+          resolve(request.result);
+        } else {
+          reject(new NotFoundError(name, fullPath));
+        }
+      };
       request.onerror = onerror;
     });
   }
@@ -87,7 +99,8 @@ export class IdbAccessor extends AbstractAccessor {
   doGetObjects(fullPath: string) {
     return new Promise<FileSystemObject[]>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      const onerror = (ev: Event) => reject(ev);
+      const onerror = (ev: Event) =>
+        reject(new NotReadableError(this.name, fullPath, ev));
       tx.onabort = onerror;
       tx.onerror = onerror;
       const objects: FileSystemObject[] = [];
@@ -125,7 +138,8 @@ export class IdbAccessor extends AbstractAccessor {
   doPutObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
+      const onerror = (ev: Event) =>
+        reject(new InvalidModificationError(this.name, obj.fullPath, ev));
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
       entryTx.oncomplete = function() {
@@ -217,7 +231,8 @@ export class IdbAccessor extends AbstractAccessor {
   private doPutContentToIdb(fullPath: string, content: any) {
     return new Promise<void>((resolve, reject) => {
       const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-      const onerror = (ev: Event) => reject(ev);
+      const onerror = (ev: Event) =>
+        reject(new InvalidModificationError(this.name, fullPath, ev));
       contentTx.onabort = onerror;
       contentTx.onerror = onerror;
       contentTx.oncomplete = () => {

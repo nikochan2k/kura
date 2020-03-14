@@ -9,8 +9,8 @@ export abstract class AbstractFileError implements FileError {
   stack: string;
 
   constructor(public key: string, public filePath: string, detail?: any) {
-    this.detail = String.prototype.valueOf.call(detail);
-    if (detail.stack) {
+    this.detail = "" + detail;
+    if (detail && detail.stack) {
       this.stack = detail.stack;
     } else {
       this.stack = new Error().stack;
