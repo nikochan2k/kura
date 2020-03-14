@@ -16,15 +16,6 @@ import {
   objectToBlob
 } from "./FileSystemUtil";
 
-if (
-  !(global && global.setTimeout && global.clearTimeout) &&
-  !(window && window.setTimeout && window.clearTimeout)
-) {
-  const timers = require("timers");
-  global.clearTimeout = timers.clearTimeout;
-  global.setTimeout = timers.setTimeout;
-}
-
 const ROOT_OBJECT: FileSystemObject = {
   fullPath: "/",
   name: "",

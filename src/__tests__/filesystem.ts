@@ -4,6 +4,15 @@ import { FileSystemAsync } from "../FileSystemAsync";
 import { blobToString } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 
+if (
+  !(global && global.setTimeout && global.clearTimeout) &&
+  !(window && window.setTimeout && window.clearTimeout)
+) {
+  const timers = require("timers");
+  global.clearTimeout = timers.clearTimeout;
+  global.setTimeout = timers.setTimeout;
+}
+
 export function testAll(
   factory: LocalFileSystemAsync,
   prepare?: () => Promise<void>
