@@ -1,4 +1,3 @@
-import { clearTimeout, setTimeout } from "timers";
 import {
   InvalidModificationError,
   NoModificationAllowedError,
@@ -17,6 +16,18 @@ import {
   objectToBlob
 } from "./FileSystemUtil";
 
+let _clearTimeout: (id: any) => void;
+let _setTimeout: (callback: () => void, ms: number) => any;
+if (window) {
+  _clearTimeout = window.clearTimeout;
+  _setTimeout = window.setTimeout;
+} else {
+  import("timers").then(timers => {
+    _clearTimeout = timers.clearTimeout;
+    _setTimeout = timers.setTimeout;
+  });
+}
+
 const ROOT_OBJECT: FileSystemObject = {
   fullPath: "/",
   name: "",
@@ -30,7 +41,7 @@ const ROOT_RECORD: Record = {
 
 export abstract class AbstractAccessor {
   private dirPathIndex: DirPathIndex;
-  private putIndexTimeout: number | NodeJS.Timeout;
+  private putIndexTimeout: any;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -203,22 +214,10 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    if (this.putIndexTimeout) {
-      if (window) {
-        window.clearTimeout(this.putIndexTimeout as number);
-      } else {
-        clearTimeout(this.putIndexTimeout as NodeJS.Timeout);
-      }
-    }
-    if (window) {
-      this.putIndexTimeout = window.setTimeout(async () => {
-        await this.putDirPathIndex(dirPathIndex);
-      }, AbstractAccessor.PUT_INDEX_THROTTLE);
-    } else {
-      this.putIndexTimeout = setTimeout(async () => {
-        await this.putDirPathIndex(dirPathIndex);
-      }, AbstractAccessor.PUT_INDEX_THROTTLE);
-    }
+    clearTimeout(this.putIndexTimeout);
+    this.putIndexTimeout = setTimeout(async () => {
+      await this.putDirPathIndex(dirPathIndex);
+    }, AbstractAccessor.PUT_INDEX_THROTTLE);
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {
