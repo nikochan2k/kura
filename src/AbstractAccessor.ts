@@ -16,16 +16,10 @@ import {
   objectToBlob
 } from "./FileSystemUtil";
 
-let _clearTimeout: (id: any) => void;
-let _setTimeout: (callback: () => void, ms: number) => any;
-if (window) {
-  _clearTimeout = window.clearTimeout;
-  _setTimeout = window.setTimeout;
-} else {
-  import("timers").then(timers => {
-    _clearTimeout = timers.clearTimeout;
-    _setTimeout = timers.setTimeout;
-  });
+if (typeof process === "object") {
+  const timers = require("timers");
+  global.clearTimeout = timers.clearTimeout;
+  global.setTimeout = timers.setTimeout;
 }
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -139,7 +133,12 @@ export abstract class AbstractAccessor {
       throw new Error("No index");
     }
     if (this.dirPathIndex == null) {
-      const blob = await this._getContent(INDEX_FILE_PATH);
+      let blob: Blob;
+      try {
+        blob = await this._getContent(INDEX_FILE_PATH);
+      } catch (e) {
+        console.warn(e);
+      }
       if (blob) {
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
       } else {
