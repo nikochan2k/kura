@@ -45,29 +45,19 @@ export abstract class AbstractAccessor {
       throw new InvalidModificationError(this.name, fullPath);
     }
 
-    try {
-      await this.doGetObject(fullPath); // Check existance.
-      if (this.options.useIndex) {
-        const record = await this.getRecord(fullPath);
-        await this.checkDeletePermission(fullPath, record);
-        const dirPath = getParentPath(fullPath);
-        await this.handleIndex(dirPath, async () => {
+    await this.doGetObject(fullPath); // Check existance.
+    if (this.options.useIndex) {
+      const record = await this.getRecord(fullPath);
+      await this.checkDeletePermission(fullPath, record);
+      const dirPath = getParentPath(fullPath);
+      await this.handleIndex(dirPath, async () => {
+        await this.deletePrivate(fullPath, isFile);
+        if (record.deleted == null) {
           record.deleted = Date.now();
-          this.debug("delete", fullPath);
-          return await this.doDelete(fullPath, isFile);
-        });
-      } else {
-        this.debug("delete", fullPath);
-        return await this.doDelete(fullPath, isFile);
-      }
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
-        return;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
+        }
+      });
+    } else {
+      await this.deletePrivate(fullPath, isFile);
     }
   }
 
@@ -172,7 +162,7 @@ export abstract class AbstractAccessor {
     const name = getName(fullPath);
     const index = await this.getFileNameIndex(dirPath);
     const record = index[name];
-    if (!record || record.deleted) {
+    if (!record || record.deleted != null) {
       throw new NotFoundError(this.name, fullPath);
     }
     return record;
@@ -288,16 +278,7 @@ export abstract class AbstractAccessor {
 
   protected async getObjectsFromStorage(dirPath: string) {
     this.debug("getObjectsFromStorage", dirPath);
-    let objects: FileSystemObject[];
-    try {
-      objects = await this.doGetObjects(dirPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        this.removeFromIndexRecursively(dirPath);
-      }
-      throw e;
-    }
-
+    const objects = await this.doGetObjects(dirPath);
     const newObjects: FileSystemObject[] = [];
     for (const obj of objects) {
       if (obj.fullPath === INDEX_FILE_PATH) {
@@ -336,7 +317,15 @@ export abstract class AbstractAccessor {
       return objects;
     } catch (eIndex) {
       if (eIndex instanceof NotFoundError) {
-        objects = await this.getObjectsFromStorage(dirPath);
+        try {
+          objects = await this.doGetObjects(dirPath);
+        } catch (e) {
+          if (e instanceof NotFoundError) {
+            await this.deleteRecursively(dirPath);
+          }
+          throw e;
+        }
+
         fileNameIndex = {};
         for (const obj of objects) {
           if (obj.fullPath !== INDEX_FILE_PATH) {
@@ -370,7 +359,7 @@ export abstract class AbstractAccessor {
     try {
       const index = await this.getFileNameIndex(dirPath);
       const record = index[name];
-      if (record && !record.deleted) {
+      if (record && record.deleted == null) {
         record.deleted = Date.now();
         this.putFileNameIndex(dirPath, index);
       }
@@ -380,27 +369,6 @@ export abstract class AbstractAccessor {
       }
       console.warn(err);
     }
-  }
-
-  protected async removeFromIndexRecursively(dirPath: string) {
-    if (!this.options.useIndex) {
-      return;
-    }
-
-    const pathToFind = dirPath + "/";
-    const dirPathIndex = await this.getDirPathIndex();
-    for (const [dirPath, fileNameIndex] of Object.entries(dirPathIndex)) {
-      if (dirPath.startsWith(pathToFind)) {
-        for (const record of Object.values(fileNameIndex)) {
-          if (!record.deleted) {
-            record.deleted = Date.now();
-          }
-        }
-      }
-    }
-    this.putDirPathIndex(dirPathIndex);
-
-    this.removeFromIndex(dirPath);
   }
 
   protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
@@ -477,6 +445,21 @@ export abstract class AbstractAccessor {
       console.log(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
+    }
+  }
+
+  private async deletePrivate(fullPath: string, isFile: boolean) {
+    try {
+      this.debug("delete", fullPath);
+      await this.doDelete(fullPath, isFile);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
+        return;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
   }
 }
