@@ -3,18 +3,21 @@ export interface FileError extends DOMError {
 }
 
 export abstract class AbstractFileError implements FileError {
+  private _detail: string;
+
   abstract code: number;
   abstract name: string;
-  detail: string;
-  stack: string;
 
-  constructor(public key: string, public filePath: string, detail?: any) {
-    this.detail = "" + detail;
-    if (detail && detail.stack) {
-      this.stack = detail.stack;
-    } else {
-      this.stack = new Error().stack;
+  constructor(public key: string, public filePath: string, private e?: any) {}
+
+  get detail(): string {
+    if (!this.e) {
+      return this.e;
     }
+    if (!this._detail) {
+      this._detail = JSON.stringify(this.e, null, 2);
+    }
+    return this._detail;
   }
 }
 
