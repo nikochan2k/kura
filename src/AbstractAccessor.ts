@@ -283,6 +283,24 @@ export abstract class AbstractAccessor {
     });
   }
 
+  protected debug(
+    title: string,
+    value: string | FileSystemObject,
+    content?: Blob
+  ) {
+    if (!this.options.verbose) {
+      return;
+    }
+    if (typeof value === "string") {
+      const sizeMessage = content ? `, size=${content.size}` : "";
+      console.log(`${this.name} - ${title}: fullPath=${value}${sizeMessage}`);
+    } else {
+      console.log(
+        `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
+      );
+    }
+  }
+
   protected async getObjectsFromIndex(dirPath: string) {
     this.debug("getObjectsFromIndex", dirPath);
     return await this.handleIndex(dirPath);
@@ -438,24 +456,6 @@ export abstract class AbstractAccessor {
         this.name,
         fullPath,
         "Cannot update"
-      );
-    }
-  }
-
-  private debug(
-    title: string,
-    value: string | FileSystemObject,
-    content?: Blob
-  ) {
-    if (!this.options.verbose) {
-      return;
-    }
-    if (typeof value === "string") {
-      const sizeMessage = content ? `, size=${content.size}` : "";
-      console.log(`${this.name} - ${title}: fullPath=${value}${sizeMessage}`);
-    } else {
-      console.log(
-        `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
   }
