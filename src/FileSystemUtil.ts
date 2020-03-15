@@ -1,4 +1,4 @@
-import { decode } from "base-64";
+import { decode, encode } from "base-64";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
@@ -19,6 +19,10 @@ function stringifyEscaped(obj: any) {
   });
   return escaped;
 }
+
+const fr = new FileReader();
+const canReadAsBinaryString = fr.readAsBinaryString != null;
+const canReadAsArrayBuffer = fr.readAsArrayBuffer != null;
 
 export function getParentPath(filePath: string) {
   const parentPath = filePath.replace(LAST_PATH_PART, "");
@@ -109,15 +113,34 @@ export async function blobToBase64(blob: Blob) {
       return;
     }
 
-    const reader = createFileReader(() => {
-      const base64Url = reader.result as string;
-      const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
-      resolve(base64);
-    }, reject);
-    setTimeout(() => {
-      // for React Native bugs
+    if (canReadAsBinaryString) {
+      const reader = createFileReader(() => {
+        const bs = reader.result as string;
+        const base64 = encode(bs);
+        resolve(base64);
+      }, reject);
+      reader.readAsBinaryString(blob);
+    } else if (canReadAsArrayBuffer) {
+      const reader = createFileReader(() => {
+        const ab = reader.result as ArrayBuffer;
+        const bytes = new Uint8Array(ab);
+        const len = bytes.byteLength;
+        let bs = "";
+        for (var i = 0; i < len; i++) {
+          bs += String.fromCharCode(bytes[i]);
+        }
+        const base64 = encode(bs);
+        resolve(base64);
+      }, reject);
+      reader.readAsArrayBuffer(blob);
+    } else {
+      const reader = createFileReader(() => {
+        const base64Url = reader.result as string;
+        const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
+        resolve(base64);
+      }, reject);
       reader.readAsDataURL(blob);
-    }, 0);
+    }
   });
 }
 
@@ -126,10 +149,7 @@ export function blobToString(blob: Blob) {
     const reader = createFileReader(() => {
       resolve(reader.result as string);
     }, reject);
-    setTimeout(() => {
-      // for React Native bugs
-      reader.readAsText(blob);
-    }, 0);
+    reader.readAsText(blob);
   });
 }
 
