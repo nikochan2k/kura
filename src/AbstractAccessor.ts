@@ -45,19 +45,31 @@ export abstract class AbstractAccessor {
       throw new InvalidModificationError(this.name, fullPath);
     }
 
-    await this.doGetObject(fullPath); // Check existance.
-    if (this.options.useIndex) {
-      const record = await this.getRecord(fullPath);
-      await this.checkDeletePermission(fullPath, record);
-      const dirPath = getParentPath(fullPath);
-      await this.handleIndex(dirPath, async () => {
-        await this.deletePrivate(fullPath, isFile);
-        if (record.deleted == null) {
-          record.deleted = Date.now();
-        }
-      });
-    } else {
-      await this.deletePrivate(fullPath, isFile);
+    try {
+      await this.doGetObject(fullPath); // Check existance.
+      if (this.options.useIndex) {
+        const record = await this.getRecord(fullPath);
+        await this.checkDeletePermission(fullPath, record);
+        const dirPath = getParentPath(fullPath);
+        await this.handleIndex(dirPath, async () => {
+          this.debug("delete", fullPath);
+          await this.doDelete(fullPath, isFile);
+          if (record.deleted == null) {
+            record.deleted = Date.now();
+          }
+        });
+      } else {
+        this.debug("delete", fullPath);
+        await this.doDelete(fullPath, isFile);
+      }
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
+        return;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
   }
 
@@ -445,21 +457,6 @@ export abstract class AbstractAccessor {
       console.log(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
-    }
-  }
-
-  private async deletePrivate(fullPath: string, isFile: boolean) {
-    try {
-      this.debug("delete", fullPath);
-      await this.doDelete(fullPath, isFile);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
-        return;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
     }
   }
 }
