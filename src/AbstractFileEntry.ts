@@ -92,7 +92,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
           return;
         }
         if (this.size !== blob.size) {
-          await this.params.accessor.resetObject(this.fullPath, blob.size);
+          await this.params.accessor.resetSize(this.fullPath, blob.size);
         }
         const file = new File([blob], this.params.name, {
           type: CONTENT_TYPE,

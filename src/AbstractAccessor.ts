@@ -40,99 +40,34 @@ export abstract class AbstractAccessor {
 
   constructor(public readonly options: FileSystemOptions) {}
 
-  _delete(fullPath: string, isFile: boolean): Promise<void> {
-    this.debug("delete", fullPath);
+  async delete(fullPath: string, isFile: boolean) {
+    if (fullPath === DIR_SEPARATOR) {
+      throw new InvalidModificationError(this.name, fullPath);
+    }
+
     try {
-      this.doGetObject(fullPath); // Check existance.
-      return this.doDelete(fullPath, isFile);
+      await this.doGetObject(fullPath); // Check existance.
+      if (this.options.useIndex) {
+        const record = await this.getRecord(fullPath);
+        await this.checkDeletePermission(fullPath, record);
+        const dirPath = getParentPath(fullPath);
+        await this.handleIndex(dirPath, async () => {
+          record.deleted = Date.now();
+          this.debug("delete", fullPath);
+          return await this.doDelete(fullPath, isFile);
+        });
+      } else {
+        this.debug("delete", fullPath);
+        return await this.doDelete(fullPath, isFile);
+      }
     } catch (e) {
       if (e instanceof NotFoundError) {
-        this.removeFromIndex(fullPath);
+        await this.removeFromIndex(fullPath);
         return;
       } else if (e instanceof AbstractFileError) {
         throw e;
       }
       throw new InvalidModificationError(this.name, fullPath, e);
-    }
-  }
-
-  async _getContent(fullPath: string): Promise<Blob> {
-    this.debug("getContent", fullPath);
-    try {
-      return this.doGetContent(fullPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
-        throw e;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, fullPath, e);
-    }
-  }
-
-  _getObject(fullPath: string): Promise<FileSystemObject> {
-    this.debug("getObject", fullPath);
-    try {
-      return this.doGetObject(fullPath);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, fullPath, e);
-    }
-  }
-
-  _getObjects(dirPath: string): Promise<FileSystemObject[]> {
-    this.debug("getObjects", dirPath);
-    try {
-      return this.doGetObjects(dirPath);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, dirPath, e);
-    }
-  }
-
-  _putContent(fullPath: string, content: Blob): Promise<void> {
-    this.debug("putContent", fullPath, content);
-    try {
-      return this.doPutContent(fullPath, content);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
-  }
-
-  _putObject(obj: FileSystemObject): Promise<void> {
-    this.debug("putObject", obj);
-    try {
-      return this.doPutObject(obj);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, obj.fullPath, e);
-    }
-  }
-
-  async delete(fullPath: string, isFile: boolean) {
-    if (fullPath === DIR_SEPARATOR) {
-      return;
-    }
-    if (this.options.useIndex) {
-      const record = await this.getRecord(fullPath);
-      await this.checkDeletePermission(fullPath, record);
-      const dirPath = getParentPath(fullPath);
-      await this.handleIndex(dirPath, async () => {
-        record.deleted = Date.now();
-        await this._delete(fullPath, isFile);
-      });
-    } else {
-      await this._delete(fullPath, isFile);
     }
   }
 
@@ -151,19 +86,27 @@ export abstract class AbstractAccessor {
   }
 
   async getContent(fullPath: string) {
-    if (fullPath === DIR_SEPARATOR) {
-      return null;
-    }
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
     }
-    return this._getContent(fullPath);
+    try {
+      this.debug("getContent", fullPath);
+      return await this.doGetContent(fullPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
+        throw e;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, fullPath, e);
+    }
   }
 
   async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       try {
-        const blob = await this._getContent(INDEX_FILE_PATH);
+        const blob = await this.doGetContent(INDEX_FILE_PATH);
         this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
       } catch (e) {
         if (e instanceof NotFoundError) {
@@ -193,13 +136,32 @@ export abstract class AbstractAccessor {
       const record = await this.checkGetPermission(fullPath);
       return record.obj;
     }
-    return this._getObject(fullPath);
+    try {
+      this.debug("getObject", fullPath);
+      return await this.doGetObject(fullPath);
+    } catch (e) {
+      try {
+        return await this.doGetObject(fullPath);
+      } catch (e) {
+        if (e instanceof AbstractFileError) {
+          throw e;
+        }
+        throw new NotReadableError(this.name, fullPath, e);
+      }
+    }
   }
 
   async getObjects(dirPath: string) {
-    return this.options.useIndex
-      ? await this.getObjectsFromIndex(dirPath)
-      : await this.getObjectsFromDatabase(dirPath);
+    try {
+      return this.options.useIndex
+        ? await this.getObjectsFromIndex(dirPath)
+        : await this.getObjectsFromStorage(dirPath);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, dirPath, e);
+    }
   }
 
   async getRecord(fullPath: string) {
@@ -216,12 +178,21 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    if (!this.options.useIndex) {
-      throw new Error("No index");
+  async putContent(fullPath: string, content: Blob): Promise<void> {
+    try {
+      this.debug("putContent", fullPath, content);
+      return await this.doPutContent(fullPath, content);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
+  }
+
+  async putDirPathIndex(dirPathIndex: DirPathIndex) {
     const blob = objectToBlob(dirPathIndex);
-    await this._putContent(INDEX_FILE_PATH, blob);
+    await this.putContent(INDEX_FILE_PATH, blob);
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
@@ -259,28 +230,34 @@ export abstract class AbstractAccessor {
       );
     }
 
-    await this._putObject(obj);
-    if (content) {
-      await this._putContent(obj.fullPath, content);
+    try {
+      this.debug("putObject", obj);
+      await this.doPutObject(obj);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, obj.fullPath, e);
     }
+
+    if (content) {
+      await this.putContent(obj.fullPath, content);
+    }
+
     if (this.options.useIndex) {
       await this.updateIndex(obj);
     }
   }
 
-  async resetObject(fullPath: string, size?: number) {
+  async resetSize(fullPath: string, size: number) {
     if (fullPath === DIR_SEPARATOR) {
-      return null;
+      return;
     }
-    const obj = await this._getObject(fullPath);
-    if (!obj) {
-      return null;
-    }
+    const obj = await this.getObject(fullPath);
     if (size) {
       obj.size = size;
       await this.putObject(obj);
     }
-    return obj;
   }
 
   toURL(path: string): string {
@@ -304,11 +281,14 @@ export abstract class AbstractAccessor {
     });
   }
 
-  protected async getObjectsFromDatabase(dirPath: string) {
-    const objects = await this._getObjects(dirPath);
-    if (!objects) {
-      return null;
-    }
+  protected async getObjectsFromIndex(dirPath: string) {
+    this.debug("getObjectsFromIndex", dirPath);
+    return await this.handleIndex(dirPath);
+  }
+
+  protected async getObjectsFromStorage(dirPath: string) {
+    this.debug("getObjectsFromStorage", dirPath);
+    const objects = await this.doGetObjects(dirPath);
     const newObjects: FileSystemObject[] = [];
     for (const obj of objects) {
       if (obj.fullPath === INDEX_FILE_PATH) {
@@ -317,10 +297,6 @@ export abstract class AbstractAccessor {
       newObjects.push(obj);
     }
     return newObjects;
-  }
-
-  protected async getObjectsFromIndex(dirPath: string) {
-    return await this.handleIndex(dirPath);
   }
 
   protected async handleIndex(
@@ -351,7 +327,7 @@ export abstract class AbstractAccessor {
       return objects;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        objects = await this._getObjects(dirPath);
+        objects = await this.doGetObjects(dirPath);
         if (!objects) {
           return;
         }
