@@ -20,10 +20,6 @@ function stringifyEscaped(obj: any) {
   return escaped;
 }
 
-const fr = new FileReader();
-const canReadAsBinaryString = fr.readAsBinaryString != null;
-const canReadAsArrayBuffer = fr.readAsArrayBuffer != null;
-
 export function getParentPath(filePath: string) {
   const parentPath = filePath.replace(LAST_PATH_PART, "");
   return parentPath === "" ? DIR_SEPARATOR : parentPath;
@@ -107,22 +103,14 @@ function createFileReader(
 }
 
 export async function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<string>(async (resolve, reject) => {
     if (!blob || blob.size === 0) {
       resolve("");
       return;
     }
 
-    if (canReadAsBinaryString) {
-      const reader = createFileReader(() => {
-        const bs = reader.result as string;
-        const base64 = encode(bs);
-        resolve(base64);
-      }, reject);
-      reader.readAsBinaryString(blob);
-    } else if (canReadAsArrayBuffer) {
-      const reader = createFileReader(() => {
-        const ab = reader.result as ArrayBuffer;
+    if (blob.arrayBuffer) {
+      blob.arrayBuffer().then(ab => {
         const bytes = new Uint8Array(ab);
         const len = bytes.byteLength;
         let bs = "";
@@ -131,8 +119,7 @@ export async function blobToBase64(blob: Blob) {
         }
         const base64 = encode(bs);
         resolve(base64);
-      }, reject);
-      reader.readAsArrayBuffer(blob);
+      });
     } else {
       const reader = createFileReader(() => {
         const base64Url = reader.result as string;
