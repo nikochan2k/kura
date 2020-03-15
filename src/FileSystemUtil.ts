@@ -88,20 +88,6 @@ export function blobToFile(
   return file;
 }
 
-function createFileReader(
-  resolveAction: () => void,
-  reject: (reason?: any) => void
-) {
-  const reader = new FileReader();
-  const handleError = (ev: any) => reject(reader.error || ev);
-  reader.onerror = handleError;
-  reader.onabort = handleError;
-  reader.onloadend = ev => {
-    resolveAction();
-  };
-  return reader;
-}
-
 export async function blobToBase64(blob: Blob) {
   return new Promise<string>(async (resolve, reject) => {
     if (!blob || blob.size === 0) {
@@ -109,34 +95,29 @@ export async function blobToBase64(blob: Blob) {
       return;
     }
 
-    if (blob.arrayBuffer) {
-      blob.arrayBuffer().then(ab => {
-        const bytes = new Uint8Array(ab);
-        const len = bytes.byteLength;
-        let bs = "";
-        for (var i = 0; i < len; i++) {
-          bs += String.fromCharCode(bytes[i]);
-        }
-        const base64 = encode(bs);
-        resolve(base64);
-      });
-    } else {
-      const reader = createFileReader(() => {
-        const base64Url = reader.result as string;
-        const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
-        resolve(base64);
-      }, reject);
-      reader.readAsDataURL(blob);
-    }
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onerror = function(ev) {
+      reject(reader.error || ev);
+    };
+    reader.onload = function() {
+      const base64Url = reader.result as string;
+      const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
+      resolve(base64);
+    };
   });
 }
 
 export function blobToString(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
-    const reader = createFileReader(() => {
-      resolve(reader.result as string);
-    }, reject);
+    const reader = new FileReader();
     reader.readAsText(blob);
+    reader.onerror = function(ev) {
+      reject(reader.error || ev);
+    };
+    reader.onload = function() {
+      resolve(reader.result as string);
+    };
   });
 }
 
