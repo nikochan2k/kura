@@ -88,13 +88,12 @@ export function blobToFile(
   return file;
 }
 
-export async function blobToBase64(blob: Blob) {
-  return new Promise<string>(async (resolve, reject) => {
-    if (!blob || blob.size === 0) {
-      resolve("");
-      return;
-    }
+export function blobToBase64(blob: Blob) {
+  if (!blob || blob.size === 0) {
+    return Promise.resolve("");
+  }
 
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(blob);
     reader.onerror = function(ev) {
