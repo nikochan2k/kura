@@ -1,3 +1,4 @@
+import { decode } from "base-64";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
@@ -139,15 +140,21 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
     return EMPTY_BLOB;
   }
 
-  const bin = atob(base64);
-  const length = bin.length;
-  const ab = new ArrayBuffer(bin.length);
-  const ua = new Uint8Array(ab);
-  for (var i = 0; i < length; i++) {
-    ua[i] = bin.charCodeAt(i);
+  if (window && window.atob) {
+    const bin = atob(base64);
+    const length = bin.length;
+    const ab = new ArrayBuffer(bin.length);
+    const ua = new Uint8Array(ab);
+    for (var i = 0; i < length; i++) {
+      ua[i] = bin.charCodeAt(i);
+    }
+    const blob = new Blob([ua], { type: type });
+    return blob;
+  } else {
+    const bin = decode(base64);
+    const blob = new Blob([bin], { type: type });
+    return blob;
   }
-  const blob = new Blob([ua], { type: type });
-  return blob;
 }
 
 export function objectToBlob(obj: any) {

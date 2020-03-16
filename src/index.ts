@@ -1,19 +1,4 @@
-import { decode, encode } from "base-64";
-
-const globalVar =
-  typeof window !== "undefined"
-    ? window
-    : typeof global !== "undefined"
-    ? global
-    : Function("return this;")();
-
-if (!globalVar.btoa) {
-  globalVar.btoa = encode;
-}
-
-if (!globalVar.atob) {
-  globalVar.atob = decode;
-}
+import { decode } from "base-64";
 
 if (navigator && navigator.product == "ReactNative") {
   (process as any).browser = true;
@@ -27,7 +12,7 @@ if (navigator && navigator.product == "ReactNative") {
     reader.onloadend = () => {
       const base64Url = reader.result as string;
       const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
-      const content = atob(base64);
+      const content = decode(base64);
       const buffer = new ArrayBuffer(content.length);
       const view = new Uint8Array(buffer);
       view.set(Array.from(content).map(c => c.charCodeAt(0)));
