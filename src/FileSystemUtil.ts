@@ -155,7 +155,7 @@ export function objectToBlob(obj: any) {
     return EMPTY_BLOB;
   }
   const str = stringifyEscaped(obj);
-  return new Blob([str], { type: "application/json; charset=utf-8" });
+  return new Blob([str], { type: "application/json" });
 }
 
 export async function blobToObject(blob: Blob) {
