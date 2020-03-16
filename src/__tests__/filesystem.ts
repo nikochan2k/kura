@@ -8,13 +8,17 @@ import { FileSystemAsync } from "../FileSystemAsync";
 import { blobToString } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 
-if (
-  !(global && global.setTimeout && global.clearTimeout) &&
-  !(window && window.setTimeout && window.clearTimeout)
-) {
+const globalVar =
+  typeof window !== "undefined"
+    ? window
+    : typeof global !== "undefined"
+    ? global
+    : Function("return this;")();
+
+if (!globalVar.setTimeout || globalVar.clearTimeout) {
   const timers = require("timers");
-  global.clearTimeout = timers.clearTimeout;
-  global.setTimeout = timers.setTimeout;
+  globalVar.clearTimeout = timers.clearTimeout;
+  globalVar.setTimeout = timers.setTimeout;
 }
 
 export function testAll(
