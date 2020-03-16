@@ -1,5 +1,7 @@
 import { decode } from "base-64";
 
+global.Buffer = global.Buffer || require("buffer").Buffer;
+
 if (navigator && navigator.product == "ReactNative") {
   (process as any).browser = true;
 
