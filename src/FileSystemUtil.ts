@@ -88,6 +88,14 @@ export function blobToFile(
   return file;
 }
 
+export function dataUriToBase64(dataUri: string) {
+  const index = dataUri.indexOf(",");
+  if (0 <= index) {
+    return dataUri.substr(index + 1);
+  }
+  return dataUri;
+}
+
 export function blobToBase64(blob: Blob) {
   if (!blob || blob.size === 0) {
     return Promise.resolve("");
@@ -95,28 +103,39 @@ export function blobToBase64(blob: Blob) {
 
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(blob);
     reader.onerror = function(ev) {
       reject(reader.error || ev);
     };
     reader.onload = function() {
-      const base64Url = reader.result as string;
-      const base64 = base64Url.substr(base64Url.indexOf(",") + 1);
+      const base64 = dataUriToBase64(reader.result as string);
       resolve(base64);
     };
+    if (navigator && navigator.product === "ReactNative") {
+      setTimeout(() => {
+        reader.readAsDataURL(blob);
+      }, 0);
+    } else {
+      reader.readAsDataURL(blob);
+    }
   });
 }
 
 export function blobToString(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsText(blob);
     reader.onerror = function(ev) {
       reject(reader.error || ev);
     };
     reader.onload = function() {
       resolve(reader.result as string);
     };
+    if (navigator && navigator.product === "ReactNative") {
+      setTimeout(() => {
+        reader.readAsText(blob);
+      }, 0);
+    } else {
+      reader.readAsText(blob);
+    }
   });
 }
 
@@ -140,6 +159,7 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
     return EMPTY_BLOB;
   }
 
+  base64 = dataUriToBase64(base64);
   if (window && window.atob) {
     const bin = atob(base64);
     const length = bin.length;
