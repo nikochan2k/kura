@@ -131,7 +131,10 @@ export function blobToString(blob: Blob) {
 export function urlToBlob(url: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.onerror = reject;
+    xhr.onerror = e => {
+      console.trace(e);
+      reject(e);
+    };
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4) {
         resolve(xhr.response);
@@ -150,7 +153,12 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
 
   base64 = dataUriToBase64(base64);
   if (window && window.atob) {
-    const bin = atob(base64);
+    try {
+      var bin = atob(base64);
+    } catch (e) {
+      console.trace(e, base64);
+      return EMPTY_BLOB;
+    }
     const length = bin.length;
     const ab = new ArrayBuffer(bin.length);
     const ua = new Uint8Array(ab);
@@ -160,7 +168,11 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
     const blob = new Blob([ua], { type: type });
     return blob;
   } else {
-    const bin = decode(base64);
+    try {
+      var bin = decode(base64);
+    } catch (e) {
+      console.trace(e, base64);
+    }
     const blob = new Blob([bin], { type: type });
     return blob;
   }
