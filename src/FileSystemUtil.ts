@@ -11,6 +11,7 @@ import {
 } from "./FileSystemConstants";
 
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
+export const fileReaderSingleton = new FileReader();
 
 function stringifyEscaped(obj: any) {
   const json = JSON.stringify(obj);
@@ -102,7 +103,7 @@ export function blobToBase64(blob: Blob) {
   }
 
   return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
+    const reader = fileReaderSingleton;
     reader.onerror = function(ev) {
       reject(reader.error || ev);
     };
@@ -116,7 +117,7 @@ export function blobToBase64(blob: Blob) {
 
 export function blobToString(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
+    const reader = fileReaderSingleton;
     reader.onerror = function(ev) {
       reject(reader.error || ev);
     };
