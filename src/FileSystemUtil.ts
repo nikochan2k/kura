@@ -104,7 +104,7 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
-async function blobToSomething(
+export async function blobToSomething(
   blob: Blob,
   readDelegate: (reader: FileReader, sliced: Blob) => void,
   loaded: (reader: FileReader) => void
