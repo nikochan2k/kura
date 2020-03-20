@@ -5,7 +5,7 @@ import {
   NotFoundError
 } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
-import { blobToString } from "../FileSystemUtil";
+import { blobToText, setSlizeSize } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 
 const globalVar =
@@ -20,6 +20,8 @@ if (!globalVar.setTimeout || globalVar.clearTimeout) {
   globalVar.clearTimeout = timers.clearTimeout;
   globalVar.setTimeout = timers.setTimeout;
 }
+
+setSlizeSize(3);
 
 export function testAll(
   factory: LocalFileSystemAsync,
@@ -82,7 +84,7 @@ export function testAll(
     file = await fileEntry.file();
     expect(file.size).toBe(8);
 
-    const str = await blobToString(file);
+    const str = await blobToText(file);
     expect(str).toBe("hogefuga");
 
     done();

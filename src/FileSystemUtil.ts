@@ -10,8 +10,15 @@ import {
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
 
+let sliceSize = 3 * 256; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
-export const fileReaderSingleton = new FileReader();
+
+export function setSlizeSize(size: number) {
+  if (size % 3 !== 0) {
+    throw new Error("slice size should be divisible by 3");
+  }
+  sliceSize = size;
+}
 
 function stringifyEscaped(obj: any) {
   const json = JSON.stringify(obj);
@@ -97,35 +104,72 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
-export function blobToBase64(blob: Blob) {
+async function blobToSomething(
+  blob: Blob,
+  readDelegate: (reader: FileReader, sliced: Blob) => void,
+  loaded: (reader: FileReader) => void
+) {
   if (!blob || blob.size === 0) {
-    return Promise.resolve("");
+    return;
   }
 
-  return new Promise<string>((resolve, reject) => {
-    const reader = fileReaderSingleton;
-    reader.onerror = function(ev) {
-      reject(reader.error || ev);
-    };
-    reader.onload = function() {
-      const base64 = dataUriToBase64(reader.result as string);
-      resolve(base64);
-    };
-    reader.readAsDataURL(blob);
-  });
+  for (let from = 0, end = blob.size; from < end; from += sliceSize) {
+    let to: number;
+    if (from + sliceSize < end) {
+      to = from + sliceSize;
+    } else {
+      to = end;
+    }
+    const sliced = blob.slice(from, to);
+    const reader = new FileReader();
+    await new Promise<void>((resolve, reject) => {
+      reader.onerror = ev => {
+        console.trace(ev);
+        reject(reader.error || ev);
+      };
+      reader.onload = () => {
+        loaded(reader);
+        resolve();
+      };
+      readDelegate(reader, sliced);
+    });
+  }
 }
 
-export function blobToString(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = fileReaderSingleton;
-    reader.onerror = function(ev) {
-      reject(reader.error || ev);
-    };
-    reader.onload = function() {
-      resolve(reader.result as string);
-    };
-    reader.readAsText(blob);
-  });
+export async function blobToBase64(blob: Blob) {
+  let base64 = "";
+  if (!blob || blob.size === 0) {
+    return base64;
+  }
+
+  await blobToSomething(
+    blob,
+    (reader: FileReader, sliced: Blob) => {
+      reader.readAsDataURL(sliced);
+    },
+    (reader: FileReader) => {
+      base64 += dataUriToBase64(reader.result as string);
+    }
+  );
+  return base64;
+}
+
+export async function blobToText(blob: Blob) {
+  let text = "";
+  if (!blob || blob.size === 0) {
+    return text;
+  }
+
+  await blobToSomething(
+    blob,
+    (reader: FileReader, sliced: Blob) => {
+      reader.readAsText(sliced);
+    },
+    (reader: FileReader) => {
+      text += reader.result as string;
+    }
+  );
+  return text;
 }
 
 export function urlToBlob(url: string): Promise<Blob> {
@@ -190,7 +234,7 @@ export async function blobToObject(blob: Blob) {
   if (!blob || blob.size === 0) {
     return null;
   }
-  const str = await blobToString(blob);
+  const str = await blobToText(blob);
   try {
     const obj = JSON.parse(str);
     return obj;
