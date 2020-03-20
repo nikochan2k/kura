@@ -1,4 +1,4 @@
-require("../polyfill");
+import "../polyfill";
 import { getParentPath, getName, normalizePath } from "../FileSystemUtil";
 
 test("FileSystemUtil#getParentPath", () => {

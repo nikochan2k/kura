@@ -1,5 +1,5 @@
-require("../polyfill");
-require("fake-indexeddb/auto");
+import "../polyfill";
+import "fake-indexeddb/auto";
 import { testAll } from "./filesystem";
 import { AbstractAccessor } from "../AbstractAccessor";
 import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";

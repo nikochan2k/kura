@@ -1,5 +1,5 @@
-require("../polyfill");
-require("fake-indexeddb/auto");
+import "../polyfill";
+import "fake-indexeddb/auto";
 import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";
 import { testAll } from "./filesystem";
 
