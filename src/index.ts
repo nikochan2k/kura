@@ -1,3 +1,4 @@
+export * from "./polyfill";
 export * from "./AbstractAccessor";
 export * from "./AbstractDirectoryEntry";
 export * from "./AbstractDirectoryReader";

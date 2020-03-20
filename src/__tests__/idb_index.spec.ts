@@ -1,7 +1,8 @@
+require("../polyfill");
 require("fake-indexeddb/auto");
+import { testAll } from "./filesystem";
 import { AbstractAccessor } from "../AbstractAccessor";
 import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";
-import { testAll } from "./filesystem";
 
 AbstractAccessor.PUT_INDEX_THROTTLE = 0;
 

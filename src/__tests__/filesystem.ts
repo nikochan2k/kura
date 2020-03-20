@@ -1,27 +1,12 @@
 import { DirectoryEntryAsync } from "../DirectoryEntryAsync";
 import {
   InvalidModificationError,
-  PathExistsError,
-  NotFoundError
+  NotFoundError,
+  PathExistsError
 } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
-import { blobToText, setSlizeSize } from "../FileSystemUtil";
+import { blobToText } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
-
-const globalVar =
-  typeof window !== "undefined"
-    ? window
-    : typeof global !== "undefined"
-    ? global
-    : Function("return this;")();
-
-if (!globalVar.setTimeout || globalVar.clearTimeout) {
-  const timers = require("timers");
-  globalVar.clearTimeout = timers.clearTimeout;
-  globalVar.setTimeout = timers.setTimeout;
-}
-
-setSlizeSize(3);
 
 export function testAll(
   factory: LocalFileSystemAsync,
@@ -66,10 +51,10 @@ export function testAll(
     let file = await fileEntry.file();
     expect(file.size).toBe(4);
 
-    await writer.write(new Blob(["fuga"], { type: "text/plain" }));
-    expect(writer.position).toBe(8);
+    await writer.write(new Blob(["ふが"], { type: "text/plain" }));
+    expect(writer.position).toBe(10);
     file = await fileEntry.file();
-    expect(file.size).toBe(8);
+    expect(file.size).toBe(10);
 
     try {
       fileEntry = await fs.root.getFile("test.txt", {
@@ -82,10 +67,10 @@ export function testAll(
     }
     fileEntry = await fs.root.getFile("test.txt");
     file = await fileEntry.file();
-    expect(file.size).toBe(8);
+    expect(file.size).toBe(10);
 
     const str = await blobToText(file);
-    expect(str).toBe("hogefuga");
+    expect(str).toBe("hogeふが");
 
     done();
   });

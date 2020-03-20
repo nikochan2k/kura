@@ -1,3 +1,4 @@
+require("../polyfill");
 require("fake-indexeddb/auto");
 import { IdbLocalFileSystemAsync } from "../idb/IdbLocalFileSystemAsync";
 import { testAll } from "./filesystem";
