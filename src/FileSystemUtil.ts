@@ -110,13 +110,7 @@ export function blobToBase64(blob: Blob) {
       const base64 = dataUriToBase64(reader.result as string);
       resolve(base64);
     };
-    if (navigator && navigator.product === "ReactNative") {
-      setTimeout(() => {
-        reader.readAsDataURL(blob);
-      }, 0);
-    } else {
-      reader.readAsDataURL(blob);
-    }
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -129,13 +123,7 @@ export function blobToString(blob: Blob) {
     reader.onload = function() {
       resolve(reader.result as string);
     };
-    if (navigator && navigator.product === "ReactNative") {
-      setTimeout(() => {
-        reader.readAsText(blob);
-      }, 0);
-    } else {
-      reader.readAsText(blob);
-    }
+    reader.readAsText(blob);
   });
 }
 
