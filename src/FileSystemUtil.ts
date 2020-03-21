@@ -12,13 +12,7 @@ import {
 
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
 
-function stringifyEscaped(obj: any) {
-  const json = JSON.stringify(obj);
-  const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
-    return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
-  });
-  return escaped;
-}
+const textEncoder = new TextEncoder();
 
 export function getParentPath(filePath: string) {
   const parentPath = filePath.replace(LAST_PATH_PART, "");
@@ -213,8 +207,9 @@ export function objectToBlob(obj: any) {
   if (!obj) {
     return EMPTY_BLOB;
   }
-  const str = stringifyEscaped(obj);
-  return new Blob([str], { type: "application/json" });
+  const str = JSON.stringify(obj);
+  const buffer = textEncoder.encode(str);
+  return new Blob([buffer], { type: "application/json" });
 }
 
 export async function blobToObject(blob: Blob) {
