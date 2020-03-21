@@ -134,75 +134,76 @@ export async function blobToArrayBuffer(blob: Blob) {
   }
 }
 
-function blobToBase64Private(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = function(ev) {
-      reject(reader.error || ev);
+export async function blobToBase64(blob: Blob) {
+  if (!blob || blob.size === 0) {
+    return "";
+  }
+
+  const reader = new FileReader();
+  let base64 = "";
+  let finished = false;
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      finished = true;
+      reader.abort();
+      delete reader.onerror;
+      delete reader.onload;
+      delete reader.onloadend;
     };
-    reader.onload = function() {
-      const base64 = dataUriToBase64(reader.result as string);
-      resolve(base64);
+    reader.onerror = ev => {
+      if (!finished) {
+        cleanup();
+        reject(reader.error || ev);
+      }
+    };
+    reader.onload = () => {
+      base64 += dataUriToBase64(reader.result as string);
+    };
+    reader.onloadend = () => {
+      if (!finished) {
+        cleanup();
+        resolve();
+      }
     };
     reader.readAsDataURL(blob);
   });
+  return base64;
 }
 
-export function blobToBase64(blob: Blob) {
+export async function blobToText(blob: Blob) {
   if (!blob || blob.size === 0) {
     return "";
   }
 
-  if (navigator && navigator.product === "ReactNative") {
-    return new Promise<string>(resolve => {
-      const interval = setInterval(async () => {
-        try {
-          const base64 = await blobToBase64Private(blob);
-          clearInterval(interval);
-          resolve(base64);
-        } catch (e) {
-          console.warn(e);
-        }
-      }, 10);
-    });
-  } else {
-    return blobToBase64Private(blob);
-  }
-}
-
-function blobToTextPrivate(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = function(ev) {
-      reject(reader.error || ev);
+  const reader = new FileReader();
+  let text = "";
+  let finished = false;
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      finished = true;
+      reader.abort();
+      delete reader.onerror;
+      delete reader.onload;
+      delete reader.onloadend;
     };
-    reader.onload = function() {
-      resolve(reader.result as string);
+    reader.onerror = ev => {
+      if (!finished) {
+        cleanup();
+        reject(reader.error || ev);
+      }
+    };
+    reader.onload = () => {
+      text += reader.result as string;
+    };
+    reader.onloadend = () => {
+      if (!finished) {
+        cleanup();
+        resolve();
+      }
     };
     reader.readAsText(blob);
   });
-}
-
-export function blobToText(blob: Blob) {
-  if (!blob || blob.size === 0) {
-    return "";
-  }
-
-  if (navigator && navigator.product === "ReactNative") {
-    return new Promise<string>(resolve => {
-      const interval = setInterval(async () => {
-        try {
-          const text = await blobToTextPrivate(blob);
-          clearInterval(interval);
-          resolve(text);
-        } catch (e) {
-          console.warn(e);
-        }
-      }, 10);
-    });
-  } else {
-    return blobToTextPrivate(blob);
-  }
+  return text;
 }
 
 export function urlToBlob(url: string): Promise<Blob> {
