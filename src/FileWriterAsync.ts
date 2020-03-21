@@ -20,11 +20,10 @@ export class FileWriterAsync {
       this.fileWriter.onwriteend = () => {
         resolve();
       };
-      try {
-        this.fileWriter.truncate(size);
-      } catch (err) {
+      this.fileWriter.onerror = err => {
         reject(err);
-      }
+      };
+      this.fileWriter.truncate(size);
     });
   }
 
@@ -33,11 +32,10 @@ export class FileWriterAsync {
       this.fileWriter.onwriteend = () => {
         resolve();
       };
-      try {
-        this.fileWriter.write(data);
-      } catch (err) {
+      this.fileWriter.onerror = err => {
         reject(err);
-      }
+      };
+      this.fileWriter.write(data);
     });
   }
 

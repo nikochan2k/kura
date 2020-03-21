@@ -23,8 +23,3 @@ if (!globalVar.TextEncoder) {
 if (!globalVar.TextDecoder) {
   globalVar.TextDecoder = TextDecoderPolyfill;
 }
-if (!globalVar.setTimeout || globalVar.clearTimeout) {
-  const timers = require("timers");
-  globalVar.clearTimeout = timers.clearTimeout;
-  globalVar.setTimeout = timers.setTimeout;
-}

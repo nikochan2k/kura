@@ -96,21 +96,35 @@ function blobToArrayBufferUsingResponse(blob: Blob) {
   return response.arrayBuffer();
 }
 
+async function blobToArrayBufferUsingFileReader(blob: Blob) {
+  const buffer = new ArrayBuffer(blob.size);
+  const view = new Uint8Array(buffer);
+  const base64 = await blobToBase64UsingFileReader(blob);
+  const content = atob(base64);
+  view.set(Array.from(content).map(c => c.charCodeAt(0)));
+  return buffer;
+}
+
 export async function blobToArrayBuffer(blob: Blob) {
   if (!blob || blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;
   }
 
   try {
-    return blobToArrayBufferUsingResponse(blob);
+    return await blobToArrayBufferUsingResponse(blob);
   } catch {
-    const buffer = new ArrayBuffer(blob.size);
-    const view = new Uint8Array(buffer);
-    const base64 = await blobToBase64UsingFileReader(blob);
-    const content = atob(base64);
-    view.set(Array.from(content).map(c => c.charCodeAt(0)));
-    return buffer;
+    return await blobToArrayBufferUsingFileReader(blob);
   }
+}
+
+async function blobToBase64UsingArrayBuffer(blob: Blob) {
+  const buffer = await blobToArrayBufferUsingResponse(blob);
+  var binary = "";
+  var bytes = new Uint8Array(buffer);
+  for (var i = 0, end = bytes.length; i < end; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 function blobToBase64UsingFileReader(blob: Blob) {
@@ -133,28 +147,18 @@ export async function blobToBase64(blob: Blob) {
   }
 
   try {
-    const buffer = await blobToArrayBufferUsingResponse(blob);
-    var binary = "";
-    var bytes = new Uint8Array(buffer);
-    for (var i = 0, end = bytes.length; i < end; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
+    return await blobToBase64UsingArrayBuffer(blob);
   } catch {
-    return blobToBase64UsingFileReader(blob);
+    return await blobToBase64UsingFileReader(blob);
   }
 }
 
-export async function blobToText(blob: Blob) {
-  try {
-    const buffer = await blobToArrayBuffer(blob);
-    return textDecoder.decode(buffer);
-  } catch {
-    return blobToTextUsingFileReader(blob);
-  }
+async function blobToTextUsingArrayBuffer(blob: Blob) {
+  const buffer = await blobToArrayBufferUsingResponse(blob);
+  return textDecoder.decode(buffer);
 }
 
-export function blobToTextUsingFileReader(blob: Blob) {
+function blobToTextUsingFileReader(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = function(ev) {
@@ -165,6 +169,18 @@ export function blobToTextUsingFileReader(blob: Blob) {
     };
     reader.readAsText(blob);
   });
+}
+
+export async function blobToText(blob: Blob) {
+  if (!blob || blob.size === 0) {
+    return "";
+  }
+
+  try {
+    return await blobToTextUsingArrayBuffer(blob);
+  } catch {
+    return await blobToTextUsingFileReader(blob);
+  }
 }
 
 export function urlToBlob(url: string): Promise<Blob> {
