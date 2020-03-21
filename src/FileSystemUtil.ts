@@ -91,9 +91,10 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
-function blobToArrayBufferUsingResponse(blob: Blob) {
+async function blobToArrayBufferUsingResponse(blob: Blob) {
   const response = new Response(blob);
-  return response.arrayBuffer();
+  const buffer = await response.arrayBuffer();
+  return buffer;
 }
 
 async function blobToArrayBufferUsingFileReader(blob: Blob) {
@@ -110,11 +111,13 @@ export async function blobToArrayBuffer(blob: Blob) {
     return EMPTY_ARRAY_BUFFER;
   }
 
+  let buffer: ArrayBuffer;
   try {
-    return await blobToArrayBufferUsingResponse(blob);
+    buffer = await blobToArrayBufferUsingResponse(blob);
   } catch {
-    return await blobToArrayBufferUsingFileReader(blob);
+    buffer = await blobToArrayBufferUsingFileReader(blob);
   }
+  return buffer;
 }
 
 async function blobToBase64UsingArrayBuffer(blob: Blob) {
@@ -124,7 +127,8 @@ async function blobToBase64UsingArrayBuffer(blob: Blob) {
   for (var i = 0, end = bytes.length; i < end; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary);
+  const base64 = btoa(binary);
+  return base64;
 }
 
 function blobToBase64UsingFileReader(blob: Blob) {
@@ -146,16 +150,19 @@ export async function blobToBase64(blob: Blob) {
     return "";
   }
 
+  let base64: string;
   try {
-    return await blobToBase64UsingArrayBuffer(blob);
+    base64 = await blobToBase64UsingArrayBuffer(blob);
   } catch {
-    return await blobToBase64UsingFileReader(blob);
+    base64 = await blobToBase64UsingFileReader(blob);
   }
+  return base64;
 }
 
 async function blobToTextUsingArrayBuffer(blob: Blob) {
   const buffer = await blobToArrayBufferUsingResponse(blob);
-  return textDecoder.decode(buffer);
+  const text = textDecoder.decode(buffer);
+  return text;
 }
 
 function blobToTextUsingFileReader(blob: Blob) {
@@ -176,11 +183,13 @@ export async function blobToText(blob: Blob) {
     return "";
   }
 
+  let text: string;
   try {
-    return await blobToTextUsingArrayBuffer(blob);
+    text = await blobToTextUsingArrayBuffer(blob);
   } catch {
-    return await blobToTextUsingFileReader(blob);
+    text = await blobToTextUsingFileReader(blob);
   }
+  return text;
 }
 
 export function urlToBlob(url: string): Promise<Blob> {
