@@ -36,13 +36,6 @@ interface ContentCacheEntry {
 
 const contentCache: { [fullPath: string]: ContentCacheEntry } = {};
 
-interface ObjectCacheEntry {
-  access: number;
-  obj: FileSystemObject;
-}
-
-const objectCache: { [fullPath: string]: ObjectCacheEntry } = {};
-
 export abstract class AbstractAccessor {
   private dirPathIndex: DirPathIndex;
   private putIndexTimeout: any;
@@ -114,9 +107,9 @@ export abstract class AbstractAccessor {
       await this.checkGetPermission(fullPath);
     }
 
-    const blob = this.getContentFromCache(fullPath);
-    if (blob) {
-      return blob;
+    const content = this.getContentFromCache(fullPath);
+    if (content) {
+      return content;
     }
 
     try {
@@ -131,12 +124,6 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, fullPath, e);
     }
-  }
-
-  getContentFromCache(fullPath: string) {
-    const entry = contentCache[fullPath];
-    entry.access = Date.now();
-    return entry.blob;
   }
 
   async getDirPathIndex() {
@@ -225,40 +212,6 @@ export abstract class AbstractAccessor {
       }
       throw new InvalidModificationError(this.name, fullPath, e);
     }
-  }
-
-  putContentToCache(fullPath: string, blob: Blob) {
-    if (AbstractAccessor.CONTENT_CACHE_CAPACITY < blob.size) {
-      return;
-    }
-
-    let sum = 0;
-    const list: { fullPath: string; size: number; access: number }[] = [];
-    for (const [fullPath, entry] of Object.entries(contentCache)) {
-      const size = entry.blob.size;
-      sum += size;
-      list.push({ fullPath, size, access: entry.access });
-    }
-
-    let current = sum + blob.size;
-    if (current <= AbstractAccessor.CONTENT_CACHE_CAPACITY) {
-      contentCache[fullPath] = { blob, access: Date.now() };
-      return;
-    }
-    list.sort((a, b) => {
-      return a.access < b.access ? -1 : 1;
-    });
-
-    const limit = AbstractAccessor.CONTENT_CACHE_CAPACITY - blob.size;
-    for (const item of list) {
-      delete contentCache[item.fullPath];
-      current -= item.size;
-      if (current <= limit) {
-        break;
-      }
-    }
-
-    contentCache[fullPath] = { blob, access: Date.now() };
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
@@ -523,5 +476,48 @@ export abstract class AbstractAccessor {
         "Cannot update"
       );
     }
+  }
+
+  private getContentFromCache(fullPath: string) {
+    const entry = contentCache[fullPath];
+    if (!entry) {
+      return null;
+    }
+    entry.access = Date.now();
+    return entry.blob;
+  }
+
+  private putContentToCache(fullPath: string, blob: Blob) {
+    if (AbstractAccessor.CONTENT_CACHE_CAPACITY < blob.size) {
+      return;
+    }
+
+    let sum = 0;
+    const list: { fullPath: string; size: number; access: number }[] = [];
+    for (const [fullPath, entry] of Object.entries(contentCache)) {
+      const size = entry.blob.size;
+      sum += size;
+      list.push({ fullPath, size, access: entry.access });
+    }
+
+    let current = sum + blob.size;
+    if (current <= AbstractAccessor.CONTENT_CACHE_CAPACITY) {
+      contentCache[fullPath] = { blob, access: Date.now() };
+      return;
+    }
+    list.sort((a, b) => {
+      return a.access < b.access ? -1 : 1;
+    });
+
+    const limit = AbstractAccessor.CONTENT_CACHE_CAPACITY - blob.size;
+    for (const item of list) {
+      delete contentCache[item.fullPath];
+      current -= item.size;
+      if (current <= limit) {
+        break;
+      }
+    }
+
+    contentCache[fullPath] = { blob, access: Date.now() };
   }
 }
