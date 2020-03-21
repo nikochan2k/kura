@@ -29,6 +29,20 @@ const ROOT_RECORD: Record = {
   updated: 0
 };
 
+interface ContentCacheEntry {
+  access: number;
+  blob: Blob;
+}
+
+const contentCache: { [fullPath: string]: ContentCacheEntry } = {};
+
+interface ObjectCacheEntry {
+  access: number;
+  obj: FileSystemObject;
+}
+
+const objectCache: { [fullPath: string]: ObjectCacheEntry } = {};
+
 export abstract class AbstractAccessor {
   private dirPathIndex: DirPathIndex;
   private putIndexTimeout: any;
@@ -36,6 +50,8 @@ export abstract class AbstractAccessor {
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
 
+  static CONTENT_CACHE_CAPACITY = 10 * 1024 * 1024; // 10MB
+  static OBJECT_CACHE_SIZE = 1000;
   static PUT_INDEX_THROTTLE = 3000;
 
   constructor(public readonly options: FileSystemOptions) {}
@@ -62,9 +78,15 @@ export abstract class AbstractAccessor {
         this.debug("delete", fullPath);
         await this.doDelete(fullPath, isFile);
       }
+      if (isFile) {
+        delete contentCache[fullPath];
+      }
     } catch (e) {
       if (e instanceof NotFoundError) {
         await this.removeFromIndex(fullPath);
+        if (isFile) {
+          delete contentCache[fullPath];
+        }
         return;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -91,6 +113,12 @@ export abstract class AbstractAccessor {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
     }
+
+    const blob = this.getContentFromCache(fullPath);
+    if (blob) {
+      return blob;
+    }
+
     try {
       this.debug("getContent", fullPath);
       return await this.doGetContent(fullPath);
@@ -103,6 +131,12 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, fullPath, e);
     }
+  }
+
+  getContentFromCache(fullPath: string) {
+    const entry = contentCache[fullPath];
+    entry.access = Date.now();
+    return entry.blob;
   }
 
   async getDirPathIndex() {
@@ -184,12 +218,47 @@ export abstract class AbstractAccessor {
     try {
       this.debug("putContent", fullPath, content);
       await this.doPutContent(fullPath, content);
+      this.putContentToCache(fullPath, content);
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
       }
       throw new InvalidModificationError(this.name, fullPath, e);
     }
+  }
+
+  putContentToCache(fullPath: string, blob: Blob) {
+    if (AbstractAccessor.CONTENT_CACHE_CAPACITY < blob.size) {
+      return;
+    }
+
+    let sum = 0;
+    const list: { fullPath: string; size: number; access: number }[] = [];
+    for (const [fullPath, entry] of Object.entries(contentCache)) {
+      const size = entry.blob.size;
+      sum += size;
+      list.push({ fullPath, size, access: entry.access });
+    }
+
+    let current = sum + blob.size;
+    if (current <= AbstractAccessor.CONTENT_CACHE_CAPACITY) {
+      contentCache[fullPath] = { blob, access: Date.now() };
+      return;
+    }
+    list.sort((a, b) => {
+      return a.access < b.access ? -1 : 1;
+    });
+
+    const limit = AbstractAccessor.CONTENT_CACHE_CAPACITY - blob.size;
+    for (const item of list) {
+      delete contentCache[item.fullPath];
+      current -= item.size;
+      if (current <= limit) {
+        break;
+      }
+    }
+
+    contentCache[fullPath] = { blob, access: Date.now() };
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
@@ -281,6 +350,13 @@ export abstract class AbstractAccessor {
       delete record.deleted;
     });
   }
+
+  abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
+  abstract doGetContent(fullPath: string): Promise<Blob>;
+  abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
+  abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
+  abstract doPutContent(fullPath: string, content: Blob): Promise<void>;
+  abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   protected debug(
     title: string,
@@ -399,13 +475,6 @@ export abstract class AbstractAccessor {
       console.warn(err);
     }
   }
-
-  abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  abstract doGetContent(fullPath: string): Promise<Blob>;
-  abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
-  abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
-  abstract doPutContent(fullPath: string, content: Blob): Promise<void>;
-  abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   private async checkAddPermission(fullPath: string, record: Record) {
     if (!this.options.permission.onAdd) {
