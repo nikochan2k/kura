@@ -10,7 +10,6 @@ import {
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
 
-const textDecoder = new TextDecoder();
 const textEncoder = new TextEncoder();
 
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
@@ -91,13 +90,20 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
-async function blobToArrayBufferUsingResponse(blob: Blob) {
-  const response = new Response(blob);
-  const buffer = await response.arrayBuffer();
-  return buffer;
+async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = function(ev) {
+      reject(reader.error || ev);
+    };
+    reader.onload = function() {
+      resolve(reader.result as ArrayBuffer);
+    };
+    reader.readAsArrayBuffer(blob);
+  });
 }
 
-async function blobToArrayBufferUsingFileReader(blob: Blob) {
+async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
   const buffer = new ArrayBuffer(blob.size);
   const view = new Uint8Array(buffer);
   const base64 = await blobToBase64UsingFileReader(blob);
@@ -111,24 +117,11 @@ export async function blobToArrayBuffer(blob: Blob) {
     return EMPTY_ARRAY_BUFFER;
   }
 
-  let buffer: ArrayBuffer;
-  try {
-    buffer = await blobToArrayBufferUsingResponse(blob);
-  } catch {
-    buffer = await blobToArrayBufferUsingFileReader(blob);
+  if (navigator && navigator.platform === "ReactNative") {
+    return blobToArrayBufferUsingReadAsDataUrl(blob);
+  } else {
+    return blobToArrayBufferUsingReadAsArrayBuffer(blob);
   }
-  return buffer;
-}
-
-async function blobToBase64UsingArrayBuffer(blob: Blob) {
-  const buffer = await blobToArrayBufferUsingResponse(blob);
-  var binary = "";
-  var bytes = new Uint8Array(buffer);
-  for (var i = 0, end = bytes.length; i < end; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  const base64 = btoa(binary);
-  return base64;
 }
 
 function blobToBase64UsingFileReader(blob: Blob) {
@@ -150,19 +143,7 @@ export async function blobToBase64(blob: Blob) {
     return "";
   }
 
-  let base64: string;
-  try {
-    base64 = await blobToBase64UsingArrayBuffer(blob);
-  } catch {
-    base64 = await blobToBase64UsingFileReader(blob);
-  }
-  return base64;
-}
-
-async function blobToTextUsingArrayBuffer(blob: Blob) {
-  const buffer = await blobToArrayBufferUsingResponse(blob);
-  const text = textDecoder.decode(buffer);
-  return text;
+  return blobToBase64UsingFileReader(blob);
 }
 
 function blobToTextUsingFileReader(blob: Blob) {
@@ -183,13 +164,7 @@ export async function blobToText(blob: Blob) {
     return "";
   }
 
-  let text: string;
-  try {
-    text = await blobToTextUsingArrayBuffer(blob);
-  } catch {
-    text = await blobToTextUsingFileReader(blob);
-  }
-  return text;
+  return await blobToTextUsingFileReader(blob);
 }
 
 export function urlToBlob(url: string): Promise<Blob> {
