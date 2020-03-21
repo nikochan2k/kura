@@ -10,9 +10,15 @@ import {
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
 
-const textEncoder = new TextEncoder();
-
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
+
+function stringifyEscaped(obj: any) {
+  const json = JSON.stringify(obj);
+  const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
+    return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
+  });
+  return escaped;
+}
 
 export function getParentPath(filePath: string) {
   const parentPath = filePath.replace(LAST_PATH_PART, "");
@@ -104,9 +110,13 @@ async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
 }
 
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
+  const base64 = await blobToBase64(blob);
+  if (!base64) {
+    return EMPTY_ARRAY_BUFFER;
+  }
+
   const buffer = new ArrayBuffer(blob.size);
   const view = new Uint8Array(buffer);
-  const base64 = await blobToBase64UsingFileReader(blob);
   const content = atob(base64);
   view.set(Array.from(content).map(c => c.charCodeAt(0)));
   return buffer;
@@ -117,14 +127,18 @@ export async function blobToArrayBuffer(blob: Blob) {
     return EMPTY_ARRAY_BUFFER;
   }
 
-  if (navigator && navigator.platform === "ReactNative") {
+  if (navigator && navigator.product === "ReactNative") {
     return blobToArrayBufferUsingReadAsDataUrl(blob);
   } else {
     return blobToArrayBufferUsingReadAsArrayBuffer(blob);
   }
 }
 
-function blobToBase64UsingFileReader(blob: Blob) {
+export async function blobToBase64(blob: Blob) {
+  if (!blob || blob.size === 0) {
+    return "";
+  }
+
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = function(ev) {
@@ -138,15 +152,11 @@ function blobToBase64UsingFileReader(blob: Blob) {
   });
 }
 
-export async function blobToBase64(blob: Blob) {
+export async function blobToText(blob: Blob) {
   if (!blob || blob.size === 0) {
     return "";
   }
 
-  return blobToBase64UsingFileReader(blob);
-}
-
-function blobToTextUsingFileReader(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = function(ev) {
@@ -157,14 +167,6 @@ function blobToTextUsingFileReader(blob: Blob) {
     };
     reader.readAsText(blob);
   });
-}
-
-export async function blobToText(blob: Blob) {
-  if (!blob || blob.size === 0) {
-    return "";
-  }
-
-  return await blobToTextUsingFileReader(blob);
 }
 
 export function urlToBlob(url: string): Promise<Blob> {
@@ -211,9 +213,8 @@ export function objectToBlob(obj: any) {
   if (!obj) {
     return EMPTY_BLOB;
   }
-  const str = JSON.stringify(obj);
-  const buffer = textEncoder.encode(str);
-  return new Blob([buffer], { type: "application/json" });
+  const str = stringifyEscaped(obj);
+  return new Blob([str], { type: "application/json" });
 }
 
 export async function blobToObject(blob: Blob) {

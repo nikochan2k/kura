@@ -1,8 +1,4 @@
 import { decode, encode } from "base-64";
-import {
-  TextDecoder as TextDecoderPolyfill,
-  TextEncoder as TextEncoderPolyfill
-} from "text-encoding-utf-8";
 
 const globalVar =
   typeof window !== "undefined"
@@ -16,10 +12,4 @@ if (!globalVar.atob) {
 }
 if (!globalVar.btoa) {
   globalVar.btoa = encode;
-}
-if (!globalVar.TextEncoder) {
-  globalVar.TextEncoder = TextEncoderPolyfill;
-}
-if (!globalVar.TextDecoder) {
-  globalVar.TextDecoder = TextDecoderPolyfill;
 }
