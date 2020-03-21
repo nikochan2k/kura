@@ -183,7 +183,7 @@ export abstract class AbstractAccessor {
   async putContent(fullPath: string, content: Blob): Promise<void> {
     try {
       this.debug("putContent", fullPath, content);
-      return await this.doPutContent(fullPath, content);
+      await this.doPutContent(fullPath, content);
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -198,10 +198,6 @@ export abstract class AbstractAccessor {
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
-    if (!this.options.useIndex) {
-      throw new Error("No index");
-    }
-
     const dirPathIndex = await this.getDirPathIndex();
     dirPathIndex[dirPath] = fileNameIndex;
 
@@ -210,9 +206,12 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    clearTimeout(this.putIndexTimeout);
-    this.putIndexTimeout = setTimeout(async () => {
-      await this.putDirPathIndex(dirPathIndex);
+    if (this.putIndexTimeout) {
+      clearTimeout(this.putIndexTimeout);
+    }
+    this.putIndexTimeout = setTimeout(() => {
+      this.putIndexTimeout = null;
+      this.putDirPathIndex(dirPathIndex);
     }, AbstractAccessor.PUT_INDEX_THROTTLE);
   }
 
@@ -391,7 +390,7 @@ export abstract class AbstractAccessor {
       const record = index[name];
       if (record && record.deleted == null) {
         record.deleted = Date.now();
-        this.putFileNameIndex(dirPath, index);
+        await this.putFileNameIndex(dirPath, index);
       }
     } catch (err) {
       if (err instanceof NotFoundError) {
@@ -401,15 +400,12 @@ export abstract class AbstractAccessor {
     }
   }
 
-  protected abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  protected abstract doGetContent(fullPath: string): Promise<Blob>;
-  protected abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
-  protected abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
-  protected abstract doPutContent(
-    fullPath: string,
-    content: Blob
-  ): Promise<void>;
-  protected abstract doPutObject(obj: FileSystemObject): Promise<void>;
+  abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
+  abstract doGetContent(fullPath: string): Promise<Blob>;
+  abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
+  abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
+  abstract doPutContent(fullPath: string, content: Blob): Promise<void>;
+  abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   private async checkAddPermission(fullPath: string, record: Record) {
     if (!this.options.permission.onAdd) {

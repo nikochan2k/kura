@@ -97,13 +97,27 @@ export function dataUriToBase64(dataUri: string) {
 }
 
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
+  const reader = new FileReader();
+  let finished = false;
   return new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
+    const cleanup = () => {
+      finished = true;
+      reader.abort();
+      delete reader.onerror;
+      delete reader.onload;
+      delete reader.onloadend;
+    };
     reader.onerror = function(ev) {
-      reject(reader.error || ev);
+      if (!finished) {
+        cleanup();
+        reject(reader.error || ev);
+      }
     };
     reader.onload = function() {
-      resolve(reader.result as ArrayBuffer);
+      if (!finished) {
+        resolve(reader.result as ArrayBuffer);
+        cleanup();
+      }
     };
     reader.readAsArrayBuffer(blob);
   });

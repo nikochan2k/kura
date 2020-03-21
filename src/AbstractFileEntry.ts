@@ -10,7 +10,7 @@ import {
   FileWriterCallback,
   VoidCallback
 } from "./filesystem";
-import { CONTENT_TYPE, EMPTY_BLOB } from "./FileSystemConstants";
+import { CONTENT_TYPE } from "./FileSystemConstants";
 import { FileSystemParams } from "./FileSystemParams";
 import { onError } from "./FileSystemUtil";
 import { FileWriterAsync } from "./FileWriterAsync";
