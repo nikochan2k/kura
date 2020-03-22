@@ -43,11 +43,14 @@ export abstract class AbstractAccessor {
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
 
-  static CONTENT_CACHE_CAPACITY = 10 * 1024 * 1024; // 10MB
-  static OBJECT_CACHE_SIZE = 1000;
-  static PUT_INDEX_THROTTLE = 3000;
-
-  constructor(public readonly options: FileSystemOptions) {}
+  constructor(public readonly options: FileSystemOptions) {
+    if (options.contentCacheCapacity == null) {
+      options.contentCacheCapacity = 10 * 1024 * 1024; // 10MB
+    }
+    if (options.indexWriteDelayMillis == null) {
+      options.indexWriteDelayMillis = 3000;
+    }
+  }
 
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === DIR_SEPARATOR) {
@@ -223,7 +226,7 @@ export abstract class AbstractAccessor {
     const dirPathIndex = await this.getDirPathIndex();
     dirPathIndex[dirPath] = fileNameIndex;
 
-    if (AbstractAccessor.PUT_INDEX_THROTTLE <= 0) {
+    if (this.options.indexWriteDelayMillis <= 0) {
       await this.putDirPathIndex(dirPathIndex);
       return;
     }
@@ -234,7 +237,7 @@ export abstract class AbstractAccessor {
     this.putIndexTimeout = setTimeout(() => {
       this.putIndexTimeout = null;
       this.putDirPathIndex(dirPathIndex);
-    }, AbstractAccessor.PUT_INDEX_THROTTLE);
+    }, this.options.indexWriteDelayMillis);
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {
@@ -488,7 +491,7 @@ export abstract class AbstractAccessor {
   }
 
   private putContentToCache(fullPath: string, blob: Blob) {
-    if (AbstractAccessor.CONTENT_CACHE_CAPACITY < blob.size) {
+    if (this.options.contentCacheCapacity < blob.size) {
       return;
     }
 
@@ -501,7 +504,7 @@ export abstract class AbstractAccessor {
     }
 
     let current = sum + blob.size;
-    if (current <= AbstractAccessor.CONTENT_CACHE_CAPACITY) {
+    if (current <= this.options.contentCacheCapacity) {
       contentCache[fullPath] = { blob, access: Date.now() };
       return;
     }
@@ -509,7 +512,7 @@ export abstract class AbstractAccessor {
       return a.access < b.access ? -1 : 1;
     });
 
-    const limit = AbstractAccessor.CONTENT_CACHE_CAPACITY - blob.size;
+    const limit = this.options.contentCacheCapacity - blob.size;
     for (const item of list) {
       delete contentCache[item.fullPath];
       current -= item.size;
