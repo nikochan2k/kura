@@ -255,24 +255,6 @@ export async function blobToText(blob: Blob) {
   return text;
 }
 
-export function urlToBlob(url: string): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onerror = e => {
-      console.trace(e);
-      reject(e);
-    };
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4) {
-        resolve(xhr.response);
-      }
-    };
-    xhr.open("GET", url);
-    xhr.responseType = "blob";
-    xhr.send();
-  });
-}
-
 export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
   if (!base64) {
     return EMPTY_BLOB;
