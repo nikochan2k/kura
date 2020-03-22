@@ -10,14 +10,14 @@ import {
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
 
-let sliceSize = 3 * 256; // 3 is for base64
+let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
 
-export function setSlizeSize(size: number) {
+export function setChunkSize(size: number) {
   if (size % 3 !== 0) {
     throw new Error("slice size should be divisible by 3");
   }
-  sliceSize = size;
+  chunkSize = size;
 }
 
 function stringify(obj: any) {
@@ -112,10 +112,10 @@ export async function blobToSomething(
   readDelegate: (reader: FileReader, sliced: Blob) => void,
   loaded: (reader: FileReader) => void
 ) {
-  for (let from = 0, end = blob.size; from < end; from += sliceSize) {
+  for (let from = 0, end = blob.size; from < end; from += chunkSize) {
     let to: number;
-    if (from + sliceSize < end) {
-      to = from + sliceSize;
+    if (from + chunkSize < end) {
+      to = from + chunkSize;
     } else {
       to = end;
     }
