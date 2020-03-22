@@ -5,7 +5,7 @@ import {
   PathExistsError
 } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
-import { blobToText } from "../FileSystemUtil";
+import { blobToText, setSlizeSize } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 
 const globalVar =
@@ -20,6 +20,8 @@ if (!globalVar.setTimeout || !globalVar.clearTimeout) {
   globalVar.clearTimeout = timers.clearTimeout;
   globalVar.setTimeout = timers.setTimeout;
 }
+
+setSlizeSize(3);
 
 export function testAll(
   factory: LocalFileSystemAsync,

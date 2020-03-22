@@ -10,14 +10,25 @@ import {
   LAST_DIR_SEPARATORS
 } from "./FileSystemConstants";
 
+let sliceSize = 3 * 256; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
 
-function stringifyEscaped(obj: any) {
+export function setSlizeSize(size: number) {
+  if (size % 3 !== 0) {
+    throw new Error("slice size should be divisible by 3");
+  }
+  sliceSize = size;
+}
+
+function stringify(obj: any) {
   const json = JSON.stringify(obj);
-  const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
-    return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
-  });
-  return escaped;
+  if (navigator && navigator.product === "ReactNative") {
+    const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
+      return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
+    });
+    return escaped;
+  }
+  return json;
 }
 
 export function getParentPath(filePath: string) {
@@ -96,31 +107,73 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
+export async function blobToSomething(
+  blob: Blob,
+  readDelegate: (reader: FileReader, sliced: Blob) => void,
+  loaded: (reader: FileReader) => void
+) {
+  for (let from = 0, end = blob.size; from < end; from += sliceSize) {
+    let to: number;
+    if (from + sliceSize < end) {
+      to = from + sliceSize;
+    } else {
+      to = end;
+    }
+    const sliced = blob.slice(from, to);
+    const reader = new FileReader();
+    let finished = false;
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        finished = true;
+        reader.abort();
+        delete reader.onerror;
+        delete reader.onload;
+        delete reader.onloadend;
+      };
+      reader.onerror = ev => {
+        if (!finished) {
+          cleanup();
+          reject(reader.error || ev);
+        }
+      };
+      reader.onload = () => {
+        if (!finished) {
+          loaded(reader);
+        }
+      };
+      reader.onloadend = () => {
+        if (!finished) {
+          cleanup();
+          resolve();
+        }
+      };
+      readDelegate(reader, sliced);
+    });
+  }
+}
+
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
-  const reader = new FileReader();
-  let finished = false;
-  return new Promise<ArrayBuffer>((resolve, reject) => {
-    const cleanup = () => {
-      finished = true;
-      reader.abort();
-      delete reader.onerror;
-      delete reader.onload;
-      delete reader.onloadend;
-    };
-    reader.onerror = function(ev) {
-      if (!finished) {
-        cleanup();
-        reject(reader.error || ev);
+  if (!blob || blob.size === 0) {
+    return EMPTY_ARRAY_BUFFER;
+  }
+  const buffer = new ArrayBuffer(blob.size);
+  const view = new Uint8Array(buffer);
+  let index = 0;
+  await blobToSomething(
+    blob,
+    (reader: FileReader, sliced: Blob) => {
+      reader.readAsArrayBuffer(sliced);
+    },
+    (reader: FileReader) => {
+      const ab = reader.result as ArrayBuffer;
+      const array = new Uint8Array(ab);
+      for (let i = 0, end = ab.byteLength; i < end; i++) {
+        view[index] = array[i];
+        index++;
       }
-    };
-    reader.onload = function() {
-      if (!finished) {
-        resolve(reader.result as ArrayBuffer);
-        cleanup();
-      }
-    };
-    reader.readAsArrayBuffer(blob);
-  });
+    }
+  );
+  return buffer;
 }
 
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
@@ -149,38 +202,20 @@ export async function blobToArrayBuffer(blob: Blob) {
 }
 
 export async function blobToBase64(blob: Blob) {
+  let base64 = "";
   if (!blob || blob.size === 0) {
-    return "";
+    return base64;
   }
 
-  const reader = new FileReader();
-  let base64 = "";
-  let finished = false;
-  await new Promise<void>((resolve, reject) => {
-    const cleanup = () => {
-      finished = true;
-      reader.abort();
-      delete reader.onerror;
-      delete reader.onload;
-      delete reader.onloadend;
-    };
-    reader.onerror = ev => {
-      if (!finished) {
-        cleanup();
-        reject(reader.error || ev);
-      }
-    };
-    reader.onload = () => {
+  await blobToSomething(
+    blob,
+    (reader: FileReader, sliced: Blob) => {
+      reader.readAsDataURL(sliced);
+    },
+    (reader: FileReader) => {
       base64 += dataUriToBase64(reader.result as string);
-    };
-    reader.onloadend = () => {
-      if (!finished) {
-        cleanup();
-        resolve();
-      }
-    };
-    reader.readAsDataURL(blob);
-  });
+    }
+  );
   return base64;
 }
 
@@ -264,7 +299,7 @@ export function objectToBlob(obj: any) {
   if (!obj) {
     return EMPTY_BLOB;
   }
-  const str = stringifyEscaped(obj);
+  const str = stringify(obj);
   return new Blob([str], { type: "application/json" });
 }
 
