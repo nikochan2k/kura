@@ -56,7 +56,7 @@ export async function xhrPut(
   key: string,
   fullPath: string
 ) {
-  xhr("PUT", url, content, key, fullPath);
+  await xhr("PUT", url, content, key, fullPath);
 }
 
 export async function xhrPost(
@@ -65,5 +65,5 @@ export async function xhrPost(
   key: string,
   fullPath: string
 ) {
-  xhr("POST", url, content, key, fullPath);
+  await xhr("POST", url, content, key, fullPath);
 }
