@@ -38,8 +38,7 @@ const contentCache: { [fullPath: string]: ContentCacheEntry } = {};
 
 export abstract class AbstractAccessor {
   private dirPathIndex: DirPathIndex;
-  private putIndexFn: () => Promise<void>;
-  private putIndexTimeout: any;
+  private dirPathIndexUpdated: boolean;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -50,6 +49,16 @@ export abstract class AbstractAccessor {
     }
     if (options.indexWriteDelayMillis == null) {
       options.indexWriteDelayMillis = 3000;
+    }
+    if (0 < options.indexWriteDelayMillis) {
+      setInterval(async () => {
+        if (!this.dirPathIndexUpdated) {
+          return;
+        }
+        this.dirPathIndexUpdated = false;
+        const dirPathIndex = await this.getDirPathIndex();
+        await this.putDirPathIndex(dirPathIndex);
+      }, options.indexWriteDelayMillis);
     }
   }
 
@@ -232,31 +241,7 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    if (this.putIndexTimeout) {
-      clearTimeout(this.putIndexTimeout);
-      this.putIndexTimeout = null;
-      this.putIndexFn = null;
-    }
-
-    if (!this.putIndexFn) {
-      this.putIndexFn = async () => {
-        try {
-          await this.putDirPathIndex(dirPathIndex);
-          this.putIndexTimeout = null;
-          this.putIndexFn = null;
-        } catch (e) {
-          console.warn(e);
-          this.putIndexTimeout = setTimeout(
-            this.putIndexFn,
-            this.options.indexWriteDelayMillis
-          );
-        }
-      };
-      this.putIndexTimeout = setTimeout(
-        this.putIndexFn,
-        this.options.indexWriteDelayMillis
-      );
-    }
+    this.dirPathIndexUpdated = true;
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {
