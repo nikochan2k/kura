@@ -3,10 +3,8 @@ export interface FileError extends DOMError {
 }
 
 export abstract class AbstractFileError implements FileError {
-  private _detail: string;
-  private e: any;
-
   abstract code: number;
+  e: any;
   filePath: string;
   key: string;
   abstract name: string;
@@ -15,16 +13,9 @@ export abstract class AbstractFileError implements FileError {
     this.key = key;
     this.filePath = filePath;
     this.e = e;
-  }
-
-  get detail(): string {
-    if (!this.e) {
-      return "";
+    if (e) {
+      console.warn(e);
     }
-    if (!this._detail) {
-      this._detail = JSON.stringify(this.e, null, 2);
-    }
-    return this._detail;
   }
 }
 

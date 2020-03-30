@@ -55,9 +55,11 @@ export abstract class AbstractAccessor {
         if (!this.dirPathIndexUpdated) {
           return;
         }
-        this.dirPathIndexUpdated = false;
-        const dirPathIndex = await this.getDirPathIndex();
-        await this.putDirPathIndex(dirPathIndex);
+        try {
+          const dirPathIndex = await this.getDirPathIndex();
+          await this.putDirPathIndex(dirPathIndex);
+          this.dirPathIndexUpdated = false;
+        } catch {}
       }, options.indexWriteDelayMillis);
     }
   }
