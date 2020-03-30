@@ -38,6 +38,7 @@ const contentCache: { [fullPath: string]: ContentCacheEntry } = {};
 
 export abstract class AbstractAccessor {
   private dirPathIndex: DirPathIndex;
+  private putIndexFn: () => Promise<void>;
   private putIndexTimeout: any;
 
   abstract readonly filesystem: FileSystem;
@@ -233,11 +234,29 @@ export abstract class AbstractAccessor {
 
     if (this.putIndexTimeout) {
       clearTimeout(this.putIndexTimeout);
-    }
-    this.putIndexTimeout = setTimeout(() => {
       this.putIndexTimeout = null;
-      this.putDirPathIndex(dirPathIndex);
-    }, this.options.indexWriteDelayMillis);
+      this.putIndexFn = null;
+    }
+
+    if (!this.putIndexFn) {
+      this.putIndexFn = async () => {
+        try {
+          await this.putDirPathIndex(dirPathIndex);
+          this.putIndexTimeout = null;
+          this.putIndexFn = null;
+        } catch (e) {
+          console.warn(e);
+          this.putIndexTimeout = setTimeout(
+            this.putIndexFn,
+            this.options.indexWriteDelayMillis
+          );
+        }
+      };
+      this.putIndexTimeout = setTimeout(
+        this.putIndexFn,
+        this.options.indexWriteDelayMillis
+      );
+    }
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {

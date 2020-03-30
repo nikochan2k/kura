@@ -1,2 +1,3 @@
-・Indexをキャッシュする
+■Indexをキャッシュする
+　□キャッシュアルゴリズムを変える
 ・Typescriptのままnpm publishする方法
