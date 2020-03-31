@@ -213,18 +213,22 @@ export function objectToBlob(obj: any) {
   return new Blob([str], { type: "application/json" });
 }
 
+export function textToObject(text: string) {
+  try {
+    const obj = JSON.parse(text);
+    return obj;
+  } catch (e) {
+    console.warn(e, text);
+    return null;
+  }
+}
+
 export async function blobToObject(blob: Blob) {
   if (!blob || blob.size === 0) {
     return null;
   }
-  const str = await blobToText(blob);
-  try {
-    const obj = JSON.parse(str);
-    return obj;
-  } catch (e) {
-    console.warn(e, str);
-    return null;
-  }
+  const text = await blobToText(blob);
+  return textToObject(text);
 }
 
 export function createEmptyFile(name: string) {

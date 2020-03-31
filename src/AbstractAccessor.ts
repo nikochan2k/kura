@@ -12,10 +12,11 @@ import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
 import {
-  blobToObject,
+  blobToText,
   getName,
   getParentPath,
-  objectToBlob
+  objectToBlob,
+  textToObject
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -144,8 +145,8 @@ export abstract class AbstractAccessor {
   async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       try {
-        const blob = await this.doGetContent(INDEX_FILE_PATH);
-        this.dirPathIndex = (await blobToObject(blob)) as DirPathIndex;
+        const text = await this.doGetText(INDEX_FILE_PATH);
+        this.dirPathIndex = textToObject(text) as DirPathIndex;
       } catch (e) {
         if (e instanceof NotFoundError) {
           this.dirPathIndex = {};
@@ -336,6 +337,11 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
+  }
+
+  protected async doGetText(fullPath: string) {
+    const blob = await this.doGetContent(fullPath);
+    return blobToText(blob);
   }
 
   protected async getObjectsFromIndex(dirPath: string) {

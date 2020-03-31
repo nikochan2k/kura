@@ -23,7 +23,7 @@ export function createXMLHttpRequest(key: string, fullPath: string) {
   return { xhr, promise };
 }
 
-export async function xhrGet(
+export async function xhrGetBlob(
   url: string,
   key: string,
   fullPath: string
@@ -31,6 +31,46 @@ export async function xhrGet(
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open("GET", url);
   xhr.responseType = "blob";
+  xhr.send();
+  return await promise;
+}
+
+export async function xhrGetText(
+  url: string,
+  key: string,
+  fullPath: string,
+  overrideMimeType?: string
+): Promise<string> {
+  const { xhr, promise } = createXMLHttpRequest(key, fullPath);
+  xhr.open("GET", url);
+  if (overrideMimeType) {
+    xhr.overrideMimeType(overrideMimeType);
+  }
+  xhr.responseType = "text";
+  xhr.send();
+  return await promise;
+}
+
+export async function xhrGetJSON(
+  url: string,
+  key: string,
+  fullPath: string
+): Promise<any> {
+  const { xhr, promise } = createXMLHttpRequest(key, fullPath);
+  xhr.open("GET", url);
+  xhr.responseType = "json";
+  xhr.send();
+  return await promise;
+}
+
+export async function xhrGetArrayBuffer(
+  url: string,
+  key: string,
+  fullPath: string
+): Promise<any> {
+  const { xhr, promise } = createXMLHttpRequest(key, fullPath);
+  xhr.open("GET", url);
+  xhr.responseType = "arraybuffer";
   xhr.send();
   return await promise;
 }
