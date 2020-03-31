@@ -107,47 +107,17 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
-export async function blobToSomething(
-  blob: Blob,
-  readDelegate: (reader: FileReader, sliced: Blob) => void,
-  loaded: (reader: FileReader) => void
-) {
-  for (let from = 0, end = blob.size; from < end; from += chunkSize) {
-    let to: number;
-    if (from + chunkSize < end) {
-      to = from + chunkSize;
-    } else {
-      to = end;
+let reader: FileReader;
+async function doFileReader(callback: (reader: FileReader) => Promise<void>) {
+  if (reader) {
+    setTimeout(doFileReader.bind(null, callback), 10);
+  } else {
+    try {
+      reader = new FileReader();
+      await callback(reader);
+    } finally {
+      reader = null;
     }
-    const sliced = blob.slice(from, to);
-    const reader = new FileReader();
-    let finished = false;
-    await new Promise<void>((resolve, reject) => {
-      const cleanup = () => {
-        finished = true;
-        delete reader.onerror;
-        delete reader.onload;
-        delete reader.onloadend;
-      };
-      reader.onerror = ev => {
-        if (!finished) {
-          cleanup();
-          reject(reader.error || ev);
-        }
-      };
-      reader.onload = () => {
-        if (!finished) {
-          loaded(reader);
-        }
-      };
-      reader.onloadend = () => {
-        if (!finished) {
-          cleanup();
-          resolve();
-        }
-      };
-      readDelegate(reader, sliced);
-    });
   }
 }
 
@@ -155,24 +125,20 @@ async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   if (!blob || blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;
   }
-  const buffer = new ArrayBuffer(blob.size);
-  const view = new Uint8Array(buffer);
-  let index = 0;
-  await blobToSomething(
-    blob,
-    (reader: FileReader, sliced: Blob) => {
-      reader.readAsArrayBuffer(sliced);
-    },
-    (reader: FileReader) => {
-      const ab = reader.result as ArrayBuffer;
-      const array = new Uint8Array(ab);
-      for (let i = 0, end = ab.byteLength; i < end; i++) {
-        view[index] = array[i];
-        index++;
-      }
-    }
-  );
-  return buffer;
+  let result: ArrayBuffer;
+  await doFileReader(reader => {
+    return new Promise<void>((resolve, reject) => {
+      reader.onerror = ev => {
+        reject(reader.error || ev);
+      };
+      reader.onload = () => {
+        result = reader.result as ArrayBuffer;
+        resolve();
+      };
+      reader.readAsArrayBuffer(blob);
+    });
+  });
+  return result;
 }
 
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
@@ -201,20 +167,23 @@ export async function blobToArrayBuffer(blob: Blob) {
 }
 
 export async function blobToBase64(blob: Blob) {
-  let base64 = "";
   if (!blob || blob.size === 0) {
-    return base64;
+    return "";
   }
 
-  await blobToSomething(
-    blob,
-    (reader: FileReader, sliced: Blob) => {
-      reader.readAsDataURL(sliced);
-    },
-    (reader: FileReader) => {
-      base64 += dataUriToBase64(reader.result as string);
-    }
-  );
+  let base64: string;
+  await doFileReader(reader => {
+    return new Promise<void>((resolve, reject) => {
+      reader.onerror = function(ev) {
+        reject(reader.error || ev);
+      };
+      reader.onload = function() {
+        base64 = dataUriToBase64(reader.result as string);
+        resolve();
+      };
+      reader.readAsDataURL(blob);
+    });
+  });
   return base64;
 }
 
@@ -223,32 +192,18 @@ export async function blobToText(blob: Blob) {
     return "";
   }
 
-  const reader = new FileReader();
-  let text = "";
-  let finished = false;
-  await new Promise<void>((resolve, reject) => {
-    const cleanup = () => {
-      finished = true;
-      delete reader.onerror;
-      delete reader.onload;
-      delete reader.onloadend;
-    };
-    reader.onerror = ev => {
-      if (!finished) {
-        cleanup();
+  let text: string;
+  await doFileReader(reader => {
+    return new Promise<void>((resolve, reject) => {
+      reader.onerror = ev => {
         reject(reader.error || ev);
-      }
-    };
-    reader.onload = () => {
-      text += reader.result as string;
-    };
-    reader.onloadend = () => {
-      if (!finished) {
-        cleanup();
+      };
+      reader.onload = () => {
+        text = reader.result as string;
         resolve();
-      }
-    };
-    reader.readAsText(blob);
+      };
+      reader.readAsText(blob);
+    });
   });
   return text;
 }
