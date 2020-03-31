@@ -20,7 +20,7 @@ export function setChunkSize(size: number) {
   chunkSize = size;
 }
 
-function stringify(obj: any) {
+export function stringify(obj: any) {
   const json = JSON.stringify(obj);
   if (navigator && navigator.product === "ReactNative") {
     const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
@@ -31,13 +31,13 @@ function stringify(obj: any) {
   return json;
 }
 
-export function getParentPath(filePath: string) {
-  const parentPath = filePath.replace(LAST_PATH_PART, "");
+export function getParentPath(fullPath: string) {
+  const parentPath = fullPath.replace(LAST_PATH_PART, "");
   return parentPath === "" ? DIR_SEPARATOR : parentPath;
 }
 
-export function getName(filePath: string) {
-  const result = LAST_PATH_PART.exec(filePath);
+export function getName(fullPath: string) {
+  const result = LAST_PATH_PART.exec(fullPath);
   if (!result || result.length === 0) {
     return "";
   }
@@ -203,14 +203,6 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
   }
   const blob = new Blob([ua], { type: type });
   return blob;
-}
-
-export function objectToBlob(obj: any) {
-  if (!obj) {
-    return EMPTY_BLOB;
-  }
-  const str = stringify(obj);
-  return new Blob([str], { type: "application/json" });
 }
 
 export function textToObject(text: string) {

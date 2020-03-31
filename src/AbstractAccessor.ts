@@ -7,7 +7,11 @@ import {
   NotReadableError
 } from "./FileError";
 import { FileSystem } from "./filesystem";
-import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
+import {
+  DIR_SEPARATOR,
+  INDEX_FILE_PATH,
+  DEFAULT_BLOB_PROPS
+} from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -15,7 +19,7 @@ import {
   blobToText,
   getName,
   getParentPath,
-  objectToBlob,
+  stringify,
   textToObject
 } from "./FileSystemUtil";
 
@@ -231,8 +235,8 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    const blob = objectToBlob(dirPathIndex);
-    await this.putContent(INDEX_FILE_PATH, blob);
+    const text = stringify(dirPathIndex);
+    await this.doPutText(INDEX_FILE_PATH, text);
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
@@ -342,6 +346,11 @@ export abstract class AbstractAccessor {
   protected async doGetText(fullPath: string) {
     const blob = await this.doGetContent(fullPath);
     return blobToText(blob);
+  }
+
+  protected async doPutText(fullPath: string, text: string) {
+    const blob = new Blob([text], DEFAULT_BLOB_PROPS);
+    await this.putContent(fullPath, blob);
   }
 
   protected async getObjectsFromIndex(dirPath: string) {
