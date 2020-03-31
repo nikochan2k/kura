@@ -121,15 +121,30 @@ export async function blobToSomething(
     }
     const sliced = blob.slice(from, to);
     const reader = new FileReader();
+    let finished = false;
     await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        finished = true;
+        delete reader.onerror;
+        delete reader.onload;
+        delete reader.onloadend;
+      };
       reader.onerror = ev => {
-        reject(reader.error || ev);
+        if (!finished) {
+          cleanup();
+          reject(reader.error || ev);
+        }
       };
       reader.onload = () => {
-        loaded(reader);
+        if (!finished) {
+          loaded(reader);
+        }
       };
       reader.onloadend = () => {
-        resolve();
+        if (!finished) {
+          cleanup();
+          resolve();
+        }
       };
       readDelegate(reader, sliced);
     });
@@ -210,15 +225,28 @@ export async function blobToText(blob: Blob) {
 
   const reader = new FileReader();
   let text = "";
+  let finished = false;
   await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      finished = true;
+      delete reader.onerror;
+      delete reader.onload;
+      delete reader.onloadend;
+    };
     reader.onerror = ev => {
-      reject(reader.error || ev);
+      if (!finished) {
+        cleanup();
+        reject(reader.error || ev);
+      }
     };
     reader.onload = () => {
       text += reader.result as string;
     };
     reader.onloadend = () => {
-      resolve();
+      if (!finished) {
+        cleanup();
+        resolve();
+      }
     };
     reader.readAsText(blob);
   });
