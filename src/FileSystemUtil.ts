@@ -107,38 +107,20 @@ export function dataUriToBase64(dataUri: string) {
   return dataUri;
 }
 
-let reader: FileReader;
-async function doFileReader(callback: (reader: FileReader) => Promise<void>) {
-  if (reader) {
-    setTimeout(doFileReader.bind(null, callback), 10);
-  } else {
-    try {
-      reader = new FileReader();
-      await callback(reader);
-    } finally {
-      reader = null;
-    }
-  }
-}
-
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   if (!blob || blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;
   }
-  let result: ArrayBuffer;
-  await doFileReader(reader => {
-    return new Promise<void>((resolve, reject) => {
-      reader.onerror = ev => {
-        reject(reader.error || ev);
-      };
-      reader.onload = () => {
-        result = reader.result as ArrayBuffer;
-        resolve();
-      };
-      reader.readAsArrayBuffer(blob);
-    });
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = ev => {
+      reject(reader.error || ev);
+    };
+    reader.onload = () => {
+      resolve(reader.result as ArrayBuffer);
+    };
+    reader.readAsArrayBuffer(blob);
   });
-  return result;
 }
 
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
@@ -171,20 +153,17 @@ export async function blobToBase64(blob: Blob) {
     return "";
   }
 
-  let base64: string;
-  await doFileReader(reader => {
-    return new Promise<void>((resolve, reject) => {
-      reader.onerror = function(ev) {
-        reject(reader.error || ev);
-      };
-      reader.onload = function() {
-        base64 = dataUriToBase64(reader.result as string);
-        resolve();
-      };
-      reader.readAsDataURL(blob);
-    });
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = function(ev) {
+      reject(reader.error || ev);
+    };
+    reader.onload = function() {
+      const base64 = dataUriToBase64(reader.result as string);
+      resolve(base64);
+    };
+    reader.readAsDataURL(blob);
   });
-  return base64;
 }
 
 export async function blobToText(blob: Blob) {
@@ -192,20 +171,16 @@ export async function blobToText(blob: Blob) {
     return "";
   }
 
-  let text: string;
-  await doFileReader(reader => {
-    return new Promise<void>((resolve, reject) => {
-      reader.onerror = ev => {
-        reject(reader.error || ev);
-      };
-      reader.onload = () => {
-        text = reader.result as string;
-        resolve();
-      };
-      reader.readAsText(blob);
-    });
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = ev => {
+      reject(reader.error || ev);
+    };
+    reader.onload = () => {
+      resolve(reader.result as string);
+    };
+    reader.readAsText(blob);
   });
-  return text;
 }
 
 export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
