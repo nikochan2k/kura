@@ -4,6 +4,7 @@ import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import {
   CONTENT_TYPE,
+  DEFAULT_BLOB_PROPS,
   DIR_SEPARATOR,
   EMPTY_ARRAY_BUFFER,
   EMPTY_BLOB,
@@ -228,6 +229,14 @@ export function createEmptyFile(name: string) {
     lastModified: Date.now(),
     type: CONTENT_TYPE
   });
+}
+
+export function objectToBlob(obj: any) {
+  if (!obj) {
+    return EMPTY_BLOB;
+  }
+  const text = stringify(obj);
+  return new Blob([text], DEFAULT_BLOB_PROPS);
 }
 
 export function onError(err: DOMError, errorCallback?: ErrorCallback) {
