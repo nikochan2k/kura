@@ -137,6 +137,7 @@ export abstract class AbstractAccessor {
       return await this.doGetContent(fullPath);
     } catch (e) {
       if (e instanceof NotFoundError) {
+        delete contentCache[fullPath];
         await this.removeFromIndex(fullPath);
         throw e;
       } else if (e instanceof AbstractFileError) {
@@ -183,14 +184,13 @@ export abstract class AbstractAccessor {
       this.debug("getObject", fullPath);
       return await this.doGetObject(fullPath);
     } catch (e) {
-      try {
-        return await this.doGetObject(fullPath);
-      } catch (e) {
-        if (e instanceof AbstractFileError) {
-          throw e;
-        }
-        throw new NotReadableError(this.name, fullPath, e);
+      if (e instanceof NotFoundError) {
+        delete contentCache[fullPath];
+        throw e;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
       }
+      throw new NotReadableError(this.name, fullPath, e);
     }
   }
 
@@ -503,6 +503,11 @@ export abstract class AbstractAccessor {
   }
 
   private getContentFromCache(fullPath: string) {
+    if (this.options.contentCacheCapacity <= 0) {
+      // No cache.
+      return null;
+    }
+
     const entry = contentCache[fullPath];
     if (!entry) {
       return null;
@@ -512,6 +517,11 @@ export abstract class AbstractAccessor {
   }
 
   private putContentToCache(fullPath: string, blob: Blob) {
+    if (this.options.contentCacheCapacity <= 0) {
+      // No cache.
+      return;
+    }
+
     if (this.options.contentCacheCapacity < blob.size) {
       return;
     }
