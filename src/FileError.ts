@@ -13,9 +13,6 @@ export abstract class AbstractFileError implements FileError {
     this.key = key;
     this.fullPath = fullPath;
     this.e = e;
-    if (e) {
-      console.warn(e);
-    }
   }
 }
 
