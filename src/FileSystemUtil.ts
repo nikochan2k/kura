@@ -8,8 +8,9 @@ import {
   DIR_SEPARATOR,
   EMPTY_ARRAY_BUFFER,
   EMPTY_BLOB,
-  LAST_DIR_SEPARATORS
+  LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
+import { xhrGetText, xhrGetArrayBuffer } from "./XHRUtil";
 
 let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
@@ -24,7 +25,7 @@ export function setChunkSize(size: number) {
 export function stringify(obj: any) {
   const json = JSON.stringify(obj);
   if (navigator && navigator.product === "ReactNative") {
-    const escaped = json.replace(/[\u007F-\uFFFF]/g, function(chr) {
+    const escaped = json.replace(/[\u007F-\uFFFF]/g, function (chr) {
       return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
     });
     return escaped;
@@ -95,7 +96,7 @@ export function blobToFile(
 ) {
   const file = new File(fileBits, name, {
     lastModified: lastModified,
-    type: type || CONTENT_TYPE
+    type: type || CONTENT_TYPE,
   });
   return file;
 }
@@ -114,7 +115,7 @@ async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   }
   return new Promise<ArrayBuffer>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = ev => {
+    reader.onerror = (ev) => {
       reject(reader.error || ev);
     };
     reader.onload = () => {
@@ -133,7 +134,7 @@ async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
   const buffer = new ArrayBuffer(blob.size);
   const view = new Uint8Array(buffer);
   const content = atob(base64);
-  view.set(Array.from(content).map(c => c.charCodeAt(0)));
+  view.set(Array.from(content).map((c) => c.charCodeAt(0)));
   return buffer;
 }
 
@@ -149,6 +150,16 @@ export async function blobToArrayBuffer(blob: Blob) {
   }
 }
 
+export async function fileToArrayBuffer(fileEntry: FileEntryAsync) {
+  try {
+    var url = fileEntry.toURL();
+  } catch {
+    const blob = await fileEntry.file();
+    return await blobToArrayBuffer(blob);
+  }
+  return xhrGetArrayBuffer(url, fileEntry.filesystem.name, fileEntry.fullPath);
+}
+
 export async function blobToBase64(blob: Blob) {
   if (!blob || blob.size === 0) {
     return "";
@@ -156,15 +167,39 @@ export async function blobToBase64(blob: Blob) {
 
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = function(ev) {
+    reader.onerror = function (ev) {
       reject(reader.error || ev);
     };
-    reader.onload = function() {
+    reader.onload = function () {
       const base64 = dataUriToBase64(reader.result as string);
       resolve(base64);
     };
     reader.readAsDataURL(blob);
   });
+}
+
+export function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  for (var i = 0, end = bytes.byteLength; i < end; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+export async function fileToBase64(fileEntry: FileEntryAsync) {
+  try {
+    var url = fileEntry.toURL();
+  } catch {
+    const blob = await fileEntry.file();
+    return await blobToBase64(blob);
+  }
+  const buffer = await xhrGetArrayBuffer(
+    url,
+    fileEntry.entry.filesystem.name,
+    fileEntry.fullPath
+  );
+  return arrayBufferToBase64(buffer);
 }
 
 export async function blobToText(blob: Blob) {
@@ -174,7 +209,7 @@ export async function blobToText(blob: Blob) {
 
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = ev => {
+    reader.onerror = (ev) => {
       reject(reader.error || ev);
     };
     reader.onload = () => {
@@ -182,6 +217,16 @@ export async function blobToText(blob: Blob) {
     };
     reader.readAsText(blob);
   });
+}
+
+export async function fileToText(fileEntry: FileEntryAsync) {
+  try {
+    var url = fileEntry.toURL();
+  } catch {
+    const blob = await fileEntry.file();
+    return blobToText(blob);
+  }
+  return xhrGetText(url, fileEntry.filesystem.name, fileEntry.fullPath);
 }
 
 export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
@@ -224,10 +269,15 @@ export async function blobToObject(blob: Blob) {
   return textToObject(text);
 }
 
+export async function fileToObject(fileEntry: FileEntryAsync) {
+  const text = await fileToText(fileEntry);
+  return textToObject(text);
+}
+
 export function createEmptyFile(name: string) {
   return new File([], name, {
     lastModified: Date.now(),
-    type: CONTENT_TYPE
+    type: CONTENT_TYPE,
   });
 }
 

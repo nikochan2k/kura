@@ -5,10 +5,10 @@ export function createXMLHttpRequest(key: string, fullPath: string) {
   const xhr = new XMLHttpRequest();
   const promise = new Promise<any>((resolve, reject) => {
     let error: any;
-    xhr.onerror = ev => {
+    xhr.onerror = (ev) => {
       error = ev;
     };
-    xhr.onreadystatechange = ev => {
+    xhr.onreadystatechange = () => {
       if (xhr.readyState !== XMLHttpRequest.DONE) {
         return;
       }
@@ -25,8 +25,8 @@ export function createXMLHttpRequest(key: string, fullPath: string) {
 
 export async function xhrGetBlob(
   url: string,
-  key: string,
-  fullPath: string
+  key?: string,
+  fullPath?: string
 ): Promise<Blob> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open("GET", url);
@@ -37,8 +37,8 @@ export async function xhrGetBlob(
 
 export async function xhrGetText(
   url: string,
-  key: string,
-  fullPath: string,
+  key?: string,
+  fullPath?: string,
   overrideMimeType?: string
 ): Promise<string> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
@@ -53,8 +53,8 @@ export async function xhrGetText(
 
 export async function xhrGetJSON(
   url: string,
-  key: string,
-  fullPath: string
+  key?: string,
+  fullPath?: string
 ): Promise<any> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open("GET", url);
@@ -65,9 +65,9 @@ export async function xhrGetJSON(
 
 export async function xhrGetArrayBuffer(
   url: string,
-  key: string,
-  fullPath: string
-): Promise<any> {
+  key?: string,
+  fullPath?: string
+): Promise<ArrayBuffer> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open("GET", url);
   xhr.responseType = "arraybuffer";
@@ -79,8 +79,8 @@ async function xhr(
   method: string,
   url: string,
   content: Blob,
-  key: string,
-  fullPath: string
+  key?: string,
+  fullPath?: string
 ): Promise<void> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open(method, url);
@@ -93,8 +93,8 @@ async function xhr(
 export async function xhrPut(
   url: string,
   content: Blob,
-  key: string,
-  fullPath: string
+  key?: string,
+  fullPath?: string
 ) {
   await xhr("PUT", url, content, key, fullPath);
 }
@@ -102,8 +102,8 @@ export async function xhrPut(
 export async function xhrPost(
   url: string,
   content: Blob,
-  key: string,
-  fullPath: string
+  key?: string,
+  fullPath?: string
 ) {
   await xhr("POST", url, content, key, fullPath);
 }
