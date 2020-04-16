@@ -250,7 +250,6 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
     return EMPTY_BLOB;
   }
 
-  base64 = dataUrlToBase64(base64);
   try {
     var bin = atob(base64);
   } catch (e) {
