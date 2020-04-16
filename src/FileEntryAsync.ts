@@ -34,14 +34,27 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  readContent(
-    type: "blob" | "arrayBuffer" | "base64" | "utf8"
+  readFile(
+    type?: "blob" | "arraybuffer" | "base64"
   ): Promise<Blob | ArrayBuffer | string> {
     return new Promise<Blob | ArrayBuffer | string>((resolve, reject) => {
-      this.entry.readContent(
-        type,
+      this.entry.readFile(
         (content) => {
           resolve(content);
+        },
+        (error) => {
+          reject(error);
+        },
+        type
+      );
+    });
+  }
+
+  readText(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      this.entry.readText(
+        (text) => {
+          resolve(text);
         },
         (error) => {
           reject(error);
@@ -50,14 +63,24 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  writeContent(
-    content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "utf8"
-  ): Promise<void> {
+  writeFile(content: Blob | ArrayBuffer | string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      this.entry.writeContent(
+      this.entry.writeFile(
         content,
-        stringType,
+        () => {
+          resolve();
+        },
+        (error) => {
+          reject(error);
+        }
+      );
+    });
+  }
+
+  writeText(text: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.entry.writeText(
+        text,
         () => {
           resolve();
         },

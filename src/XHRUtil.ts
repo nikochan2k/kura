@@ -23,54 +23,15 @@ export function createXMLHttpRequest(key: string, fullPath: string) {
   return { xhr, promise };
 }
 
-export async function xhrGetBlob(
+export async function xhrGet(
   url: string,
-  key?: string,
-  fullPath?: string
-): Promise<Blob> {
-  const { xhr, promise } = createXMLHttpRequest(key, fullPath);
-  xhr.open("GET", url);
-  xhr.responseType = "blob";
-  xhr.send();
-  return await promise;
-}
-
-export async function xhrGetText(
-  url: string,
-  key?: string,
-  fullPath?: string,
-  overrideMimeType?: string
-): Promise<string> {
-  const { xhr, promise } = createXMLHttpRequest(key, fullPath);
-  xhr.open("GET", url);
-  if (overrideMimeType) {
-    xhr.overrideMimeType(overrideMimeType);
-  }
-  xhr.responseType = "text";
-  xhr.send();
-  return await promise;
-}
-
-export async function xhrGetJSON(
-  url: string,
+  responseType: XMLHttpRequestResponseType,
   key?: string,
   fullPath?: string
 ): Promise<any> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open("GET", url);
-  xhr.responseType = "json";
-  xhr.send();
-  return await promise;
-}
-
-export async function xhrGetArrayBuffer(
-  url: string,
-  key?: string,
-  fullPath?: string
-): Promise<ArrayBuffer> {
-  const { xhr, promise } = createXMLHttpRequest(key, fullPath);
-  xhr.open("GET", url);
-  xhr.responseType = "arraybuffer";
+  xhr.responseType = responseType;
   xhr.send();
   return await promise;
 }
@@ -78,13 +39,21 @@ export async function xhrGetArrayBuffer(
 async function xhr(
   method: string,
   url: string,
-  content: Blob,
+  content: Blob | ArrayBuffer | string,
+  type?: string,
   key?: string,
   fullPath?: string
 ): Promise<void> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
   xhr.open(method, url);
-  const type = content.type || CONTENT_TYPE;
+  if (!type) {
+    if (content instanceof Blob) {
+      type = content.type;
+    }
+    if (!type) {
+      type = CONTENT_TYPE;
+    }
+  }
   xhr.setRequestHeader("Content-Type", type);
   xhr.send(content);
   await promise;
@@ -92,18 +61,20 @@ async function xhr(
 
 export async function xhrPut(
   url: string,
-  content: Blob,
+  content: Blob | ArrayBuffer | string,
+  type?: string,
   key?: string,
   fullPath?: string
 ) {
-  await xhr("PUT", url, content, key, fullPath);
+  await xhr("PUT", url, content, type, key, fullPath);
 }
 
 export async function xhrPost(
   url: string,
-  content: Blob,
+  content: Blob | ArrayBuffer | string,
+  type?: string,
   key?: string,
   fullPath?: string
 ) {
-  await xhr("POST", url, content, key, fullPath);
+  await xhr("POST", url, content, type, key, fullPath);
 }

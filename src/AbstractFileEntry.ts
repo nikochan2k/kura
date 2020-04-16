@@ -10,6 +10,7 @@ import {
   FileWriterCallback,
   VoidCallback,
   ContentCallback,
+  TextCallback,
 } from "./filesystem";
 import { CONTENT_TYPE } from "./FileSystemConstants";
 import { FileSystemParams } from "./FileSystemParams";
@@ -128,6 +129,32 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     );
   }
 
+  readFile(
+    successCallback: ContentCallback,
+    errorCallback?: ErrorCallback,
+    type?: "blob" | "arraybuffer" | "base64"
+  ): void {
+    this.params.accessor
+      .getContent(this.fullPath, type)
+      .then((content) => {
+        successCallback(content);
+      })
+      .catch((err) => {
+        onError(errorCallback, err);
+      });
+  }
+
+  readText(successCallback: TextCallback, errorCallback?: ErrorCallback): void {
+    this.params.accessor
+      .getText(this.fullPath)
+      .then((text) => {
+        successCallback(text);
+      })
+      .catch((err) => {
+        onError(errorCallback, err);
+      });
+  }
+
   remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
@@ -142,29 +169,28 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  readContent(
-    type: "blob" | "arrayBuffer" | "base64" | "utf8",
-    successCallback: ContentCallback,
+  writeFile(
+    content: Blob | ArrayBuffer | string,
+    successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void {
     this.params.accessor
-      .getContent(this.fullPath, type)
-      .then((content) => {
-        successCallback(content);
+      .putContent(this.fullPath, content)
+      .then(() => {
+        successCallback();
       })
       .catch((err) => {
         onError(errorCallback, err);
       });
   }
 
-  writeContent(
-    content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "utf8",
+  writeText(
+    text: string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void {
     this.params.accessor
-      .putContent(this.fullPath, content, stringType)
+      .putText(this.fullPath, text)
       .then(() => {
         successCallback();
       })

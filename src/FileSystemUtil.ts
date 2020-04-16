@@ -10,7 +10,7 @@ import {
   EMPTY_BLOB,
   LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
-import { xhrGetText, xhrGetArrayBuffer } from "./XHRUtil";
+import { xhrGet } from "./XHRUtil";
 
 let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
@@ -157,7 +157,12 @@ export async function fileToArrayBuffer(fileEntry: FileEntryAsync) {
     const blob = await fileEntry.file();
     return await blobToArrayBuffer(blob);
   }
-  return xhrGetArrayBuffer(url, fileEntry.filesystem.name, fileEntry.fullPath);
+  return xhrGet(
+    url,
+    "arraybuffer",
+    fileEntry.filesystem.name,
+    fileEntry.fullPath
+  );
 }
 
 export async function blobToBase64(blob: Blob) {
@@ -194,8 +199,9 @@ export async function fileToBase64(fileEntry: FileEntryAsync) {
     const blob = await fileEntry.file();
     return await blobToBase64(blob);
   }
-  const buffer = await xhrGetArrayBuffer(
+  const buffer = await xhrGet(
     url,
+    "arraybuffer",
     fileEntry.entry.filesystem.name,
     fileEntry.fullPath
   );
@@ -226,7 +232,7 @@ export async function fileToText(fileEntry: FileEntryAsync) {
     const blob = await fileEntry.file();
     return blobToText(blob);
   }
-  return xhrGetText(url, fileEntry.filesystem.name, fileEntry.fullPath);
+  return xhrGet(url, "text", fileEntry.filesystem.name, fileEntry.fullPath);
 }
 
 export function base64ToArrayBuffer(base64: string) {

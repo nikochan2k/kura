@@ -297,15 +297,22 @@ export interface FileEntry extends Entry {
    */
   file(successCallback: FileCallback, errorCallback?: ErrorCallback): void;
 
-  readContent(
-    type: "blob" | "arrayBuffer" | "base64" | "utf8",
+  readFile(
     successCallback: ContentCallback,
+    errorCallback?: ErrorCallback,
+    type?: "blob" | "arraybuffer" | "base64"
+  ): void;
+
+  writeFile(
+    content: Blob | ArrayBuffer | string,
+    successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void;
 
-  writeContent(
-    content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "utf8",
+  readText(successCallback: TextCallback, errorCallback?: ErrorCallback): void;
+
+  writeText(
+    test: string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void;
@@ -384,6 +391,13 @@ export interface FileCallback {
  */
 export interface ContentCallback {
   (content: Blob | ArrayBuffer | string): void;
+}
+
+/**
+ * This interface is the callback used to obtain a Text.
+ */
+export interface TextCallback {
+  (text: string): void;
 }
 
 /**

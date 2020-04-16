@@ -135,7 +135,7 @@ export abstract class AbstractAccessor {
   }
 
   async doGetBase64(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath, "base64");
+    const content = await this.doGetContent(fullPath);
     if (typeof content === "string") {
       return content;
     } else if (content instanceof ArrayBuffer) {
@@ -156,20 +156,9 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async doGetText(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath, "utf8");
-    if (typeof content === "string") {
-      return content;
-    } else if (content instanceof ArrayBuffer) {
-      return blobToText(new Blob([new Uint8Array(content)]));
-    } else {
-      return blobToText(content);
-    }
-  }
-
   async getContent(
     fullPath: string,
-    type: "blob" | "arrayBuffer" | "base64" | "utf8"
+    type?: "blob" | "arraybuffer" | "base64"
   ): Promise<Blob | ArrayBuffer | string> {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
@@ -184,12 +173,12 @@ export abstract class AbstractAccessor {
       this.debug("getContent", fullPath);
       if (type === "blob") {
         return this.doGetBlob(fullPath);
-      } else if (type === "arrayBuffer") {
+      } else if (type === "arraybuffer") {
         return this.doGetArrayBuffer(fullPath);
       } else if (type === "base64") {
         return this.doGetBase64(fullPath);
       } else {
-        return this.doGetText(fullPath);
+        return this.doGetContent(fullPath);
       }
     } catch (e) {
       if (e instanceof NotFoundError) {
@@ -289,29 +278,43 @@ export abstract class AbstractAccessor {
     return size;
   }
 
+  async getText(fullPath: string): Promise<string> {
+    if (this.options.useIndex) {
+      await this.checkGetPermission(fullPath);
+    }
+
+    const text = this.getContentFromCache(fullPath);
+    if (text) {
+      return text as string;
+    }
+
+    try {
+      this.debug("getText", fullPath);
+      return this.doGetText(fullPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        delete contentCache[fullPath];
+        await this.removeFromIndex(fullPath);
+        throw e;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, fullPath, e);
+    }
+  }
+
   async putContent(
     fullPath: string,
-    content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "utf8"
+    content: Blob | ArrayBuffer | string
   ): Promise<void> {
     try {
       this.debug("putContent", fullPath, content);
-      if (content instanceof File || content instanceof Blob) {
+      if (content instanceof Blob) {
         await this.doPutBlob(fullPath, content);
       } else if (content instanceof ArrayBuffer) {
         await this.doPutArrayBuffer(fullPath, content);
       } else {
-        if (stringType === "base64") {
-          await this.doPutBase64(fullPath, content);
-        } else if (stringType === "utf8") {
-          await this.doPutText(fullPath, content);
-        } else {
-          throw new InvalidModificationError(
-            this.name,
-            fullPath,
-            `Invalid stringType: ${stringType}`
-          );
-        }
+        await this.doPutBase64(fullPath, content);
       }
       this.putContentToCache(fullPath, content);
     } catch (e) {
@@ -374,6 +377,19 @@ export abstract class AbstractAccessor {
     }
   }
 
+  async putText(fullPath: string, text: string): Promise<void> {
+    try {
+      this.debug("putText", fullPath, text);
+      await this.doPutText(fullPath, text);
+      this.putContentToCache(fullPath, text);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
+  }
+
   async resetSize(fullPath: string, size: number) {
     if (fullPath === DIR_SEPARATOR) {
       return;
@@ -407,12 +423,10 @@ export abstract class AbstractAccessor {
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  abstract doGetContent(
-    fullPath: string,
-    stringType?: "base64" | "utf8"
-  ): Promise<Blob | ArrayBuffer | string>;
+  abstract doGetContent(fullPath: string): Promise<Blob | ArrayBuffer | string>;
   abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
+  abstract doGetText(fullPath: string): Promise<string>;
   abstract doPutArrayBuffer(
     fullPath: string,
     buffer: ArrayBuffer

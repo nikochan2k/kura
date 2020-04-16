@@ -48,7 +48,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetContent(fullPath: string) {
+  doGetContent(fullPath: string): Promise<Blob | ArrayBuffer | string> {
     return new Promise<any>((resolve, reject) => {
       const onerror = (ev: Event) =>
         reject(new NotReadableError(this.name, fullPath, ev));
@@ -121,6 +121,11 @@ export class IdbAccessor extends AbstractAccessor {
       };
       request.onerror = onerror;
     });
+  }
+
+  async doGetText(fullPath: string): Promise<string> {
+    const content = await this.doGetContent(fullPath);
+    return content as string;
   }
 
   async doPutArrayBuffer(fullPath: string, buffer: ArrayBuffer): Promise<void> {
