@@ -143,7 +143,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
   }
 
   readContent(
-    type: "blob" | "arrayBuffer" | "base64" | "text",
+    type: "blob" | "arrayBuffer" | "base64" | "utf8",
     successCallback: ContentCallback,
     errorCallback?: ErrorCallback
   ): void {
@@ -159,7 +159,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
 
   writeContent(
     content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "text",
+    stringType?: "base64" | "utf8",
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void {

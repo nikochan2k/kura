@@ -35,7 +35,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   }
 
   readContent(
-    type: "blob" | "arrayBuffer" | "base64" | "text"
+    type: "blob" | "arrayBuffer" | "base64" | "utf8"
   ): Promise<Blob | ArrayBuffer | string> {
     return new Promise<Blob | ArrayBuffer | string>((resolve, reject) => {
       this.entry.readContent(
@@ -52,7 +52,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
 
   writeContent(
     content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "text"
+    stringType?: "base64" | "utf8"
   ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeContent(

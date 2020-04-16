@@ -21,6 +21,7 @@ import {
   getParentPath,
   stringify,
   textToObject,
+  blobToText,
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -134,7 +135,7 @@ export abstract class AbstractAccessor {
   }
 
   async doGetBase64(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath);
+    const content = await this.doGetContent(fullPath, "base64");
     if (typeof content === "string") {
       return content;
     } else if (content instanceof ArrayBuffer) {
@@ -156,19 +157,19 @@ export abstract class AbstractAccessor {
   }
 
   async doGetText(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath);
+    const content = await this.doGetContent(fullPath, "utf8");
     if (typeof content === "string") {
       return content;
     } else if (content instanceof ArrayBuffer) {
-      return arrayBufferToBase64(content);
+      return blobToText(new Blob([new Uint8Array(content)]));
     } else {
-      return blobToBase64(content);
+      return blobToText(content);
     }
   }
 
   async getContent(
     fullPath: string,
-    type: "blob" | "arrayBuffer" | "base64" | "text"
+    type: "blob" | "arrayBuffer" | "base64" | "utf8"
   ): Promise<Blob | ArrayBuffer | string> {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
@@ -291,7 +292,7 @@ export abstract class AbstractAccessor {
   async putContent(
     fullPath: string,
     content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "text"
+    stringType?: "base64" | "utf8"
   ): Promise<void> {
     try {
       this.debug("putContent", fullPath, content);
@@ -302,7 +303,7 @@ export abstract class AbstractAccessor {
       } else {
         if (stringType === "base64") {
           await this.doPutBase64(fullPath, content);
-        } else if (stringType === "text") {
+        } else if (stringType === "utf8") {
           await this.doPutText(fullPath, content);
         } else {
           throw new InvalidModificationError(
@@ -406,7 +407,10 @@ export abstract class AbstractAccessor {
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  abstract doGetContent(fullPath: string): Promise<Blob | ArrayBuffer | string>;
+  abstract doGetContent(
+    fullPath: string,
+    stringType?: "base64" | "utf8"
+  ): Promise<Blob | ArrayBuffer | string>;
   abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
   abstract doPutArrayBuffer(

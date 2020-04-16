@@ -298,14 +298,14 @@ export interface FileEntry extends Entry {
   file(successCallback: FileCallback, errorCallback?: ErrorCallback): void;
 
   readContent(
-    type: "blob" | "arrayBuffer" | "base64" | "text",
+    type: "blob" | "arrayBuffer" | "base64" | "utf8",
     successCallback: ContentCallback,
     errorCallback?: ErrorCallback
   ): void;
 
   writeContent(
     content: Blob | ArrayBuffer | string,
-    stringType?: "base64" | "text",
+    stringType?: "base64" | "utf8",
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void;
