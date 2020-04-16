@@ -229,6 +229,16 @@ export async function fileToText(fileEntry: FileEntryAsync) {
   return xhrGetText(url, fileEntry.filesystem.name, fileEntry.fullPath);
 }
 
+export function base64ToArrayBuffer(base64: string) {
+  const bin = atob(base64);
+  const len = bin.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = bin.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
 export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
   if (!base64) {
     return EMPTY_BLOB;

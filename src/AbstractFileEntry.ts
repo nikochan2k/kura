@@ -8,7 +8,8 @@ import {
   FileCallback,
   FileEntry,
   FileWriterCallback,
-  VoidCallback
+  VoidCallback,
+  ContentCallback,
 } from "./filesystem";
 import { CONTENT_TYPE } from "./FileSystemConstants";
 import { FileSystemParams } from "./FileSystemParams";
@@ -43,9 +44,9 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     parent.getFile(
       newName || this.name,
       { create: true, exclusive: true },
-      fileEntry => {
-        fileEntry.createWriter(writer => {
-          this.file(file => {
+      (fileEntry) => {
+        fileEntry.createWriter((writer) => {
+          this.file((file) => {
             const writerAsync = new FileWriterAsync(writer);
             writerAsync
               .write(file)
@@ -54,7 +55,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
                   successCallback(fileEntry);
                 }
               })
-              .catch(err => onError(err, errorCallback));
+              .catch((err) => onError(err, errorCallback));
           }, errorCallback);
         }, errorCallback);
       },
@@ -85,23 +86,24 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     }
     const accessor = this.params.accessor;
     accessor
-      .getContent(this.fullPath)
-      .then(async blob => {
+      .getContent(this.fullPath, "blob")
+      .then(async (blob) => {
         if (!blob) {
           successCallback(null);
           return;
         }
-        if (this.size !== blob.size) {
-          await this.params.accessor.resetSize(this.fullPath, blob.size);
+        const size = this.params.accessor.getSize(blob);
+        if (this.size !== size) {
+          await this.params.accessor.resetSize(this.fullPath, size);
         }
         const file = new File([blob], this.params.name, {
           type: CONTENT_TYPE,
-          lastModified: this.params.lastModified
+          lastModified: this.params.lastModified,
         });
         this.fileWriter = this.createFileWriter(file);
         successCallback(file);
       })
-      .catch(error => {
+      .catch((error) => {
         onError(error, errorCallback);
       });
   }
@@ -115,7 +117,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     this.copyTo(
       parent,
       newName,
-      fileEntry => {
+      (fileEntry) => {
         this.remove(() => {
           if (successCallback) {
             successCallback(fileEntry);
@@ -135,8 +137,39 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       .then(() => {
         successCallback();
       })
-      .catch(err => {
+      .catch((err) => {
         onError(err, errorCallback);
+      });
+  }
+
+  readContent(
+    type: "blob" | "arrayBuffer" | "base64" | "text",
+    successCallback: ContentCallback,
+    errorCallback?: ErrorCallback
+  ): void {
+    this.params.accessor
+      .getContent(this.fullPath, type)
+      .then((content) => {
+        successCallback(content);
+      })
+      .catch((err) => {
+        onError(errorCallback, err);
+      });
+  }
+
+  writeContent(
+    content: Blob | ArrayBuffer | string,
+    stringType?: "base64" | "text",
+    successCallback?: VoidCallback,
+    errorCallback?: ErrorCallback
+  ): void {
+    this.params.accessor
+      .putContent(this.fullPath, content, stringType)
+      .then(() => {
+        successCallback();
+      })
+      .catch((err) => {
+        onError(errorCallback, err);
       });
   }
 

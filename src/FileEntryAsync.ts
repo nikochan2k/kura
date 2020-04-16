@@ -11,10 +11,10 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   createWriter(): Promise<FileWriterAsync> {
     return new Promise<FileWriterAsync>((resolve, reject) => {
       this.entry.createWriter(
-        fileWriter => {
+        (fileWriter) => {
           resolve(new FileWriterAsync(fileWriter));
         },
-        error => {
+        (error) => {
           reject(error);
         }
       );
@@ -24,10 +24,44 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   file(): Promise<File> {
     return new Promise((resolve, reject) => {
       this.entry.file(
-        file => {
+        (file) => {
           resolve(file);
         },
-        error => {
+        (error) => {
+          reject(error);
+        }
+      );
+    });
+  }
+
+  readContent(
+    type: "blob" | "arrayBuffer" | "base64" | "text"
+  ): Promise<Blob | ArrayBuffer | string> {
+    return new Promise<Blob | ArrayBuffer | string>((resolve, reject) => {
+      this.entry.readContent(
+        type,
+        (content) => {
+          resolve(content);
+        },
+        (error) => {
+          reject(error);
+        }
+      );
+    });
+  }
+
+  writeContent(
+    content: Blob | ArrayBuffer | string,
+    stringType?: "base64" | "text"
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.entry.writeContent(
+        content,
+        stringType,
+        () => {
+          resolve();
+        },
+        (error) => {
           reject(error);
         }
       );

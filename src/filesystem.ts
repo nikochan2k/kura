@@ -296,6 +296,19 @@ export interface FileEntry extends Entry {
    * @param errorCallback A callback that is called when errors happen.
    */
   file(successCallback: FileCallback, errorCallback?: ErrorCallback): void;
+
+  readContent(
+    type: "blob" | "arrayBuffer" | "base64" | "text",
+    successCallback: ContentCallback,
+    errorCallback?: ErrorCallback
+  ): void;
+
+  writeContent(
+    content: Blob | ArrayBuffer | string,
+    stringType?: "base64" | "text",
+    successCallback?: VoidCallback,
+    errorCallback?: ErrorCallback
+  ): void;
 }
 
 /**
@@ -364,6 +377,13 @@ export interface FileWriterCallback {
  */
 export interface FileCallback {
   (file: File): void;
+}
+
+/**
+ * This interface is the callback used to obtain a Content.
+ */
+export interface ContentCallback {
+  (content: Blob | ArrayBuffer | string): void;
 }
 
 /**

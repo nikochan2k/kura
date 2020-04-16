@@ -4,39 +4,39 @@ import {
   NoModificationAllowedError,
   NotFoundError,
   NotImplementedError,
-  NotReadableError
+  NotReadableError,
 } from "./FileError";
 import { FileSystem } from "./filesystem";
-import {
-  DIR_SEPARATOR,
-  INDEX_FILE_PATH,
-  DEFAULT_BLOB_PROPS
-} from "./FileSystemConstants";
+import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
 import {
-  blobToText,
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+  base64ToBlob,
+  blobToArrayBuffer,
+  blobToBase64,
   getName,
   getParentPath,
   stringify,
-  textToObject
+  textToObject,
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
   fullPath: "/",
   name: "",
-  lastModified: 0
+  lastModified: 0,
 };
 
 const ROOT_RECORD: Record = {
   obj: ROOT_OBJECT,
-  updated: 0
+  updated: 0,
 };
 
 interface ContentCacheEntry {
   access: number;
-  blob: Blob;
+  content: Blob | ArrayBuffer | string;
 }
 
 const contentCache: { [fullPath: string]: ContentCacheEntry } = {};
@@ -122,7 +122,54 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async getContent(fullPath: string) {
+  async doGetArrayBuffer(fullPath: string): Promise<ArrayBuffer> {
+    const content = await this.doGetContent(fullPath);
+    if (content instanceof ArrayBuffer) {
+      return content;
+    } else if (content instanceof Blob) {
+      return blobToArrayBuffer(content);
+    } else {
+      return base64ToArrayBuffer(content);
+    }
+  }
+
+  async doGetBase64(fullPath: string): Promise<string> {
+    const content = await this.doGetContent(fullPath);
+    if (typeof content === "string") {
+      return content;
+    } else if (content instanceof ArrayBuffer) {
+      return arrayBufferToBase64(content);
+    } else {
+      return blobToBase64(content);
+    }
+  }
+
+  async doGetBlob(fullPath: string): Promise<Blob> {
+    const content = await this.doGetContent(fullPath);
+    if (content instanceof Blob) {
+      return content;
+    } else if (content instanceof ArrayBuffer) {
+      return new Blob([new Uint8Array(content)]);
+    } else {
+      return base64ToBlob(content);
+    }
+  }
+
+  async doGetText(fullPath: string): Promise<string> {
+    const content = await this.doGetContent(fullPath);
+    if (typeof content === "string") {
+      return content;
+    } else if (content instanceof ArrayBuffer) {
+      return arrayBufferToBase64(content);
+    } else {
+      return blobToBase64(content);
+    }
+  }
+
+  async getContent(
+    fullPath: string,
+    type: "blob" | "arrayBuffer" | "base64" | "text"
+  ): Promise<Blob | ArrayBuffer | string> {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
     }
@@ -134,7 +181,15 @@ export abstract class AbstractAccessor {
 
     try {
       this.debug("getContent", fullPath);
-      return await this.doGetContent(fullPath);
+      if (type === "blob") {
+        return this.doGetBlob(fullPath);
+      } else if (type === "arrayBuffer") {
+        return this.doGetArrayBuffer(fullPath);
+      } else if (type === "base64") {
+        return this.doGetBase64(fullPath);
+      } else {
+        return this.doGetText(fullPath);
+      }
     } catch (e) {
       if (e instanceof NotFoundError) {
         delete contentCache[fullPath];
@@ -221,10 +276,42 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  async putContent(fullPath: string, content: Blob): Promise<void> {
+  getSize(content: Blob | ArrayBuffer | string) {
+    let size: number;
+    if (content instanceof Blob) {
+      size = content.size;
+    } else if (content instanceof ArrayBuffer) {
+      size = content.byteLength;
+    } else {
+      size = encodeURIComponent(content).replace(/%../g, "x").length;
+    }
+    return size;
+  }
+
+  async putContent(
+    fullPath: string,
+    content: Blob | ArrayBuffer | string,
+    stringType?: "base64" | "text"
+  ): Promise<void> {
     try {
       this.debug("putContent", fullPath, content);
-      await this.doPutContent(fullPath, content);
+      if (content instanceof File || content instanceof Blob) {
+        await this.doPutBlob(fullPath, content);
+      } else if (content instanceof ArrayBuffer) {
+        await this.doPutArrayBuffer(fullPath, content);
+      } else {
+        if (stringType === "base64") {
+          await this.doPutBase64(fullPath, content);
+        } else if (stringType === "text") {
+          await this.doPutText(fullPath, content);
+        } else {
+          throw new InvalidModificationError(
+            this.name,
+            fullPath,
+            `Invalid stringType: ${stringType}`
+          );
+        }
+      }
       this.putContentToCache(fullPath, content);
     } catch (e) {
       if (e instanceof AbstractFileError) {
@@ -319,38 +406,34 @@ export abstract class AbstractAccessor {
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  abstract doGetContent(fullPath: string): Promise<Blob>;
+  abstract doGetContent(fullPath: string): Promise<Blob | ArrayBuffer | string>;
   abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
-  abstract doPutContent(fullPath: string, content: Blob): Promise<void>;
+  abstract doPutArrayBuffer(
+    fullPath: string,
+    buffer: ArrayBuffer
+  ): Promise<void>;
+  abstract doPutBase64(fullPath: string, base64: string): Promise<void>;
+  abstract doPutBlob(fullPath: string, blob: Blob): Promise<void>;
   abstract doPutObject(obj: FileSystemObject): Promise<void>;
+  abstract doPutText(fullPath: string, text: string): Promise<void>;
 
   protected debug(
     title: string,
     value: string | FileSystemObject,
-    content?: Blob
+    content?: Blob | ArrayBuffer | string
   ) {
     if (!this.options.verbose) {
       return;
     }
     if (typeof value === "string") {
-      const sizeMessage = content ? `, size=${content.size}` : "";
+      const sizeMessage = content ? `, size=${this.getSize(content)}` : "";
       console.log(`${this.name} - ${title}: fullPath=${value}${sizeMessage}`);
     } else {
       console.log(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
-  }
-
-  protected async doGetText(fullPath: string) {
-    const blob = await this.doGetContent(fullPath);
-    return blobToText(blob);
-  }
-
-  protected async doPutText(fullPath: string, text: string) {
-    const blob = new Blob([text], DEFAULT_BLOB_PROPS);
-    await this.putContent(fullPath, blob);
   }
 
   protected async getObjectsFromIndex(dirPath: string) {
@@ -513,37 +596,41 @@ export abstract class AbstractAccessor {
       return null;
     }
     entry.access = Date.now();
-    return entry.blob;
+    return entry.content;
   }
 
-  private putContentToCache(fullPath: string, blob: Blob) {
+  private putContentToCache(
+    fullPath: string,
+    content: Blob | ArrayBuffer | string
+  ) {
     if (this.options.contentCacheCapacity <= 0) {
       // No cache.
       return;
     }
 
-    if (this.options.contentCacheCapacity < blob.size) {
+    const contentSize = this.getSize(content);
+    if (this.options.contentCacheCapacity < contentSize) {
       return;
     }
 
     let sum = 0;
     const list: { fullPath: string; size: number; access: number }[] = [];
     for (const [fullPath, entry] of Object.entries(contentCache)) {
-      const size = entry.blob.size;
+      const size = this.getSize(entry.content);
       sum += size;
       list.push({ fullPath, size, access: entry.access });
     }
 
-    let current = sum + blob.size;
+    let current = sum + contentSize;
     if (current <= this.options.contentCacheCapacity) {
-      contentCache[fullPath] = { blob, access: Date.now() };
+      contentCache[fullPath] = { content, access: Date.now() };
       return;
     }
     list.sort((a, b) => {
       return a.access < b.access ? -1 : 1;
     });
 
-    const limit = this.options.contentCacheCapacity - blob.size;
+    const limit = this.options.contentCacheCapacity - contentSize;
     for (const item of list) {
       delete contentCache[item.fullPath];
       current -= item.size;
@@ -552,6 +639,6 @@ export abstract class AbstractAccessor {
       }
     }
 
-    contentCache[fullPath] = { blob, access: Date.now() };
+    contentCache[fullPath] = { content, access: Date.now() };
   }
 }

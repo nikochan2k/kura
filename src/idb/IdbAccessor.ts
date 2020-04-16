@@ -1,15 +1,15 @@
 import { AbstractAccessor } from "../AbstractAccessor";
+import {
+  InvalidModificationError,
+  NotFoundError,
+  NotReadableError,
+} from "../FileError";
 import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
-import { base64ToBlob, blobToBase64 } from "../FileSystemUtil";
+import { arrayBufferToBase64, blobToBase64 } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
-import {
-  NotReadableError,
-  NotFoundError,
-  InvalidModificationError
-} from "../FileError";
 
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
@@ -39,7 +39,7 @@ export class IdbAccessor extends AbstractAccessor {
         reject(new InvalidModificationError(this.name, fullPath, ev));
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
-      entryTx.oncomplete = function() {
+      entryTx.oncomplete = () => {
         resolve();
       };
       let range = IDBKeyRange.only(fullPath);
@@ -48,14 +48,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  async doGetContent(fullPath: string) {
-    const content = await this.doGetContentInternal(fullPath);
-    return IdbAccessor.SUPPORTS_BLOB
-      ? (content as Blob)
-      : base64ToBlob(content as string);
-  }
-
-  private doGetContentInternal(fullPath: string) {
+  doGetContent(fullPath: string) {
     return new Promise<any>((resolve, reject) => {
       const onerror = (ev: Event) =>
         reject(new NotReadableError(this.name, fullPath, ev));
@@ -66,7 +59,7 @@ export class IdbAccessor extends AbstractAccessor {
       const request = tx.objectStore(CONTENT_STORE).get(range);
       request.onerror = onerror;
       const name = this.name;
-      tx.oncomplete = function(ev) {
+      tx.oncomplete = (ev) => {
         if (request.result != null) {
           resolve(request.result);
         } else {
@@ -85,7 +78,7 @@ export class IdbAccessor extends AbstractAccessor {
       tx.onabort = onerror;
       tx.onerror = onerror;
       const request = tx.objectStore(ENTRY_STORE).get(range);
-      tx.oncomplete = function(ev) {
+      tx.oncomplete = (ev) => {
         if (request.result != null) {
           resolve(request.result);
         } else {
@@ -114,7 +107,7 @@ export class IdbAccessor extends AbstractAccessor {
       }
       const range = getRange(fullPath);
       const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onsuccess = function(ev) {
+      request.onsuccess = (ev) => {
         const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
         if (cursor) {
           const obj = cursor.value as FileSystemObject;
@@ -130,7 +123,18 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  async doPutContent(fullPath: string, blob: Blob) {
+  async doPutArrayBuffer(fullPath: string, buffer: ArrayBuffer): Promise<void> {
+    const content = IdbAccessor.SUPPORTS_BLOB
+      ? new Blob([new Uint8Array(buffer)])
+      : arrayBufferToBase64(buffer);
+    await this.doPutContentToIdb(fullPath, content);
+  }
+
+  async doPutBase64(fullPath: string, base64: string): Promise<void> {
+    await this.doPutContentToIdb(fullPath, base64);
+  }
+
+  async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
     const content = IdbAccessor.SUPPORTS_BLOB ? blob : await blobToBase64(blob);
     await this.doPutContentToIdb(fullPath, content);
   }
@@ -142,12 +146,16 @@ export class IdbAccessor extends AbstractAccessor {
         reject(new InvalidModificationError(this.name, obj.fullPath, ev));
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
-      entryTx.oncomplete = function() {
+      entryTx.oncomplete = () => {
         resolve();
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = onerror;
     });
+  }
+
+  async doPutText(fullPath: string, text: string): Promise<void> {
+    await this.doPutContentToIdb(fullPath, text);
   }
 
   async open(dbName: string) {
@@ -161,7 +169,7 @@ export class IdbAccessor extends AbstractAccessor {
       const onError = (ev: Event) => {
         console.log(ev);
       };
-      request.onupgradeneeded = function(ev) {
+      request.onupgradeneeded = (ev) => {
         const request = ev.target as IDBRequest;
         self.db = request.result;
         self.db.onerror = onError;
@@ -173,7 +181,7 @@ export class IdbAccessor extends AbstractAccessor {
           self.db.createObjectStore(CONTENT_STORE);
         }
       };
-      request.onsuccess = function(e) {
+      request.onsuccess = (e) => {
         self.db = (e.target as IDBRequest).result;
         self.db.onerror = onError;
         resolve();
@@ -204,11 +212,11 @@ export class IdbAccessor extends AbstractAccessor {
   protected initialize() {
     return new Promise((resolve, reject) => {
       const dbName = "blob-support";
-      indexedDB.deleteDatabase(dbName).onsuccess = function() {
+      indexedDB.deleteDatabase(dbName).onsuccess = function () {
         const request = indexedDB.open(dbName, 1);
         request.onupgradeneeded = () =>
           request.result.createObjectStore("store");
-        request.onsuccess = function() {
+        request.onsuccess = () => {
           const db = request.result;
           try {
             const blob = new Blob(["test"]);
