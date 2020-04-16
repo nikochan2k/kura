@@ -101,12 +101,12 @@ export function blobToFile(
   return file;
 }
 
-export function dataUriToBase64(dataUri: string) {
-  const index = dataUri.indexOf(",");
+export function dataUrlToBase64(dataUrl: string) {
+  const index = dataUrl.indexOf(",");
   if (0 <= index) {
-    return dataUri.substr(index + 1);
+    return dataUrl.substr(index + 1);
   }
-  return dataUri;
+  return dataUrl;
 }
 
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
@@ -176,7 +176,7 @@ export async function blobToBase64(blob: Blob) {
       reject(reader.error || ev);
     };
     reader.onload = function () {
-      const base64 = dataUriToBase64(reader.result as string);
+      const base64 = dataUrlToBase64(reader.result as string);
       resolve(base64);
     };
     reader.readAsDataURL(blob);
@@ -250,7 +250,7 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
     return EMPTY_BLOB;
   }
 
-  base64 = dataUriToBase64(base64);
+  base64 = dataUrlToBase64(base64);
   try {
     var bin = atob(base64);
   } catch (e) {
