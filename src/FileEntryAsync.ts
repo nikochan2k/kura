@@ -1,5 +1,5 @@
 import { EntryAsync } from "./EntryAsync";
-import { FileEntry } from "./filesystem";
+import { DataType, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import { FileWriterAsync } from "./FileWriterAsync";
 
@@ -34,9 +34,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  readFile(
-    type?: "blob" | "arraybuffer" | "base64"
-  ): Promise<Blob | ArrayBuffer | string> {
+  readFile(type?: DataType): Promise<Blob | ArrayBuffer | string> {
     return new Promise<Blob | ArrayBuffer | string>((resolve, reject) => {
       this.entry.readFile(
         (content) => {

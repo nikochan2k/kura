@@ -271,6 +271,8 @@ export interface DirectoryReader {
   ): void;
 }
 
+export type DataType = "blob" | "arraybuffer" | "base64";
+
 /**
  * This interface represents a file on a file system.
  */
@@ -300,7 +302,7 @@ export interface FileEntry extends Entry {
   readFile(
     successCallback: ContentCallback,
     errorCallback?: ErrorCallback,
-    type?: "blob" | "arraybuffer" | "base64"
+    type?: DataType
   ): void;
 
   writeFile(

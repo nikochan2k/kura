@@ -6,7 +6,7 @@ import {
   NotImplementedError,
   NotReadableError,
 } from "./FileError";
-import { FileSystem } from "./filesystem";
+import { DataType, FileSystem } from "./filesystem";
 import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
@@ -21,7 +21,6 @@ import {
   getParentPath,
   stringify,
   textToObject,
-  blobToText,
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -123,62 +122,33 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async doGetArrayBuffer(fullPath: string): Promise<ArrayBuffer> {
-    const content = await this.doGetContent(fullPath);
-    if (content instanceof ArrayBuffer) {
-      return content;
-    } else if (content instanceof Blob) {
-      return blobToArrayBuffer(content);
-    } else {
-      return base64ToArrayBuffer(content);
-    }
-  }
-
-  async doGetBase64(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath);
-    if (typeof content === "string") {
-      return content;
-    } else if (content instanceof ArrayBuffer) {
-      return arrayBufferToBase64(content);
-    } else {
-      return blobToBase64(content);
-    }
-  }
-
-  async doGetBlob(fullPath: string): Promise<Blob> {
-    const content = await this.doGetContent(fullPath);
-    if (content instanceof Blob) {
-      return content;
-    } else if (content instanceof ArrayBuffer) {
-      return new Blob([new Uint8Array(content)]);
-    } else {
-      return base64ToBlob(content);
-    }
-  }
-
   async getContent(
     fullPath: string,
-    type?: "blob" | "arraybuffer" | "base64"
+    type?: DataType
   ): Promise<Blob | ArrayBuffer | string> {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
     }
 
-    const content = this.getContentFromCache(fullPath);
-    if (content) {
-      return content;
-    }
-
     try {
       this.debug("getContent", fullPath);
+      let content = this.getContentFromCache(fullPath);
+      if (!content) {
+        content = await this.doGetContent(fullPath);
+      }
+      let converted: Blob | ArrayBuffer | string;
       if (type === "blob") {
-        return this.doGetBlob(fullPath);
+        converted = await this.toBlob(content);
       } else if (type === "arraybuffer") {
-        return this.doGetArrayBuffer(fullPath);
+        converted = await this.toArrayBuffer(content);
       } else if (type === "base64") {
-        return this.doGetBase64(fullPath);
+        converted = await this.toBase64(content);
+      }
+      if (content !== converted) {
+        this.putContentToCache(fullPath, converted);
+        return converted;
       } else {
-        return this.doGetContent(fullPath);
+        return content;
       }
     } catch (e) {
       if (e instanceof NotFoundError) {
@@ -658,5 +628,39 @@ export abstract class AbstractAccessor {
     }
 
     contentCache[fullPath] = { content, access: Date.now() };
+  }
+
+  private async toArrayBuffer(
+    content: Blob | ArrayBuffer | string
+  ): Promise<ArrayBuffer> {
+    if (content instanceof ArrayBuffer) {
+      return content;
+    } else if (content instanceof Blob) {
+      return blobToArrayBuffer(content);
+    } else {
+      return base64ToArrayBuffer(content);
+    }
+  }
+
+  private async toBase64(
+    content: Blob | ArrayBuffer | string
+  ): Promise<string> {
+    if (typeof content === "string") {
+      return content;
+    } else if (content instanceof ArrayBuffer) {
+      return arrayBufferToBase64(content);
+    } else {
+      return blobToBase64(content);
+    }
+  }
+
+  private async toBlob(content: Blob | ArrayBuffer | string): Promise<Blob> {
+    if (content instanceof Blob) {
+      return content;
+    } else if (content instanceof ArrayBuffer) {
+      return new Blob([new Uint8Array(content)]);
+    } else {
+      return base64ToBlob(content);
+    }
   }
 }

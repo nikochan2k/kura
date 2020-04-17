@@ -2,15 +2,16 @@ import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
 import { AbstractFileWriter } from "./AbstractFileWriter";
 import {
+  ContentCallback,
+  DataType,
   DirectoryEntry,
   EntryCallback,
   ErrorCallback,
   FileCallback,
   FileEntry,
   FileWriterCallback,
-  VoidCallback,
-  ContentCallback,
   TextCallback,
+  VoidCallback,
 } from "./filesystem";
 import { CONTENT_TYPE } from "./FileSystemConstants";
 import { FileSystemParams } from "./FileSystemParams";
@@ -132,7 +133,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
   readFile(
     successCallback: ContentCallback,
     errorCallback?: ErrorCallback,
-    type?: "blob" | "arraybuffer" | "base64"
+    type?: DataType
   ): void {
     this.params.accessor
       .getContent(this.fullPath, type)
