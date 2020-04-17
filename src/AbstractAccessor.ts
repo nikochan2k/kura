@@ -13,12 +13,14 @@ import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
 import {
   arrayBufferToBase64,
+  arrayBufferToBlob,
   base64ToArrayBuffer,
   base64ToBlob,
   blobToArrayBuffer,
   blobToBase64,
   getName,
   getParentPath,
+  getSize,
   stringify,
   textToObject,
 } from "./FileSystemUtil";
@@ -37,6 +39,7 @@ const ROOT_RECORD: Record = {
 interface ContentCacheEntry {
   access: number;
   content: Blob | ArrayBuffer | string;
+  size: number;
 }
 
 const contentCache: { [fullPath: string]: ContentCacheEntry } = {};
@@ -236,18 +239,6 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  getSize(content: Blob | ArrayBuffer | string) {
-    let size: number;
-    if (content instanceof Blob) {
-      size = content.size;
-    } else if (content instanceof ArrayBuffer) {
-      size = content.byteLength;
-    } else {
-      size = encodeURIComponent(content).replace(/%../g, "x").length;
-    }
-    return size;
-  }
-
   async getText(fullPath: string): Promise<string> {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
@@ -278,7 +269,7 @@ export abstract class AbstractAccessor {
     content: Blob | ArrayBuffer | string
   ): Promise<void> {
     try {
-      this.debug("putContent", fullPath, content);
+      this.debug("putContent", fullPath);
       if (content instanceof Blob) {
         await this.doPutBlob(fullPath, content);
       } else if (content instanceof ArrayBuffer) {
@@ -349,7 +340,7 @@ export abstract class AbstractAccessor {
 
   async putText(fullPath: string, text: string): Promise<void> {
     try {
-      this.debug("putText", fullPath, text);
+      this.debug("putText", fullPath);
       await this.doPutText(fullPath, text);
       this.putContentToCache(fullPath, text);
     } catch (e) {
@@ -406,17 +397,12 @@ export abstract class AbstractAccessor {
   abstract doPutObject(obj: FileSystemObject): Promise<void>;
   abstract doPutText(fullPath: string, text: string): Promise<void>;
 
-  protected debug(
-    title: string,
-    value: string | FileSystemObject,
-    content?: Blob | ArrayBuffer | string
-  ) {
+  protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
       return;
     }
     if (typeof value === "string") {
-      const sizeMessage = content ? `, size=${this.getSize(content)}` : "";
-      console.log(`${this.name} - ${title}: fullPath=${value}${sizeMessage}`);
+      console.log(`${this.name} - ${title}: fullPath=${value}`);
     } else {
       console.log(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
@@ -596,29 +582,32 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    const contentSize = this.getSize(content);
-    if (this.options.contentCacheCapacity < contentSize) {
+    const size = getSize(content);
+    if (this.options.contentCacheCapacity < size) {
       return;
     }
 
     let sum = 0;
     const list: { fullPath: string; size: number; access: number }[] = [];
     for (const [fullPath, entry] of Object.entries(contentCache)) {
-      const size = this.getSize(entry.content);
-      sum += size;
-      list.push({ fullPath, size, access: entry.access });
+      sum += entry.size;
+      list.push({ fullPath, size: entry.size, access: entry.access });
     }
 
-    let current = sum + contentSize;
+    let current = sum + size;
     if (current <= this.options.contentCacheCapacity) {
-      contentCache[fullPath] = { content, access: Date.now() };
+      contentCache[fullPath] = {
+        content,
+        access: Date.now(),
+        size,
+      };
       return;
     }
     list.sort((a, b) => {
       return a.access < b.access ? -1 : 1;
     });
 
-    const limit = this.options.contentCacheCapacity - contentSize;
+    const limit = this.options.contentCacheCapacity - size;
     for (const item of list) {
       delete contentCache[item.fullPath];
       current -= item.size;
@@ -627,7 +616,7 @@ export abstract class AbstractAccessor {
       }
     }
 
-    contentCache[fullPath] = { content, access: Date.now() };
+    contentCache[fullPath] = { content, access: Date.now(), size };
   }
 
   private async toArrayBuffer(
@@ -658,7 +647,7 @@ export abstract class AbstractAccessor {
     if (content instanceof Blob) {
       return content;
     } else if (content instanceof ArrayBuffer) {
-      return new Blob([new Uint8Array(content)]);
+      return arrayBufferToBlob(content);
     } else {
       return base64ToBlob(content);
     }

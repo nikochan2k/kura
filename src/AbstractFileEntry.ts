@@ -15,8 +15,9 @@ import {
 } from "./filesystem";
 import { CONTENT_TYPE } from "./FileSystemConstants";
 import { FileSystemParams } from "./FileSystemParams";
-import { onError } from "./FileSystemUtil";
+import { onError, getSize, getTextSize } from "./FileSystemUtil";
 import { FileWriterAsync } from "./FileWriterAsync";
+import { FileSystemObject } from "./FileSystemObject";
 
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
@@ -93,10 +94,6 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
         if (!blob) {
           successCallback(null);
           return;
-        }
-        const size = this.params.accessor.getSize(blob);
-        if (this.size !== size) {
-          await this.params.accessor.resetSize(this.fullPath, size);
         }
         const file = new File([blob], this.params.name, {
           type: CONTENT_TYPE,
@@ -178,7 +175,21 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     this.params.accessor
       .putContent(this.fullPath, content)
       .then(() => {
-        successCallback();
+        const obj: FileSystemObject = {
+          name: this.name,
+          fullPath: this.fullPath,
+          lastModified: Date.now(),
+          size: getSize(content),
+        };
+        this.params.accessor
+          .putObject(obj)
+          .then(() => {
+            this.params.size = obj.size;
+            successCallback();
+          })
+          .catch((err) => {
+            onError(errorCallback, err);
+          });
       })
       .catch((err) => {
         onError(errorCallback, err);
@@ -193,7 +204,21 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     this.params.accessor
       .putText(this.fullPath, text)
       .then(() => {
-        successCallback();
+        const obj: FileSystemObject = {
+          name: this.name,
+          fullPath: this.fullPath,
+          lastModified: Date.now(),
+          size: getTextSize(text),
+        };
+        this.params.accessor
+          .putObject(obj)
+          .then(() => {
+            this.params.size = obj.size;
+            successCallback();
+          })
+          .catch((err) => {
+            onError(errorCallback, err);
+          });
       })
       .catch((err) => {
         onError(errorCallback, err);

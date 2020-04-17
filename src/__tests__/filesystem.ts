@@ -2,7 +2,7 @@ import { DirectoryEntryAsync } from "../DirectoryEntryAsync";
 import {
   InvalidModificationError,
   NotFoundError,
-  PathExistsError
+  PathExistsError,
 } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
 import { blobToText, setChunkSize } from "../FileSystemUtil";
@@ -38,10 +38,10 @@ export function testAll(
     );
   });
 
-  test("add empty file", async done => {
+  test("add empty file", async (done) => {
     const fileEntry = await fs.root.getFile("empty.txt", {
       create: true,
-      exclusive: true
+      exclusive: true,
     });
     expect(fileEntry.name).toBe("empty.txt");
     expect(fileEntry.fullPath).toBe("/empty.txt");
@@ -50,22 +50,22 @@ export function testAll(
     done();
   });
 
-  test("add text file", async done => {
+  test("add text file", async (done) => {
     let fileEntry = await fs.root.getFile("test.txt", {
       create: true,
-      exclusive: true
+      exclusive: true,
     });
     expect(fileEntry.name).toBe("test.txt");
     expect(fileEntry.fullPath).toBe("/test.txt");
     expect(fileEntry.isDirectory).toBe(false);
     expect(fileEntry.isFile).toBe(true);
 
-    let writer = await fileEntry.createWriter();
-    await writer.writeFile(new Blob(["hoge"], { type: "text/plain" }));
-    expect(writer.position).toBe(4);
+    await fileEntry.writeFile(new Blob(["hoge"], { type: "text/plain" }));
     let file = await fileEntry.file();
     expect(file.size).toBe(4);
 
+    const writer = await fileEntry.createWriter();
+    writer.seek(4);
     await writer.write(new Blob(["ふが"], { type: "text/plain" }));
     expect(writer.position).toBe(10);
     file = await fileEntry.file();
@@ -74,7 +74,7 @@ export function testAll(
     try {
       fileEntry = await fs.root.getFile("test.txt", {
         create: true,
-        exclusive: true
+        exclusive: true,
       });
       fail();
     } catch (e) {
@@ -90,10 +90,10 @@ export function testAll(
     done();
   });
 
-  test("create dir", async done => {
+  test("create dir", async (done) => {
     const dirEntry = await fs.root.getDirectory("folder", {
       create: true,
-      exclusive: true
+      exclusive: true,
     });
     expect(dirEntry.isFile).toBe(false);
     expect(dirEntry.isDirectory).toBe(true);
@@ -102,11 +102,11 @@ export function testAll(
     done();
   });
 
-  test("create file in the dir", async done => {
+  test("create file in the dir", async (done) => {
     const dirEntry = await fs.root.getDirectory("folder");
     const fileEntry = await dirEntry.getFile("in.txt", {
       create: true,
-      exclusive: true
+      exclusive: true,
     });
     expect(fileEntry.fullPath).toBe("/folder/in.txt");
     try {
@@ -122,19 +122,19 @@ export function testAll(
     done();
   });
 
-  test("readdir", async done => {
+  test("readdir", async (done) => {
     const reader = fs.root.createReader();
     const entries = await reader.readEntries();
     let names = ["empty.txt", "test.txt", "folder"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
 
     done();
   });
 
-  test("copy file", async done => {
+  test("copy file", async (done) => {
     const test = await fs.root.getFile("test.txt");
     const testMeta = await test.getMetadata();
     const parent = await test.getParent();
@@ -147,13 +147,13 @@ export function testAll(
     const entries = await reader.readEntries();
     let names = ["empty.txt", "test.txt", "test2.txt", "folder"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
     done();
   });
 
-  test("copy folder", async done => {
+  test("copy folder", async (done) => {
     const folder = await fs.root.getDirectory("folder");
     const parent = await folder.getParent();
     const folder1 = (await folder.copyTo(
@@ -165,7 +165,7 @@ export function testAll(
     let entries = await reader.readEntries();
     let names = ["empty.txt", "test.txt", "test2.txt", "folder", "folder1"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
 
@@ -173,14 +173,14 @@ export function testAll(
     entries = await reader.readEntries();
     names = ["in.txt"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
 
     done();
   });
 
-  test("move folder", async done => {
+  test("move folder", async (done) => {
     const folder = await fs.root.getDirectory("folder");
     const parent = await folder.getParent();
     const folder2 = (await folder.moveTo(
@@ -192,7 +192,7 @@ export function testAll(
     let entries = await reader.readEntries();
     let names = ["empty.txt", "test.txt", "test2.txt", "folder1", "folder2"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
 
@@ -200,14 +200,14 @@ export function testAll(
     entries = await reader.readEntries();
     names = ["in.txt"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
 
     done();
   });
 
-  test("remove a file", async done => {
+  test("remove a file", async (done) => {
     const entry = await fs.root.getFile("empty.txt");
     await entry.remove();
     try {
@@ -220,14 +220,14 @@ export function testAll(
     const entries = await reader.readEntries();
     let names = ["test.txt", "test2.txt", "folder1", "folder2"];
     for (const entry of entries) {
-      names = names.filter(name => name !== entry.name);
+      names = names.filter((name) => name !== entry.name);
     }
     expect(names.length).toBe(0);
 
     done();
   });
 
-  test("remove a not empty folder", async done => {
+  test("remove a not empty folder", async (done) => {
     const entry = await fs.root.getDirectory("folder2");
     try {
       await entry.remove();
@@ -239,7 +239,7 @@ export function testAll(
     done();
   });
 
-  test("remove recursively", async done => {
+  test("remove recursively", async (done) => {
     await fs.root.removeRecursively();
 
     const reader = fs.root.createReader();

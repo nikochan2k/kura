@@ -110,7 +110,7 @@ export function dataUrlToBase64(dataUrl: string) {
 }
 
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
-  if (!blob || blob.size === 0) {
+  if (blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;
   }
   return new Promise<ArrayBuffer>((resolve, reject) => {
@@ -139,7 +139,7 @@ async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
 }
 
 export async function blobToArrayBuffer(blob: Blob) {
-  if (!blob || blob.size === 0) {
+  if (blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;
   }
 
@@ -150,23 +150,8 @@ export async function blobToArrayBuffer(blob: Blob) {
   }
 }
 
-export async function fileToArrayBuffer(fileEntry: FileEntryAsync) {
-  try {
-    var url = fileEntry.toURL();
-  } catch {
-    const blob = await fileEntry.file();
-    return await blobToArrayBuffer(blob);
-  }
-  return xhrGet(
-    url,
-    "arraybuffer",
-    fileEntry.filesystem.name,
-    fileEntry.fullPath
-  );
-}
-
 export async function blobToBase64(blob: Blob) {
-  if (!blob || blob.size === 0) {
+  if (blob.size === 0) {
     return "";
   }
 
@@ -184,6 +169,10 @@ export async function blobToBase64(blob: Blob) {
 }
 
 export function arrayBufferToBase64(buffer: ArrayBuffer) {
+  if (buffer.byteLength === 0) {
+    return "";
+  }
+
   let binary = "";
   const bytes = new Uint8Array(buffer);
   for (var i = 0, end = bytes.byteLength; i < end; i++) {
@@ -192,20 +181,12 @@ export function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-export async function fileToBase64(fileEntry: FileEntryAsync) {
-  try {
-    var url = fileEntry.toURL();
-  } catch {
-    const blob = await fileEntry.file();
-    return await blobToBase64(blob);
+export function arrayBufferToBlob(buffer: ArrayBuffer) {
+  if (buffer.byteLength === 0) {
+    return EMPTY_BLOB;
   }
-  const buffer = await xhrGet(
-    url,
-    "arraybuffer",
-    fileEntry.entry.filesystem.name,
-    fileEntry.fullPath
-  );
-  return arrayBufferToBase64(buffer);
+
+  return new Blob([new Uint8Array(buffer)]);
 }
 
 export async function blobToText(blob: Blob) {
@@ -223,16 +204,6 @@ export async function blobToText(blob: Blob) {
     };
     reader.readAsText(blob);
   });
-}
-
-export async function fileToText(fileEntry: FileEntryAsync) {
-  try {
-    var url = fileEntry.toURL();
-  } catch {
-    const blob = await fileEntry.file();
-    return blobToText(blob);
-  }
-  return xhrGet(url, "text", fileEntry.filesystem.name, fileEntry.fullPath);
 }
 
 export function base64ToArrayBuffer(base64: string) {
@@ -284,11 +255,6 @@ export async function blobToObject(blob: Blob) {
   return textToObject(text);
 }
 
-export async function fileToObject(fileEntry: FileEntryAsync) {
-  const text = await fileToText(fileEntry);
-  return textToObject(text);
-}
-
 export function createEmptyFile(name: string) {
   return new File([], name, {
     lastModified: Date.now(),
@@ -309,6 +275,22 @@ export function objectToBlob(obj: any) {
     return EMPTY_BLOB;
   }
   return new Blob([text], DEFAULT_BLOB_PROPS);
+}
+
+export function getSize(content: Blob | ArrayBuffer | string) {
+  let size: number;
+  if (content instanceof Blob) {
+    size = content.size;
+  } else if (content instanceof ArrayBuffer) {
+    size = content.byteLength;
+  } else {
+    size = Math.floor(content.replace(/=/g, "").length * 0.75); // Base64
+  }
+  return size;
+}
+
+export function getTextSize(text: string) {
+  return encodeURIComponent(text).replace(/%../g, "x").length; // UTF-8
 }
 
 export function onError(err: DOMError, errorCallback?: ErrorCallback) {

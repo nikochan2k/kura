@@ -9,8 +9,9 @@ import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
 import {
   arrayBufferToBase64,
-  blobToBase64,
+  arrayBufferToBlob,
   blobToArrayBuffer,
+  blobToBase64,
 } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
@@ -138,7 +139,7 @@ export class IdbAccessor extends AbstractAccessor {
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = buffer;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = new Blob([new Uint8Array(buffer)]);
+      content = arrayBufferToBlob(buffer);
     } else {
       content = arrayBufferToBase64(buffer);
     }

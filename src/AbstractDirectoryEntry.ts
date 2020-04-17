@@ -1,23 +1,25 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractEntry } from "./AbstractEntry";
+import { DefaultDirectoryReader } from "./DefaultDirectoryReader";
 import {
   InvalidModificationError,
   NotFoundError,
-  PathExistsError
+  PathExistsError,
 } from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
   DirectoryReader,
+  EntriesCallback,
   Entry,
   EntryCallback,
   ErrorCallback,
   FileEntry,
   FileEntryCallback,
   Flags,
-  VoidCallback
+  VoidCallback,
 } from "./filesystem";
-import { EMPTY_BLOB } from "./FileSystemConstants";
+import { EMPTY_BLOB, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import { onError, resolveToFullPath } from "./FileSystemUtil";
@@ -45,9 +47,9 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     parent.getDirectory(
       newName || this.name,
       { create: true },
-      dirEntry => {
+      (dirEntry) => {
         const reader = this.createReader();
-        reader.readEntries(entries => {
+        reader.readEntries((entries) => {
           const promises: Promise<Entry>[] = [];
           for (const entry of entries) {
             promises.push(
@@ -60,13 +62,17 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
             .then(() => {
               successCallback(dirEntry);
             })
-            .catch(errors => {
+            .catch((errors) => {
               onError(errors, errorCallback);
             });
         }, errorCallback);
       },
       errorCallback
     );
+  }
+
+  createReader(): DirectoryReader {
+    return new DefaultDirectoryReader(this);
   }
 
   async delete() {
@@ -103,7 +109,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
     this.params.accessor
       .getObject(fullPath)
-      .then(async obj => {
+      .then(async (obj) => {
         if (obj.size != null) {
           onError(
             new PathExistsError(
@@ -127,14 +133,14 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         }
         successCallback(this.toDirectoryEntry(obj));
       })
-      .catch(err => {
+      .catch((err) => {
         if (err instanceof NotFoundError) {
           if (options.create) {
             this.registerObject(fullPath, false)
-              .then(newObj => {
+              .then((newObj) => {
                 successCallback(this.toDirectoryEntry(newObj));
               })
-              .catch(err => {
+              .catch((err) => {
                 errorCallback(err);
               });
           } else {
@@ -163,7 +169,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
     this.params.accessor
       .getObject(fullPath)
-      .then(async obj => {
+      .then(async (obj) => {
         if (obj.size == null) {
           onError(
             new PathExistsError(
@@ -190,14 +196,14 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         }
         successCallback(this.toFileEntry(obj));
       })
-      .catch(err => {
+      .catch((err) => {
         if (err instanceof NotFoundError) {
           if (options.create) {
             this.registerObject(fullPath, true)
-              .then(newObj => {
+              .then((newObj) => {
                 successCallback(this.toFileEntry(newObj));
               })
-              .catch(err => {
+              .catch((err) => {
                 errorCallback(err);
               });
           } else {
@@ -206,6 +212,17 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         } else {
           onError(err, errorCallback);
         }
+      });
+  }
+
+  list(successCallback: EntriesCallback, errorCallback?: ErrorCallback): void {
+    this.params.accessor
+      .getObjects(this.fullPath)
+      .then((objects) => {
+        successCallback(this.createEntries(objects));
+      })
+      .catch((err) => {
+        onError(err, errorCallback);
       });
   }
 
@@ -222,9 +239,9 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     parent.getDirectory(
       newName || this.name,
       { create: true },
-      dirEntry => {
+      (dirEntry) => {
         const reader = this.createReader();
-        reader.readEntries(entries => {
+        reader.readEntries((entries) => {
           const promises: Promise<Entry>[] = [];
           for (const entry of entries) {
             promises.push(
@@ -237,7 +254,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
             .then(() => {
               successCallback(dirEntry);
             })
-            .catch(errors => {
+            .catch((errors) => {
               onError(errors, errorCallback);
             });
         }, errorCallback);
@@ -251,7 +268,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback | undefined
   ): void {
     this.hasChild()
-      .then(result => {
+      .then((result) => {
         if (result) {
           onError(
             new InvalidModificationError(
@@ -269,11 +286,11 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
           .then(() => {
             successCallback();
           })
-          .catch(err => {
+          .catch((err) => {
             onError(err, errorCallback);
           });
       })
-      .catch(err => {
+      .catch((err) => {
         onError(err, errorCallback);
       });
   }
@@ -287,12 +304,21 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       .then(() => {
         successCallback();
       })
-      .catch(err => {
+      .catch((err) => {
         onError(err, errorCallback);
       });
   }
 
-  abstract createReader(): DirectoryReader;
+  protected createEntries(objects: FileSystemObject[]) {
+    const entries: AbstractEntry<T>[] = [];
+    for (const obj of objects) {
+      if (obj.fullPath === INDEX_FILE_PATH) {
+        continue;
+      }
+      entries.push(this.createEntry(obj));
+    }
+    return entries;
+  }
 
   protected async hasChild(): Promise<boolean> {
     const objects = await this.params.accessor.getObjects(this.fullPath);
@@ -310,5 +336,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     return obj;
   }
 
+  protected abstract createEntry(obj: FileSystemObject): AbstractEntry<T>;
   protected abstract toFileEntry(obj: FileSystemObject): FileEntry;
 }

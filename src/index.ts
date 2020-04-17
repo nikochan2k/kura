@@ -1,7 +1,7 @@
 import "./polyfill";
 export * from "./AbstractAccessor";
 export * from "./AbstractDirectoryEntry";
-export * from "./AbstractDirectoryReader";
+export * from "./DefaultDirectoryReader";
 export * from "./AbstractFileEntry";
 export * from "./AbstractFileSystem";
 export * from "./AbstractFileWriter";
