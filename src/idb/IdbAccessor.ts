@@ -7,7 +7,11 @@ import {
 import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
-import { arrayBufferToBase64, blobToBase64 } from "../FileSystemUtil";
+import {
+  arrayBufferToBase64,
+  blobToBase64,
+  blobToArrayBuffer,
+} from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
 
@@ -18,7 +22,8 @@ const indexedDB: IDBFactory =
   window.indexedDB || window.mozIndexedDB || window.msIndexedDB;
 
 export class IdbAccessor extends AbstractAccessor {
-  static SUPPORTS_BLOB: boolean;
+  private static SUPPORTS_ARRAY_BUFFER: boolean;
+  private static SUPPORTS_BLOB: boolean;
 
   db: IDBDatabase;
   filesystem: IdbFileSystem;
@@ -59,7 +64,7 @@ export class IdbAccessor extends AbstractAccessor {
       const request = tx.objectStore(CONTENT_STORE).get(range);
       request.onerror = onerror;
       const name = this.name;
-      tx.oncomplete = (ev) => {
+      tx.oncomplete = () => {
         if (request.result != null) {
           resolve(request.result);
         } else {
@@ -78,7 +83,7 @@ export class IdbAccessor extends AbstractAccessor {
       tx.onabort = onerror;
       tx.onerror = onerror;
       const request = tx.objectStore(ENTRY_STORE).get(range);
-      tx.oncomplete = (ev) => {
+      tx.oncomplete = () => {
         if (request.result != null) {
           resolve(request.result);
         } else {
@@ -129,9 +134,14 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   async doPutArrayBuffer(fullPath: string, buffer: ArrayBuffer): Promise<void> {
-    const content = IdbAccessor.SUPPORTS_BLOB
-      ? new Blob([new Uint8Array(buffer)])
-      : arrayBufferToBase64(buffer);
+    let content: Blob | ArrayBuffer | string;
+    if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
+      content = buffer;
+    } else if (IdbAccessor.SUPPORTS_BLOB) {
+      content = new Blob([new Uint8Array(buffer)]);
+    } else {
+      content = arrayBufferToBase64(buffer);
+    }
     await this.doPutContentToIdb(fullPath, content);
   }
 
@@ -140,7 +150,14 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
-    const content = IdbAccessor.SUPPORTS_BLOB ? blob : await blobToBase64(blob);
+    let content: Blob | ArrayBuffer | string;
+    if (IdbAccessor.SUPPORTS_BLOB) {
+      content = blob;
+    } else if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
+      content = await blobToArrayBuffer(blob);
+    } else {
+      content = await blobToBase64(blob);
+    }
     await this.doPutContentToIdb(fullPath, content);
   }
 
@@ -164,7 +181,10 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   async open(dbName: string) {
-    if (IdbAccessor.SUPPORTS_BLOB == null) {
+    if (
+      IdbAccessor.SUPPORTS_BLOB == null ||
+      IdbAccessor.SUPPORTS_ARRAY_BUFFER == null
+    ) {
       await this.initialize();
     }
 
@@ -214,8 +234,8 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  protected initialize() {
-    return new Promise((resolve, reject) => {
+  protected async initialize() {
+    await new Promise((resolve, reject) => {
       const dbName = "blob-support";
       indexedDB.deleteDatabase(dbName).onsuccess = function () {
         const request = indexedDB.open(dbName, 1);
@@ -230,6 +250,30 @@ export class IdbAccessor extends AbstractAccessor {
             IdbAccessor.SUPPORTS_BLOB = true;
           } catch (err) {
             IdbAccessor.SUPPORTS_BLOB = false;
+          } finally {
+            db.close();
+            indexedDB.deleteDatabase(dbName);
+          }
+          resolve();
+        };
+        request.onerror = (ev: Event) => reject(ev);
+      };
+    });
+    await new Promise((resolve, reject) => {
+      const dbName = "arraybuffer-support";
+      indexedDB.deleteDatabase(dbName).onsuccess = function () {
+        const request = indexedDB.open(dbName, 1);
+        request.onupgradeneeded = () =>
+          request.result.createObjectStore("store");
+        request.onsuccess = () => {
+          const db = request.result;
+          try {
+            const buffer = new ArrayBuffer(10);
+            const transaction = db.transaction("store", "readwrite");
+            transaction.objectStore("store").put(buffer, "key");
+            IdbAccessor.SUPPORTS_ARRAY_BUFFER = true;
+          } catch (err) {
+            IdbAccessor.SUPPORTS_ARRAY_BUFFER = false;
           } finally {
             db.close();
             indexedDB.deleteDatabase(dbName);
