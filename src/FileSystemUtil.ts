@@ -296,11 +296,18 @@ export function createEmptyFile(name: string) {
   });
 }
 
-export function objectToBlob(obj: any) {
+export function objectToText(obj: any) {
   if (!obj) {
+    return "";
+  }
+  return stringify(obj);
+}
+
+export function objectToBlob(obj: any) {
+  const text = objectToText(obj);
+  if (!text) {
     return EMPTY_BLOB;
   }
-  const text = stringify(obj);
   return new Blob([text], DEFAULT_BLOB_PROPS);
 }
 
