@@ -102,8 +102,8 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
         this.fileWriter = this.createFileWriter(file);
         successCallback(file);
       })
-      .catch((error) => {
-        onError(error, errorCallback);
+      .catch((err) => {
+        onError(err, errorCallback);
       });
   }
 
@@ -138,7 +138,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
         successCallback(content);
       })
       .catch((err) => {
-        onError(errorCallback, err);
+        onError(err, errorCallback);
       });
   }
 
@@ -149,7 +149,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
         successCallback(text);
       })
       .catch((err) => {
-        onError(errorCallback, err);
+        onError(err, errorCallback);
       });
   }
 
@@ -188,11 +188,11 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
             successCallback();
           })
           .catch((err) => {
-            onError(errorCallback, err);
+            onError(err, errorCallback);
           });
       })
       .catch((err) => {
-        onError(errorCallback, err);
+        onError(err, errorCallback);
       });
   }
 
@@ -217,11 +217,11 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
             successCallback();
           })
           .catch((err) => {
-            onError(errorCallback, err);
+            onError(err, errorCallback);
           });
       })
       .catch((err) => {
-        onError(errorCallback, err);
+        onError(err, errorCallback);
       });
   }
 
