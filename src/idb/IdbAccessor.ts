@@ -129,39 +129,6 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  async doGetText(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath);
-    return content as string;
-  }
-
-  async doPutArrayBuffer(fullPath: string, buffer: ArrayBuffer): Promise<void> {
-    let content: Blob | ArrayBuffer | string;
-    if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
-      content = buffer;
-    } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = arrayBufferToBlob(buffer);
-    } else {
-      content = arrayBufferToBase64(buffer);
-    }
-    await this.doPutContentToIdb(fullPath, content);
-  }
-
-  async doPutBase64(fullPath: string, base64: string): Promise<void> {
-    await this.doPutContentToIdb(fullPath, base64);
-  }
-
-  async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
-    let content: Blob | ArrayBuffer | string;
-    if (IdbAccessor.SUPPORTS_BLOB) {
-      content = blob;
-    } else if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
-      content = await blobToArrayBuffer(blob);
-    } else {
-      content = await blobToBase64(blob);
-    }
-    await this.doPutContentToIdb(fullPath, content);
-  }
-
   doPutObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
@@ -175,10 +142,6 @@ export class IdbAccessor extends AbstractAccessor {
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = onerror;
     });
-  }
-
-  async doPutText(fullPath: string, text: string): Promise<void> {
-    await this.doPutContentToIdb(fullPath, text);
   }
 
   async open(dbName: string) {
@@ -221,6 +184,37 @@ export class IdbAccessor extends AbstractAccessor {
   protected close() {
     this.db.close();
     delete this.db;
+  }
+
+  protected async doPutArrayBuffer(
+    fullPath: string,
+    buffer: ArrayBuffer
+  ): Promise<void> {
+    let content: Blob | ArrayBuffer | string;
+    if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
+      content = buffer;
+    } else if (IdbAccessor.SUPPORTS_BLOB) {
+      content = arrayBufferToBlob(buffer);
+    } else {
+      content = arrayBufferToBase64(buffer);
+    }
+    await this.doPutContentToIdb(fullPath, content);
+  }
+
+  protected async doPutBase64(fullPath: string, base64: string): Promise<void> {
+    await this.doPutContentToIdb(fullPath, base64);
+  }
+
+  protected async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
+    let content: Blob | ArrayBuffer | string;
+    if (IdbAccessor.SUPPORTS_BLOB) {
+      content = blob;
+    } else if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
+      content = await blobToArrayBuffer(blob);
+    } else {
+      content = await blobToBase64(blob);
+    }
+    await this.doPutContentToIdb(fullPath, content);
   }
 
   protected drop() {

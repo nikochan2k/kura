@@ -1,4 +1,5 @@
 import { decode, encode } from "base-64";
+import "fast-text-encoding";
 
 const globalVar =
   typeof window !== "undefined"
