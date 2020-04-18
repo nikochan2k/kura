@@ -18,12 +18,12 @@ import {
   base64ToBlob,
   blobToArrayBuffer,
   blobToBase64,
+  blobToText,
   getName,
   getParentPath,
   getSize,
   stringify,
   textToObject,
-  blobToText,
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -533,7 +533,7 @@ export abstract class AbstractAccessor {
     base64: string
   ): Promise<void>;
   protected abstract doPutBlob(fullPath: string, blob: Blob): Promise<void>;
-  protected abstract doPutObject(obj: FileSystemObject): Promise<void>;
+  abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   private async checkAddPermission(fullPath: string, record: Record) {
     if (!this.options.permission.onAdd) {
