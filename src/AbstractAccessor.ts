@@ -125,6 +125,16 @@ export abstract class AbstractAccessor {
     }
   }
 
+  async doPutContent(fullPath: string, content: Blob | ArrayBuffer | string) {
+    if (content instanceof Blob) {
+      await this.doPutBlob(fullPath, content);
+    } else if (content instanceof ArrayBuffer) {
+      await this.doPutArrayBuffer(fullPath, content);
+    } else {
+      await this.doPutBase64(fullPath, content);
+    }
+  }
+
   async getContent(
     fullPath: string,
     type?: DataType
@@ -401,19 +411,6 @@ export abstract class AbstractAccessor {
       console.log(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
-    }
-  }
-
-  protected async doPutContent(
-    fullPath: string,
-    content: Blob | ArrayBuffer | string
-  ) {
-    if (content instanceof Blob) {
-      await this.doPutBlob(fullPath, content);
-    } else if (content instanceof ArrayBuffer) {
-      await this.doPutArrayBuffer(fullPath, content);
-    } else {
-      await this.doPutBase64(fullPath, content);
     }
   }
 
