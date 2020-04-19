@@ -181,7 +181,8 @@ export abstract class AbstractAccessor {
   async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       try {
-        const text = await this.getText(INDEX_FILE_PATH);
+        const content = await this.doGetContent(INDEX_FILE_PATH);
+        const text = await this.toText(content);
         this.dirPathIndex = textToObject(text) as DirPathIndex;
       } catch (e) {
         if (e instanceof NotFoundError) {
@@ -254,14 +255,7 @@ export abstract class AbstractAccessor {
 
   async getText(fullPath: string): Promise<string> {
     const content = await this.getContent(fullPath);
-    if (content instanceof Blob) {
-      return blobToText(content);
-    } else if (content instanceof ArrayBuffer) {
-      return this.textDecoder.decode(content);
-    } else {
-      const buffer = base64ToArrayBuffer(content);
-      return this.textDecoder.decode(buffer);
-    }
+    return this.toText(content);
   }
 
   async putContent(
@@ -281,7 +275,8 @@ export abstract class AbstractAccessor {
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
     const text = objectToText(dirPathIndex);
-    await this.putText(INDEX_FILE_PATH, text);
+    const buffer = this.textToArrayBuffer(text);
+    await this.doPutContent(INDEX_FILE_PATH, buffer);
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
@@ -332,20 +327,8 @@ export abstract class AbstractAccessor {
   }
 
   async putText(fullPath: string, text: string): Promise<void> {
-    const view = this.textEncoder.encode(text);
-    const buffer = view.buffer;
+    const buffer = this.textToArrayBuffer(text);
     await this.putContent(fullPath, buffer);
-  }
-
-  async resetSize(fullPath: string, size: number) {
-    if (fullPath === DIR_SEPARATOR) {
-      return;
-    }
-    const obj = await this.getObject(fullPath);
-    if (size) {
-      obj.size = size;
-      await this.putObject(obj);
-    }
   }
 
   toURL(path: string): string {
@@ -607,6 +590,11 @@ export abstract class AbstractAccessor {
     this.contentCache[fullPath] = { content, access: Date.now(), size };
   }
 
+  private textToArrayBuffer(text: string) {
+    const view = this.textEncoder.encode(text);
+    return view.buffer;
+  }
+
   private async toArrayBuffer(
     content: Blob | ArrayBuffer | string
   ): Promise<ArrayBuffer> {
@@ -638,6 +626,17 @@ export abstract class AbstractAccessor {
       return arrayBufferToBlob(content);
     } else {
       return base64ToBlob(content);
+    }
+  }
+
+  private async toText(content: Blob | ArrayBuffer | string) {
+    if (content instanceof Blob) {
+      return blobToText(content);
+    } else if (content instanceof ArrayBuffer) {
+      return this.textDecoder.decode(content);
+    } else {
+      const buffer = base64ToArrayBuffer(content);
+      return this.textDecoder.decode(buffer);
     }
   }
 }
