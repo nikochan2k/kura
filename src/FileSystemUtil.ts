@@ -234,14 +234,6 @@ export function textToObject(text: string) {
   }
 }
 
-export async function blobToObject(blob: Blob) {
-  if (!blob || blob.size === 0) {
-    return null;
-  }
-  const text = await blobToText(blob);
-  return textToObject(text);
-}
-
 export function createEmptyFile(name: string) {
   return new File([], name, {
     lastModified: Date.now(),

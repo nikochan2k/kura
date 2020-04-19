@@ -22,8 +22,8 @@ import {
   getName,
   getParentPath,
   getSize,
-  textToObject,
   objectToText,
+  textToObject,
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -127,18 +127,6 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async doGetText(fullPath: string): Promise<string> {
-    const content = await this.doGetContent(fullPath);
-    if (content instanceof Blob) {
-      return blobToText(content);
-    } else if (content instanceof ArrayBuffer) {
-      return this.textDecoder.decode(content);
-    } else {
-      const buffer = base64ToArrayBuffer(content);
-      return this.textDecoder.decode(buffer);
-    }
-  }
-
   async doPutContent(fullPath: string, content: Blob | ArrayBuffer | string) {
     if (content instanceof Blob) {
       await this.doPutBlob(fullPath, content);
@@ -193,7 +181,7 @@ export abstract class AbstractAccessor {
   async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       try {
-        const text = await this.doGetText(INDEX_FILE_PATH);
+        const text = await this.getText(INDEX_FILE_PATH);
         this.dirPathIndex = textToObject(text) as DirPathIndex;
       } catch (e) {
         if (e instanceof NotFoundError) {
@@ -265,27 +253,14 @@ export abstract class AbstractAccessor {
   }
 
   async getText(fullPath: string): Promise<string> {
-    if (this.options.useIndex) {
-      await this.checkGetPermission(fullPath);
-    }
-
-    const text = this.getContentFromCache(fullPath);
-    if (text) {
-      return text as string;
-    }
-
-    try {
-      this.debug("getText", fullPath);
-      return this.doGetText(fullPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        delete this.contentCache[fullPath];
-        await this.removeFromIndex(fullPath);
-        throw e;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, fullPath, e);
+    const content = await this.getContent(fullPath);
+    if (content instanceof Blob) {
+      return blobToText(content);
+    } else if (content instanceof ArrayBuffer) {
+      return this.textDecoder.decode(content);
+    } else {
+      const buffer = base64ToArrayBuffer(content);
+      return this.textDecoder.decode(buffer);
     }
   }
 
@@ -306,7 +281,7 @@ export abstract class AbstractAccessor {
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
     const text = objectToText(dirPathIndex);
-    await this.doPutText(INDEX_FILE_PATH, text);
+    await this.putText(INDEX_FILE_PATH, text);
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
@@ -357,15 +332,9 @@ export abstract class AbstractAccessor {
   }
 
   async putText(fullPath: string, text: string): Promise<void> {
-    try {
-      this.debug("putText", fullPath);
-      await this.doPutText(fullPath, text);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
+    const view = this.textEncoder.encode(text);
+    const buffer = view.buffer;
+    await this.putContent(fullPath, buffer);
   }
 
   async resetSize(fullPath: string, size: number) {
@@ -417,12 +386,6 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
-  }
-
-  protected async doPutText(fullPath: string, text: string): Promise<void> {
-    const view = this.textEncoder.encode(text);
-    const buffer = view.buffer;
-    await this.doPutContent(fullPath, buffer);
   }
 
   protected async getObjectsFromIndex(dirPath: string) {
