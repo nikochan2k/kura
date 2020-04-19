@@ -1,6 +1,6 @@
 import {
-  EMPTY_ARRAY_BUFFER,
   DEFAULT_CONTENT_TYPE,
+  EMPTY_ARRAY_BUFFER,
   EMPTY_BLOB,
 } from "./FileSystemConstants";
 import { dataUrlToBase64 } from "./FileSystemUtil";
@@ -9,7 +9,7 @@ async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   if (blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;
   }
-  return new Promise<ArrayBuffer>((resolve, reject) => {
+  const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = (ev) => {
       reject(reader.error || ev);
@@ -19,6 +19,7 @@ async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
     };
     reader.readAsArrayBuffer(blob);
   });
+  return buffer;
 }
 
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
@@ -39,11 +40,13 @@ async function blobToArrayBuffer(blob: Blob) {
     return EMPTY_ARRAY_BUFFER;
   }
 
+  let buffer: ArrayBuffer;
   if (navigator && navigator.product === "ReactNative") {
-    return blobToArrayBufferUsingReadAsDataUrl(blob);
+    buffer = await blobToArrayBufferUsingReadAsDataUrl(blob);
   } else {
-    return blobToArrayBufferUsingReadAsArrayBuffer(blob);
+    buffer = await blobToArrayBufferUsingReadAsArrayBuffer(blob);
   }
+  return buffer;
 }
 
 function base64ToArrayBuffer(base64: string) {
@@ -56,25 +59,27 @@ function base64ToArrayBuffer(base64: string) {
   return bytes.buffer;
 }
 
-export async function toArrayBuffer(content: Blob | BufferSource | string) {
+export async function toArrayBuffer(
+  content: Blob | BufferSource | string
+): Promise<ArrayBuffer> {
   if (!content) {
     return EMPTY_ARRAY_BUFFER;
   }
 
+  let buffer: ArrayBuffer;
   if (content instanceof ArrayBuffer) {
-    return content;
+    buffer = content;
+  } else if (ArrayBuffer.isView(content)) {
+    buffer = content.buffer;
+  } else if (content instanceof Blob) {
+    buffer = await blobToArrayBuffer(content);
+  } else {
+    buffer = base64ToArrayBuffer(content);
   }
-  if (ArrayBuffer.isView(content)) {
-    return content.buffer;
-  }
-  if (content instanceof Blob) {
-    return blobToArrayBuffer(content);
-  }
-
-  return base64ToArrayBuffer(content);
+  return buffer;
 }
 
-function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE) {
+function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
   try {
     var bin = atob(base64);
   } catch (e) {
@@ -91,29 +96,30 @@ function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE) {
   return blob;
 }
 
-export async function toBlob(content: Blob | BufferSource | string) {
+export function toBlob(content: Blob | BufferSource | string): Blob {
   if (!content) {
     return EMPTY_BLOB;
   }
 
+  let blob: Blob;
   if (content instanceof Blob) {
-    return content;
+    blob = content;
+  } else if (content instanceof ArrayBuffer) {
+    blob = new Blob([content]);
+  } else if (ArrayBuffer.isView(content)) {
+    blob = new Blob([content.buffer]);
+  } else {
+    blob = base64ToBlob(content);
   }
-  if (content instanceof ArrayBuffer) {
-    return new Blob([content]);
-  }
-  if (ArrayBuffer.isView(content)) {
-    return new Blob([content.buffer]);
-  }
-  return base64ToBlob(content);
+  return blob;
 }
 
-async function blobToBase64(blob: Blob) {
+async function blobToBase64(blob: Blob): Promise<string> {
   if (blob.size === 0) {
     return "";
   }
 
-  return new Promise<string>((resolve, reject) => {
+  const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = function (ev) {
       reject(reader.error || ev);
@@ -124,9 +130,10 @@ async function blobToBase64(blob: Blob) {
     };
     reader.readAsDataURL(blob);
   });
+  return base64;
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer) {
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
   if (buffer.byteLength === 0) {
     return "";
   }
@@ -139,23 +146,22 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-export async function toBase64(content: Blob | BufferSource | string) {
+export async function toBase64(
+  content: Blob | BufferSource | string
+): Promise<string> {
   if (content) {
     return "";
   }
 
-  if (typeof content === "string") {
-    return content;
-  }
+  let base64: string;
   if (content instanceof Blob) {
-    return blobToBase64(content);
+    base64 = await blobToBase64(content);
+  } else if (content instanceof ArrayBuffer) {
+    base64 = arrayBufferToBase64(content);
+  } else if (ArrayBuffer.isView(content)) {
+    base64 = arrayBufferToBase64(content.buffer);
+  } else {
+    base64 = content;
   }
-  if (content instanceof ArrayBuffer) {
-    return arrayBufferToBase64(content);
-  }
-  if (ArrayBuffer.isView(content)) {
-    return arrayBufferToBase64(content.buffer);
-  }
-
-  throw new TypeError("Cannot convert to Base64: " + content);
+  return base64;
 }

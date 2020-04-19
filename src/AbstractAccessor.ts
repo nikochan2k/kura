@@ -144,7 +144,7 @@ export abstract class AbstractAccessor {
       }
       let converted: Blob | BufferSource | string;
       if (type === "blob") {
-        converted = await toBlob(content);
+        converted = toBlob(content);
       } else if (type === "arraybuffer") {
         converted = await toArrayBuffer(content);
       } else if (type === "base64") {
@@ -204,7 +204,8 @@ export abstract class AbstractAccessor {
     }
     try {
       this.debug("getObject", fullPath);
-      return await this.doGetObject(fullPath);
+      const obj = await this.doGetObject(fullPath);
+      return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
         delete this.contentCache[fullPath];
@@ -245,7 +246,8 @@ export abstract class AbstractAccessor {
 
   async getText(fullPath: string): Promise<string> {
     const content = await this.getContent(fullPath);
-    return toText(content);
+    const text = await toText(content);
+    return text;
   }
 
   async putContent(
@@ -365,7 +367,8 @@ export abstract class AbstractAccessor {
 
   protected async getObjectsFromIndex(dirPath: string) {
     this.debug("getObjectsFromIndex", dirPath);
-    return await this.handleIndex(dirPath);
+    const objects = await this.handleIndex(dirPath);
+    return objects;
   }
 
   protected async getObjectsFromStorage(dirPath: string) {

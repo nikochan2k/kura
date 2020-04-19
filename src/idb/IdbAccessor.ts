@@ -62,13 +62,7 @@ export class IdbAccessor extends AbstractAccessor {
       const name = this.name;
       tx.oncomplete = () => {
         if (request.result != null) {
-          const content = request.result;
-          if (content.buffer) {
-            // TypedArray
-            resolve(content.buffer);
-          } else {
-            resolve(content);
-          }
+          resolve(request.result);
         } else {
           reject(new NotFoundError(name, fullPath));
         }
@@ -154,7 +148,7 @@ export class IdbAccessor extends AbstractAccessor {
     }
 
     const self = this;
-    return new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(dbName.replace(":", "_"));
       const onError = (ev: Event) => {
         console.log(ev);
@@ -195,7 +189,7 @@ export class IdbAccessor extends AbstractAccessor {
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = buffer;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = await toBlob(buffer);
+      content = toBlob(buffer);
     } else {
       content = await toBase64(buffer);
     }

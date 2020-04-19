@@ -8,12 +8,12 @@ import {
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
-async function blobToText(blob: Blob) {
+async function blobToText(blob: Blob): Promise<string> {
   if (blob.size === 0) {
     return "";
   }
 
-  return new Promise<string>((resolve, reject) => {
+  const text = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = (ev) => {
       reject(reader.error || ev);
@@ -23,36 +23,37 @@ async function blobToText(blob: Blob) {
     };
     reader.readAsText(blob);
   });
+  return text;
 }
 
-export async function toText(content: Blob | BufferSource | string) {
+export async function toText(
+  content: Blob | BufferSource | string
+): Promise<string> {
   if (!content) {
     return "";
   }
 
+  let text: string;
   if (typeof content === "string") {
-    return content;
+    text = content;
+  } else if (content instanceof ArrayBuffer) {
+    text = textDecoder.decode(content);
+  } else if (ArrayBuffer.isView(content)) {
+    text = textDecoder.decode(content.buffer);
+  } else {
+    text = await blobToText(content);
   }
-  if (content instanceof ArrayBuffer) {
-    return textDecoder.decode(content);
-  }
-  if (ArrayBuffer.isView(content)) {
-    return textDecoder.decode(content.buffer);
-  }
-  if (content instanceof Blob) {
-    return await blobToText(content);
-  }
-
-  throw new TypeError("Cannot convert to Text: " + content);
+  return text;
 }
 
-export async function base64ToText(base64: string) {
+export async function base64ToText(base64: string): Promise<string> {
   if (!base64) {
     return "";
   }
 
   const buffer = await toArrayBuffer(base64);
-  return toText(buffer);
+  const text = await toText(buffer);
+  return text;
 }
 
 export function textToBlob(text: string, type = DEFAULT_CONTENT_TYPE) {
@@ -71,11 +72,12 @@ export function textToArrayBuffer(text: string) {
   return textEncoder.encode(text);
 }
 
-export async function textToBase64(text: string) {
+export async function textToBase64(text: string): Promise<string> {
   if (!text) {
     return "";
   }
 
   const buffer = textEncoder.encode(text);
-  return await toBase64(buffer);
+  const base64 = await toBase64(buffer);
+  return base64;
 }
