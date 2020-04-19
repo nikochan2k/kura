@@ -142,20 +142,15 @@ export abstract class AbstractAccessor {
       if (!content) {
         content = await this.doGetContent(fullPath);
       }
-      let converted: Blob | BufferSource | string;
       if (type === "blob") {
-        converted = toBlob(content);
+        content = toBlob(content);
       } else if (type === "arraybuffer") {
-        converted = await toArrayBuffer(content);
+        content = await toArrayBuffer(content);
       } else if (type === "base64") {
-        converted = await toBase64(content);
+        content = await toBase64(content);
       }
-      if (content !== converted) {
-        this.putContentToCache(fullPath, converted);
-        return converted;
-      } else {
-        return content;
-      }
+      this.putContentToCache(fullPath, content);
+      return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
         delete this.contentCache[fullPath];
