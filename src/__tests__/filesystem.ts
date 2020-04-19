@@ -5,8 +5,9 @@ import {
   PathExistsError,
 } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
-import { blobToText, setChunkSize } from "../FileSystemUtil";
+import { setChunkSize } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
+import { toText } from "../TextConverter";
 
 const globalVar =
   typeof window !== "undefined"
@@ -84,7 +85,7 @@ export function testAll(
     file = await fileEntry.file();
     expect(file.size).toBe(10);
 
-    const str = await blobToText(file);
+    const str = await toText(file);
     expect(str).toBe("hogeふが");
 
     done();

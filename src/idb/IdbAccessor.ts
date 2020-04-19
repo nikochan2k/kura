@@ -1,4 +1,5 @@
 import { AbstractAccessor } from "../AbstractAccessor";
+import { toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
 import {
   InvalidModificationError,
   NotFoundError,
@@ -7,12 +8,6 @@ import {
 import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
-import {
-  arrayBufferToBase64,
-  arrayBufferToBlob,
-  blobToArrayBuffer,
-  blobToBase64,
-} from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
 
@@ -54,7 +49,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetContent(fullPath: string): Promise<Blob | ArrayBuffer | string> {
+  doGetContent(fullPath: string): Promise<Blob | BufferSource | string> {
     return new Promise<any>((resolve, reject) => {
       const onerror = (ev: Event) =>
         reject(new NotReadableError(this.name, fullPath, ev));
@@ -72,7 +67,7 @@ export class IdbAccessor extends AbstractAccessor {
             // TypedArray
             resolve(content.buffer);
           } else {
-            resolve(request);
+            resolve(content);
           }
         } else {
           reject(new NotFoundError(name, fullPath));
@@ -196,13 +191,13 @@ export class IdbAccessor extends AbstractAccessor {
     fullPath: string,
     buffer: ArrayBuffer
   ): Promise<void> {
-    let content: Blob | ArrayBuffer | string;
+    let content: Blob | BufferSource | string;
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = buffer;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = arrayBufferToBlob(buffer);
+      content = await toBlob(buffer);
     } else {
-      content = arrayBufferToBase64(buffer);
+      content = await toBase64(buffer);
     }
     await this.doPutContentToIdb(fullPath, content);
   }
@@ -212,13 +207,13 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   protected async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
-    let content: Blob | ArrayBuffer | string;
+    let content: Blob | BufferSource | string;
     if (IdbAccessor.SUPPORTS_BLOB) {
       content = blob;
     } else if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
-      content = await blobToArrayBuffer(blob);
+      content = await toArrayBuffer(blob);
     } else {
-      content = await blobToBase64(blob);
+      content = await toBase64(blob);
     }
     await this.doPutContentToIdb(fullPath, content);
   }

@@ -1,4 +1,4 @@
-import { CONTENT_TYPE } from "./FileSystemConstants";
+import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { NotFoundError } from "./FileError";
 
 export function createXMLHttpRequest(key: string, fullPath: string) {
@@ -39,7 +39,7 @@ export async function xhrGet(
 async function xhr(
   method: string,
   url: string,
-  content: Blob | ArrayBuffer | string,
+  content: Blob | BufferSource | string,
   type?: string,
   key?: string,
   fullPath?: string
@@ -51,7 +51,7 @@ async function xhr(
       type = content.type;
     }
     if (!type) {
-      type = CONTENT_TYPE;
+      type = DEFAULT_CONTENT_TYPE;
     }
   }
   xhr.setRequestHeader("Content-Type", type);
@@ -61,7 +61,7 @@ async function xhr(
 
 export async function xhrPut(
   url: string,
-  content: Blob | ArrayBuffer | string,
+  content: Blob | BufferSource | string,
   type?: string,
   key?: string,
   fullPath?: string
@@ -71,7 +71,7 @@ export async function xhrPut(
 
 export async function xhrPost(
   url: string,
-  content: Blob | ArrayBuffer | string,
+  content: Blob | BufferSource | string,
   type?: string,
   key?: string,
   fullPath?: string

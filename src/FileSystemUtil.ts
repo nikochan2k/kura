@@ -3,17 +3,13 @@ import { FileEntryAsync } from "./FileEntryAsync";
 import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import {
-  CONTENT_TYPE,
+  DEFAULT_CONTENT_TYPE,
   DIR_SEPARATOR,
-  EMPTY_ARRAY_BUFFER,
-  EMPTY_BLOB,
   LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
 
 let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
-const textDecoder = new TextDecoder();
-const textEncoder = new TextEncoder();
 
 export function setChunkSize(size: number) {
   if (size % 3 !== 0) {
@@ -85,7 +81,7 @@ export function blobToFile(
 ) {
   const file = new File(fileBits, name, {
     lastModified: lastModified,
-    type: type || CONTENT_TYPE,
+    type: type || DEFAULT_CONTENT_TYPE,
   });
   return file;
 }
@@ -98,198 +94,14 @@ export function dataUrlToBase64(dataUrl: string) {
   return dataUrl;
 }
 
-async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
-  if (blob.size === 0) {
-    return EMPTY_ARRAY_BUFFER;
-  }
-  return new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = (ev) => {
-      reject(reader.error || ev);
-    };
-    reader.onload = () => {
-      resolve(reader.result as ArrayBuffer);
-    };
-    reader.readAsArrayBuffer(blob);
-  });
-}
-
-async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
-  const base64 = await blobToBase64(blob);
-  if (!base64) {
-    return EMPTY_ARRAY_BUFFER;
-  }
-
-  const buffer = new ArrayBuffer(blob.size);
-  const view = new Uint8Array(buffer);
-  const content = atob(base64);
-  view.set(Array.from(content).map((c) => c.charCodeAt(0)));
-  return buffer;
-}
-
-export async function blobToArrayBuffer(blob: Blob) {
-  if (blob.size === 0) {
-    return EMPTY_ARRAY_BUFFER;
-  }
-
-  if (navigator && navigator.product === "ReactNative") {
-    return blobToArrayBufferUsingReadAsDataUrl(blob);
-  } else {
-    return blobToArrayBufferUsingReadAsArrayBuffer(blob);
-  }
-}
-
-export async function blobToBase64(blob: Blob) {
-  if (blob.size === 0) {
-    return "";
-  }
-
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = function (ev) {
-      reject(reader.error || ev);
-    };
-    reader.onload = function () {
-      const base64 = dataUrlToBase64(reader.result as string);
-      resolve(base64);
-    };
-    reader.readAsDataURL(blob);
-  });
-}
-
-export function arrayBufferToBase64(buffer: ArrayBuffer) {
-  if (buffer.byteLength === 0) {
-    return "";
-  }
-
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  for (var i = 0, end = bytes.byteLength; i < end; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-export function arrayBufferToBlob(buffer: ArrayBuffer) {
-  if (buffer.byteLength === 0) {
-    return EMPTY_BLOB;
-  }
-
-  return new Blob([new Uint8Array(buffer)]);
-}
-
-export function arrayBufferToText(buffer: ArrayBuffer) {
-  if (buffer.byteLength === 0) {
-    return "";
-  }
-
-  return textDecoder.decode(buffer);
-}
-
-export async function blobToText(blob: Blob) {
-  if (!blob || blob.size === 0) {
-    return "";
-  }
-
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = (ev) => {
-      reject(reader.error || ev);
-    };
-    reader.onload = () => {
-      resolve(reader.result as string);
-    };
-    reader.readAsText(blob);
-  });
-}
-
-export function base64ToArrayBuffer(base64: string) {
-  const bin = atob(base64);
-  const len = bin.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = bin.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
-  if (!base64) {
-    return EMPTY_BLOB;
-  }
-
-  try {
-    var bin = atob(base64);
-  } catch (e) {
-    console.trace(e, base64);
-    return EMPTY_BLOB;
-  }
-  const length = bin.length;
-  const ab = new ArrayBuffer(bin.length);
-  const ua = new Uint8Array(ab);
-  for (var i = 0; i < length; i++) {
-    ua[i] = bin.charCodeAt(i);
-  }
-  const blob = new Blob([ua], { type: type });
-  return blob;
-}
-
-export function base64ToText(base64: string) {
-  if (!base64) {
-    return "";
-  }
-
-  const buffer = base64ToArrayBuffer(base64);
-  return arrayBufferToText(buffer);
-}
-
-export function textToObject(text: string) {
-  try {
-    const obj = JSON.parse(text);
-    return obj;
-  } catch (e) {
-    console.warn(e, text);
-    return null;
-  }
-}
-
-export function textToBlob(text: string, type = CONTENT_TYPE) {
-  if (!text) {
-    return EMPTY_BLOB;
-  }
-
-  return new Blob([text], { type });
-}
-
-export function textToArrayBuffer(text: string) {
-  if (!text) {
-    return EMPTY_ARRAY_BUFFER;
-  }
-
-  return textEncoder.encode(text);
-}
-
-export function textToBase64(text: string) {
-  if (!text) {
-    return "";
-  }
-
-  const buffer = textEncoder.encode(text);
-  return arrayBufferToBase64(buffer);
-}
-
 export function createEmptyFile(name: string) {
   return new File([], name, {
     lastModified: Date.now(),
-    type: CONTENT_TYPE,
+    type: DEFAULT_CONTENT_TYPE,
   });
 }
 
-export function objectToText(obj: any) {
-  return JSON.stringify(obj);
-}
-
-export function getSize(content: Blob | ArrayBuffer | string) {
+export function getSize(content: Blob | BufferSource | string) {
   if (!content) {
     return 0;
   }
@@ -298,6 +110,8 @@ export function getSize(content: Blob | ArrayBuffer | string) {
   if (content instanceof Blob) {
     size = content.size;
   } else if (content instanceof ArrayBuffer) {
+    size = content.byteLength;
+  } else if (ArrayBuffer.isView(content)) {
     size = content.byteLength;
   } else {
     size = Math.floor(content.replace(/=/g, "").length * 0.75); // Base64

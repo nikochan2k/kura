@@ -13,11 +13,11 @@ import {
   TextCallback,
   VoidCallback,
 } from "./filesystem";
-import { CONTENT_TYPE } from "./FileSystemConstants";
-import { FileSystemParams } from "./FileSystemParams";
-import { onError, getSize, getTextSize } from "./FileSystemUtil";
-import { FileWriterAsync } from "./FileWriterAsync";
+import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
+import { FileSystemParams } from "./FileSystemParams";
+import { getSize, getTextSize, onError } from "./FileSystemUtil";
+import { FileWriterAsync } from "./FileWriterAsync";
 
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
@@ -96,7 +96,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
           return;
         }
         const file = new File([blob], this.params.name, {
-          type: CONTENT_TYPE,
+          type: DEFAULT_CONTENT_TYPE,
           lastModified: this.params.lastModified,
         });
         this.fileWriter = this.createFileWriter(file);
@@ -168,7 +168,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
   }
 
   writeFile(
-    content: Blob | ArrayBuffer | string,
+    content: Blob | BufferSource | string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void {
