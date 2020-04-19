@@ -33,8 +33,11 @@ export async function toText(content: Blob | BufferSource | string) {
   if (typeof content === "string") {
     return content;
   }
-  if (ArrayBuffer.isView(content)) {
+  if (content instanceof ArrayBuffer) {
     return textDecoder.decode(content);
+  }
+  if (ArrayBuffer.isView(content)) {
+    return textDecoder.decode(content.buffer);
   }
   if (content instanceof Blob) {
     return await blobToText(content);
