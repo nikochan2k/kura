@@ -35,7 +35,7 @@ export async function toText(
 
   let text: string;
   if (typeof content === "string") {
-    text = content;
+    text = await base64ToText(content);
   } else if (content instanceof ArrayBuffer) {
     text = textDecoder.decode(new Uint8Array(content));
   } else if (ArrayBuffer.isView(content)) {
