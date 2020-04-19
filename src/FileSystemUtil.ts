@@ -4,13 +4,11 @@ import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import {
   CONTENT_TYPE,
-  DEFAULT_BLOB_PROPS,
   DIR_SEPARATOR,
   EMPTY_ARRAY_BUFFER,
   EMPTY_BLOB,
   LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
-import { xhrGet } from "./XHRUtil";
 
 let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
@@ -20,17 +18,6 @@ export function setChunkSize(size: number) {
     throw new Error("slice size should be divisible by 3");
   }
   chunkSize = size;
-}
-
-export function stringify(obj: any) {
-  const json = JSON.stringify(obj);
-  if (navigator && navigator.product === "ReactNative") {
-    const escaped = json.replace(/[\u007F-\uFFFF]/g, function (chr) {
-      return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
-    });
-    return escaped;
-  }
-  return json;
 }
 
 export function getParentPath(fullPath: string) {
@@ -263,21 +250,14 @@ export function createEmptyFile(name: string) {
 }
 
 export function objectToText(obj: any) {
-  if (!obj) {
-    return "";
-  }
-  return stringify(obj);
-}
-
-export function objectToBlob(obj: any) {
-  const text = objectToText(obj);
-  if (!text) {
-    return EMPTY_BLOB;
-  }
-  return new Blob([text], DEFAULT_BLOB_PROPS);
+  return JSON.stringify(obj);
 }
 
 export function getSize(content: Blob | ArrayBuffer | string) {
+  if (!content) {
+    return 0;
+  }
+
   let size: number;
   if (content instanceof Blob) {
     size = content.size;

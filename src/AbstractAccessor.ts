@@ -22,8 +22,8 @@ import {
   getName,
   getParentPath,
   getSize,
-  stringify,
   textToObject,
+  objectToText,
 } from "./FileSystemUtil";
 
 const ROOT_OBJECT: FileSystemObject = {
@@ -305,7 +305,7 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    const text = stringify(dirPathIndex);
+    const text = objectToText(dirPathIndex);
     await this.doPutText(INDEX_FILE_PATH, text);
   }
 
@@ -404,6 +404,7 @@ export abstract class AbstractAccessor {
   abstract doGetContent(fullPath: string): Promise<Blob | ArrayBuffer | string>;
   abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
+  abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -533,7 +534,6 @@ export abstract class AbstractAccessor {
     base64: string
   ): Promise<void>;
   protected abstract doPutBlob(fullPath: string, blob: Blob): Promise<void>;
-  abstract doPutObject(obj: FileSystemObject): Promise<void>;
 
   private async checkAddPermission(fullPath: string, record: Record) {
     if (!this.options.permission.onAdd) {
