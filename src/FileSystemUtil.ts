@@ -12,6 +12,8 @@ import {
 
 let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
+const textDecoder = new TextDecoder();
+const textEncoder = new TextEncoder();
 
 export function setChunkSize(size: number) {
   if (size % 3 !== 0) {
@@ -176,6 +178,14 @@ export function arrayBufferToBlob(buffer: ArrayBuffer) {
   return new Blob([new Uint8Array(buffer)]);
 }
 
+export function arrayBufferToText(buffer: ArrayBuffer) {
+  if (buffer.byteLength === 0) {
+    return "";
+  }
+
+  return textDecoder.decode(buffer);
+}
+
 export async function blobToText(blob: Blob) {
   if (!blob || blob.size === 0) {
     return "";
@@ -224,6 +234,15 @@ export function base64ToBlob(base64: string, type = CONTENT_TYPE) {
   return blob;
 }
 
+export function base64ToText(base64: string) {
+  if (!base64) {
+    return "";
+  }
+
+  const buffer = base64ToArrayBuffer(base64);
+  return arrayBufferToText(buffer);
+}
+
 export function textToObject(text: string) {
   try {
     const obj = JSON.parse(text);
@@ -232,6 +251,31 @@ export function textToObject(text: string) {
     console.warn(e, text);
     return null;
   }
+}
+
+export function textToBlob(text: string, type = CONTENT_TYPE) {
+  if (!text) {
+    return EMPTY_BLOB;
+  }
+
+  return new Blob([text], { type });
+}
+
+export function textToArrayBuffer(text: string) {
+  if (!text) {
+    return EMPTY_ARRAY_BUFFER;
+  }
+
+  return textEncoder.encode(text);
+}
+
+export function textToBase64(text: string) {
+  if (!text) {
+    return "";
+  }
+
+  const buffer = textEncoder.encode(text);
+  return arrayBufferToBase64(buffer);
 }
 
 export function createEmptyFile(name: string) {

@@ -14,8 +14,10 @@ import { FileSystemOptions } from "./FileSystemOptions";
 import {
   arrayBufferToBase64,
   arrayBufferToBlob,
+  arrayBufferToText,
   base64ToArrayBuffer,
   base64ToBlob,
+  base64ToText,
   blobToArrayBuffer,
   blobToBase64,
   blobToText,
@@ -23,6 +25,7 @@ import {
   getParentPath,
   getSize,
   objectToText,
+  textToArrayBuffer,
   textToObject,
 } from "./FileSystemUtil";
 
@@ -47,8 +50,6 @@ export abstract class AbstractAccessor {
   private contentCache: { [fullPath: string]: ContentCacheEntry } = {};
   private dirPathIndex: DirPathIndex;
   private dirPathIndexUpdated: boolean;
-  private textDecoder = new TextDecoder();
-  private textEncoder = new TextEncoder();
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -275,7 +276,7 @@ export abstract class AbstractAccessor {
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
     const text = objectToText(dirPathIndex);
-    const buffer = this.textToArrayBuffer(text);
+    const buffer = textToArrayBuffer(text);
     await this.doPutContent(INDEX_FILE_PATH, buffer);
   }
 
@@ -327,7 +328,7 @@ export abstract class AbstractAccessor {
   }
 
   async putText(fullPath: string, text: string): Promise<void> {
-    const buffer = this.textToArrayBuffer(text);
+    const buffer = textToArrayBuffer(text);
     await this.putContent(fullPath, buffer);
   }
 
@@ -590,11 +591,6 @@ export abstract class AbstractAccessor {
     this.contentCache[fullPath] = { content, access: Date.now(), size };
   }
 
-  private textToArrayBuffer(text: string) {
-    const view = this.textEncoder.encode(text);
-    return view.buffer;
-  }
-
   private async toArrayBuffer(
     content: Blob | ArrayBuffer | string
   ): Promise<ArrayBuffer> {
@@ -633,10 +629,9 @@ export abstract class AbstractAccessor {
     if (content instanceof Blob) {
       return blobToText(content);
     } else if (content instanceof ArrayBuffer) {
-      return this.textDecoder.decode(content);
+      return arrayBufferToText(content);
     } else {
-      const buffer = base64ToArrayBuffer(content);
-      return this.textDecoder.decode(buffer);
+      return base64ToText(content);
     }
   }
 }
