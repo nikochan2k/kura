@@ -67,7 +67,13 @@ export class IdbAccessor extends AbstractAccessor {
       const name = this.name;
       tx.oncomplete = () => {
         if (request.result != null) {
-          resolve(request.result);
+          const content = request.result;
+          if (content.buffer) {
+            // TypedArray
+            resolve(content.buffer);
+          } else {
+            resolve(request);
+          }
         } else {
           reject(new NotFoundError(name, fullPath));
         }
