@@ -29,7 +29,7 @@ const ROOT_RECORD: Record = {
 
 interface ContentCacheEntry {
   access: number;
-  content: Blob | BufferSource | string;
+  content: Blob | Uint8Array | ArrayBuffer | string;
   size: number;
 }
 
@@ -115,13 +115,16 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async doPutContent(fullPath: string, content: Blob | BufferSource | string) {
+  async doPutContent(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ) {
     if (content instanceof Blob) {
       await this.doPutBlob(fullPath, content);
     } else if (content instanceof ArrayBuffer) {
       await this.doPutArrayBuffer(fullPath, content);
-    } else if (ArrayBuffer.isView(content)) {
-      await this.doPutArrayBuffer(fullPath, content.buffer);
+    } else if (content instanceof Uint8Array) {
+      await this.doPutUint8Array(fullPath, content);
     } else {
       await this.doPutBase64(fullPath, content);
     }
@@ -131,7 +134,7 @@ export abstract class AbstractAccessor {
   async getContent(
     fullPath: string,
     type?: DataType
-  ): Promise<Blob | BufferSource | string> {
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     if (this.options.useIndex) {
       await this.checkGetPermission(fullPath);
     }
@@ -247,7 +250,7 @@ export abstract class AbstractAccessor {
 
   async putContent(
     fullPath: string,
-    content: Blob | BufferSource | string
+    content: Blob | Uint8Array | ArrayBuffer | string
   ): Promise<void> {
     try {
       this.debug("putContent", fullPath);
@@ -342,7 +345,7 @@ export abstract class AbstractAccessor {
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   abstract doGetContent(
     fullPath: string
-  ): Promise<Blob | BufferSource | string>;
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
   abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
   abstract doPutObject(obj: FileSystemObject): Promise<void>;
@@ -358,6 +361,14 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
+  }
+
+  protected async doPutUint8Array(
+    fullPath: string,
+    view: Uint8Array
+  ): Promise<void> {
+    const buffer = await toArrayBuffer(view);
+    await this.doPutArrayBuffer(fullPath, buffer);
   }
 
   protected async getObjectsFromIndex(dirPath: string) {
@@ -536,7 +547,7 @@ export abstract class AbstractAccessor {
 
   private putContentToCache(
     fullPath: string,
-    content: Blob | BufferSource | string
+    content: Blob | Uint8Array | ArrayBuffer | string
   ) {
     if (this.options.contentCacheCapacity <= 0) {
       // No cache.

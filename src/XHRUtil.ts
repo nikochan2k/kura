@@ -39,7 +39,7 @@ export async function xhrGet(
 async function xhr(
   method: string,
   url: string,
-  content: Blob | BufferSource | string,
+  content: Blob | Uint8Array | ArrayBuffer | string,
   type?: string,
   key?: string,
   fullPath?: string
@@ -61,7 +61,7 @@ async function xhr(
 
 export async function xhrPut(
   url: string,
-  content: Blob | BufferSource | string,
+  content: Blob | Uint8Array | ArrayBuffer | string,
   type?: string,
   key?: string,
   fullPath?: string
@@ -71,7 +71,7 @@ export async function xhrPut(
 
 export async function xhrPost(
   url: string,
-  content: Blob | BufferSource | string,
+  content: Blob | Uint8Array | ArrayBuffer | string,
   type?: string,
   key?: string,
   fullPath?: string

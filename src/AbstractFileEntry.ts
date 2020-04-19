@@ -168,7 +168,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
   }
 
   writeFile(
-    content: Blob | BufferSource | string,
+    content: Blob | Uint8Array | ArrayBuffer | string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void {

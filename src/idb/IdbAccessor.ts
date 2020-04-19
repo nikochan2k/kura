@@ -49,7 +49,9 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetContent(fullPath: string): Promise<Blob | BufferSource | string> {
+  doGetContent(
+    fullPath: string
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     return new Promise<any>((resolve, reject) => {
       const onerror = (ev: Event) =>
         reject(new NotReadableError(this.name, fullPath, ev));
@@ -185,7 +187,7 @@ export class IdbAccessor extends AbstractAccessor {
     fullPath: string,
     buffer: ArrayBuffer
   ): Promise<void> {
-    let content: Blob | BufferSource | string;
+    let content: Blob | Uint8Array | ArrayBuffer | string;
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = buffer;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
@@ -201,7 +203,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   protected async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
-    let content: Blob | BufferSource | string;
+    let content: Blob | Uint8Array | ArrayBuffer | string;
     if (IdbAccessor.SUPPORTS_BLOB) {
       content = blob;
     } else if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {

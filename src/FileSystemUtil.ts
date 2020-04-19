@@ -101,7 +101,7 @@ export function createEmptyFile(name: string) {
   });
 }
 
-export function getSize(content: Blob | BufferSource | string) {
+export function getSize(content: Blob | Uint8Array | ArrayBuffer | string) {
   if (!content) {
     return 0;
   }
