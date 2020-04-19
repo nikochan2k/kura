@@ -1,5 +1,5 @@
 import { decode, encode } from "base-64";
-import "fast-text-encoding";
+import * as TextEncodingShim from "text-encoding-shim";
 
 const globalVar =
   typeof window !== "undefined"
@@ -13,4 +13,10 @@ if (!globalVar.atob) {
 }
 if (!globalVar.btoa) {
   globalVar.btoa = encode;
+}
+if (!globalVar.TextDecoder) {
+  globalVar.TextDecoder = TextEncodingShim.TextDecoder;
+}
+if (!globalVar.TextEncoder) {
+  globalVar.TextEncoder = TextEncodingShim.TextEncoder;
 }
