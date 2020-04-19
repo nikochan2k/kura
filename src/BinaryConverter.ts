@@ -170,7 +170,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 export async function toBase64(
   content: Blob | Uint8Array | ArrayBuffer | string
 ): Promise<string> {
-  if (content) {
+  if (!content) {
     return "";
   }
 
