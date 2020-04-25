@@ -30,10 +30,10 @@ export async function xhrGet(
   fullPath?: string
 ): Promise<any> {
   const { xhr, promise } = createXMLHttpRequest(key, fullPath);
+  xhr.open("GET", url);
   xhr.setRequestHeader("Pragma", "no-cache");
   xhr.setRequestHeader("Cache-Control", "no-cache");
   xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
-  xhr.open("GET", url);
   xhr.responseType = responseType;
   xhr.send();
   return await promise;
