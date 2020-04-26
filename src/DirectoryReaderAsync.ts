@@ -1,7 +1,7 @@
-import { createEntry } from "./FileSystemUtil";
-import { DirectoryEntry, DirectoryReader, FileEntry } from "./filesystem";
 import { EntryAsync } from "./EntryAsync";
+import { DirectoryReader, Entry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
+import { createEntry } from "./FileSystemUtil";
 
 export class DirectoryReaderAsync {
   constructor(
@@ -9,20 +9,18 @@ export class DirectoryReaderAsync {
     private directoryReader: DirectoryReader
   ) {}
 
-  readEntries(): Promise<EntryAsync<FileEntry | DirectoryEntry>[]> {
-    return new Promise<EntryAsync<FileEntry | DirectoryEntry>[]>(
-      (resolve, reject) => {
-        this.directoryReader.readEntries(
-          entries => {
-            resolve(
-              entries.map(entry => createEntry(this.fileSystemAsync, entry))
-            );
-          },
-          error => {
-            reject(error);
-          }
-        );
-      }
-    );
+  readEntries(): Promise<EntryAsync<Entry>[]> {
+    return new Promise<EntryAsync<Entry>[]>((resolve, reject) => {
+      this.directoryReader.readEntries(
+        (entries) => {
+          resolve(
+            entries.map((entry) => createEntry(this.fileSystemAsync, entry))
+          );
+        },
+        (err) => {
+          reject(err);
+        }
+      );
+    });
   }
 }

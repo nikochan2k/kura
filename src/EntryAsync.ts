@@ -33,12 +33,12 @@ export abstract class EntryAsync<T extends Entry> {
         this.entry.copyTo(
           parent.entry,
           newName,
-          entry => {
+          (entry) => {
             const entryAsync = createEntry(this.fileSystemAsync, entry);
             resolve(entryAsync);
           },
-          error => {
-            reject(error);
+          (err) => {
+            reject(err);
           }
         );
       }
@@ -48,11 +48,11 @@ export abstract class EntryAsync<T extends Entry> {
   getMetadata(): Promise<Metadata> {
     return new Promise<Metadata>((resolve, reject) => {
       this.entry.getMetadata(
-        metadata => {
+        (metadata) => {
           resolve(metadata);
         },
-        error => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -61,11 +61,11 @@ export abstract class EntryAsync<T extends Entry> {
   getParent(): Promise<DirectoryEntryAsync> {
     return new Promise<DirectoryEntryAsync>((resolve, reject) => {
       this.entry.getParent(
-        entry => {
+        (entry) => {
           resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
         },
-        error => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -80,12 +80,12 @@ export abstract class EntryAsync<T extends Entry> {
         this.entry.moveTo(
           parent.entry,
           newName,
-          entry => {
+          (entry) => {
             const entryAsync = createEntry(this.fileSystemAsync, entry);
             resolve(entryAsync);
           },
-          error => {
-            reject(error);
+          (err) => {
+            reject(err);
           }
         );
       }
@@ -98,12 +98,12 @@ export abstract class EntryAsync<T extends Entry> {
         () => {
           resolve();
         },
-        error => {
-          if (error instanceof NotFoundError) {
+        (err) => {
+          if (err instanceof NotFoundError) {
             resolve();
             return;
           }
-          reject(error);
+          reject(err);
         }
       );
     });

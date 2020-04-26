@@ -14,8 +14,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
         (fileWriter) => {
           resolve(new FileWriterAsync(fileWriter));
         },
-        (error) => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -27,8 +27,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
         (file) => {
           resolve(file);
         },
-        (error) => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -41,8 +41,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
           (content) => {
             resolve(content);
           },
-          (error) => {
-            reject(error);
+          (err) => {
+            reject(err);
           },
           type
         );
@@ -56,8 +56,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
         (text) => {
           resolve(text);
         },
-        (error) => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -70,8 +70,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
         () => {
           resolve();
         },
-        (error) => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -84,8 +84,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
         () => {
           resolve();
         },
-        (error) => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });

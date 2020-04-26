@@ -240,6 +240,13 @@ export interface DirectoryEntry extends Entry {
   ): void;
 
   /**
+   * Read the next block of entries from this directory.
+   * @param successCallback Called once per successful call to readEntries to deliver the next previously-unreported set of Entries in the associated Directory. If all Entries have already been returned from previous invocations of readEntries, successCallback must be called with a zero-length array as an argument.
+   * @param errorCallback A callback indicating that there was an error reading from the Directory.
+   */
+  list(successCallback: EntriesCallback, errorCallback?: ErrorCallback): void;
+
+  /**
    * Deletes a directory and all of its contents, if any. In the event of an error [e.g. trying to delete a directory that contains a file that cannot be removed], some of the contents of the directory may be deleted. It is an error to attempt to delete the root directory of a filesystem.
    * @param successCallback A callback that is called on success.
    * @param errorCallback A callback that is called when errors happen.

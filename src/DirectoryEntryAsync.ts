@@ -1,9 +1,10 @@
-import { DirectoryEntry, Flags } from "./filesystem";
 import { DirectoryReaderAsync } from "./DirectoryReaderAsync";
 import { EntryAsync } from "./EntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
-import { FileSystemAsync } from "./FileSystemAsync";
 import { NotFoundError } from "./FileError";
+import { DirectoryEntry, Entry, Flags } from "./filesystem";
+import { FileSystemAsync } from "./FileSystemAsync";
+import { createEntry } from "./FileSystemUtil";
 
 export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
   constructor(
@@ -25,15 +26,15 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
       this.entry.getDirectory(
         path,
         options,
-        entry => {
+        (entry) => {
           resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
         },
-        error => {
-          if (error instanceof NotFoundError) {
+        (err) => {
+          if (err instanceof NotFoundError) {
             resolve(null);
             return;
           }
-          reject(error);
+          reject(err);
         }
       );
     });
@@ -44,15 +45,30 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
       this.entry.getFile(
         path,
         options,
-        entry => {
+        (entry) => {
           resolve(new FileEntryAsync(this.fileSystemAsync, entry));
         },
-        error => {
-          if (error instanceof NotFoundError) {
+        (err) => {
+          if (err instanceof NotFoundError) {
             resolve(null);
             return;
           }
-          reject(error);
+          reject(err);
+        }
+      );
+    });
+  }
+
+  list(): Promise<EntryAsync<Entry>[]> {
+    return new Promise<EntryAsync<Entry>[]>((resolve, reject) => {
+      this.entry.list(
+        (entries) => {
+          resolve(
+            entries.map((entry) => createEntry(this.fileSystemAsync, entry))
+          );
+        },
+        (err) => {
+          reject(err);
         }
       );
     });
@@ -64,8 +80,8 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
         () => {
           resolve();
         },
-        error => {
-          reject(error);
+        (err) => {
+          reject(err);
         }
       );
     });
