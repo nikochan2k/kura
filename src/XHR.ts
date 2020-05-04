@@ -15,6 +15,9 @@ export class XHR {
     private fullPath?: string,
     options?: XHROptions
   ) {
+    if (options == null) {
+      options = {};
+    }
     if (options.noCache == null) {
       options.noCache = true;
     }
