@@ -1,16 +1,31 @@
 import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { NotFoundError } from "./FileError";
 
-interface XHROptions {
-  fullPath?: string;
-  key?: string;
+export interface XHROptions {
   noCache?: boolean;
-  requestHeaders?: { [key: string]: string };
   timeout?: number;
+  requestHeaders?: { [key: string]: string };
 }
 
 export class XHR {
-  constructor(private options: XHROptions = { noCache: true, timeout: 3000 }) {}
+  private options: XHROptions;
+
+  constructor(
+    private key?: string,
+    private fullPath?: string,
+    options?: XHROptions
+  ) {
+    if (options.noCache == null) {
+      options.noCache = true;
+    }
+    if (!(0 <= options.timeout)) {
+      options.timeout = 3000;
+    }
+    if (options.requestHeaders == null) {
+      options.requestHeaders = {};
+    }
+    this.options = options;
+  }
 
   async get(
     url: string,
@@ -74,9 +89,7 @@ export class XHR {
         if ((200 <= xhr.status && xhr.status < 300) || xhr.status === 304) {
           resolve(xhr.response);
         } else if (xhr.status === 404) {
-          reject(
-            new NotFoundError(this.options.key, this.options.fullPath, error)
-          );
+          reject(new NotFoundError(this.key, this.fullPath, error));
         }
         reject(`${xhr.status}(${xhr.statusText}): ${error}`);
       };
