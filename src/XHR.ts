@@ -10,23 +10,15 @@ interface XHROptions {
 }
 
 export class XHR {
-  constructor(private options: XHROptions) {
-    if (options.noCache == null) {
-      options.noCache = true;
-    }
-    if (options.timeout == null) {
-      options.timeout = 3000;
-    } else if (options.timeout < 0) {
-      options.timeout = 0;
-    }
-  }
+  constructor(private options: XHROptions = { noCache: true, timeout: 3000 }) {}
 
-  async xhrGet(
+  async get(
     url: string,
     responseType: XMLHttpRequestResponseType
   ): Promise<any> {
     const { xhr, promise } = this.createXMLHttpRequest();
     xhr.open("GET", url);
+    this.configure(xhr);
     if (this.options.noCache) {
       xhr.setRequestHeader("Pragma", "no-cache");
       xhr.setRequestHeader("Cache-Control", "no-cache");
@@ -40,7 +32,7 @@ export class XHR {
     return await promise;
   }
 
-  async xhrPost(
+  async post(
     url: string,
     content: Blob | Uint8Array | ArrayBuffer | string,
     type?: string
@@ -48,7 +40,7 @@ export class XHR {
     await this.xhr("POST", url, content, type);
   }
 
-  async xhrPut(
+  async put(
     url: string,
     content: Blob | Uint8Array | ArrayBuffer | string,
     type?: string
@@ -100,6 +92,7 @@ export class XHR {
   ): Promise<void> {
     const { xhr, promise } = this.createXMLHttpRequest();
     xhr.open(method, url);
+    this.configure(xhr);
     if (!type) {
       if (content instanceof Blob) {
         type = content.type;
