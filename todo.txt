@@ -1,5 +1,7 @@
 ■Indexをキャッシュする
 　□キャッシュアルゴリズムを変える
 ・Typescriptのままnpm publishする方法
-□ES6でコンパイル
-□IDBに保存する際にArrayBufferにする
+×ES6でコンパイル
+レIDBに保存する際にArrayBufferにする
+□オリジナルのfilesystemをラップする
+□CacheStorageを使う

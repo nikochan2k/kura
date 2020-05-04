@@ -19,7 +19,7 @@ export * from "./FileSystemIndex";
 export * from "./FileSystemObject";
 export * from "./FileSystemParams";
 export * from "./FileSystemUtil";
-export * from "./XHRUtil";
+export * from "./XHR";
 export * from "./filewriter";
 export * from "./FileWriterAsync";
 export * from "./LocalFileSystemAsync";
