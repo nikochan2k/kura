@@ -75,7 +75,9 @@ export abstract class AbstractAccessor {
         const dirPath = getParentPath(fullPath);
         await this.handleIndex(dirPath, async () => {
           this.debug("delete", fullPath);
-          await this.doDelete(fullPath, isFile);
+          if (this.options.logicalDelete) {
+            await this.doDelete(fullPath, isFile);
+          }
           if (record.deleted == null) {
             record.deleted = Date.now();
           }
