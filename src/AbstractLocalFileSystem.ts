@@ -4,7 +4,7 @@ import {
   EntryCallback,
   ErrorCallback,
   FileSystemCallback,
-  LocalFileSystem
+  LocalFileSystem,
 } from "./filesystem";
 import { FileSystemOptions } from "./FileSystemOptions";
 import { onError } from "./FileSystemUtil";
@@ -21,7 +21,6 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   TEMPORARY: number;
 
   constructor(protected options: FileSystemOptions = {}) {
-    if (options.useIndex == null) options.useIndex = false;
     if (options.permission == null) options.permission = {};
     if (options.verbose == null) options.verbose = false;
     this.PERSISTENT = window.PERSISTENT;
@@ -35,10 +34,10 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     errorCallback?: ErrorCallback | undefined
   ): void {
     this.createAccessor()
-      .then(accessor => {
+      .then((accessor) => {
         successCallback(accessor.filesystem);
       })
-      .catch(err => {
+      .catch((err) => {
         onError(err, errorCallback);
       });
   }

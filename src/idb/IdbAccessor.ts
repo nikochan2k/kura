@@ -277,6 +277,15 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  protected initializeContentCacheOptions(options: FileSystemOptions) {
+    if (options.contentsCache) {
+      if (options.contentsCacheOptions.private == null) {
+        options.contentsCacheOptions.private = true;
+      }
+    }
+    super.initializeContentCacheOptions(options);
+  }
+
   private doPutContentToIdb(fullPath: string, content: any) {
     return new Promise<void>((resolve, reject) => {
       const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");

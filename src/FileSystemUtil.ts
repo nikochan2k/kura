@@ -131,7 +131,7 @@ export async function vacuum(filesystem: FileSystem) {
 
   const afs = filesystem as AbstractFileSystem<AbstractAccessor>;
   const accessor = afs.accessor;
-  if (!accessor.options.useIndex) {
+  if (!accessor.options.index) {
     console.info("This filesystem does not use index.");
     return;
   }

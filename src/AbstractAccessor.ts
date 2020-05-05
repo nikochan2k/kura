@@ -1,4 +1,5 @@
 import { toArrayBuffer, toBase64, toBlob } from "./BinaryConverter";
+import { ContentsCache } from "./ContentsCache";
 import {
   AbstractFileError,
   InvalidModificationError,
@@ -12,7 +13,7 @@ import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import { getName, getParentPath, getSize } from "./FileSystemUtil";
+import { getName, getParentPath } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
@@ -27,14 +28,8 @@ const ROOT_RECORD: Record = {
   updated: 0,
 };
 
-interface ContentCacheEntry {
-  access: number;
-  content: Blob | Uint8Array | ArrayBuffer | string;
-  size: number;
-}
-
 export abstract class AbstractAccessor {
-  private contentCache: { [fullPath: string]: ContentCacheEntry } = {};
+  private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
   private dirPathIndexUpdated: boolean;
 
@@ -42,24 +37,7 @@ export abstract class AbstractAccessor {
   abstract readonly name: string;
 
   constructor(public readonly options: FileSystemOptions) {
-    if (options.contentCacheCapacity == null) {
-      options.contentCacheCapacity = 10 * 1024 * 1024; // 10MB
-    }
-    if (options.indexWriteDelayMillis == null) {
-      options.indexWriteDelayMillis = 3000;
-    }
-    if (0 < options.indexWriteDelayMillis) {
-      setInterval(async () => {
-        if (!this.dirPathIndexUpdated) {
-          return;
-        }
-        try {
-          const dirPathIndex = await this.getDirPathIndex();
-          await this.putDirPathIndex(dirPathIndex);
-          this.dirPathIndexUpdated = false;
-        } catch {}
-      }, options.indexWriteDelayMillis);
-    }
+    this.initialize(options);
   }
 
   async delete(fullPath: string, isFile: boolean) {
@@ -69,13 +47,13 @@ export abstract class AbstractAccessor {
 
     try {
       await this.doGetObject(fullPath); // Check existance.
-      if (this.options.useIndex) {
+      if (this.options.index) {
         const record = await this.getRecord(fullPath);
         await this.checkDeletePermission(fullPath, record);
         const dirPath = getParentPath(fullPath);
         await this.handleIndex(dirPath, async () => {
           this.debug("delete", fullPath);
-          if (this.options.logicalDelete) {
+          if (this.options.indexOptions.logicalDelete) {
             await this.doDelete(fullPath, isFile);
           }
           if (record.deleted == null) {
@@ -86,14 +64,14 @@ export abstract class AbstractAccessor {
         this.debug("delete", fullPath);
         await this.doDelete(fullPath, isFile);
       }
-      if (isFile) {
-        delete this.contentCache[fullPath];
+      if (isFile && this.contentsCache) {
+        this.contentsCache.remove(fullPath);
       }
     } catch (e) {
       if (e instanceof NotFoundError) {
         await this.removeFromIndex(fullPath);
-        if (isFile) {
-          delete this.contentCache[fullPath];
+        if (isFile && this.contentsCache) {
+          this.contentsCache.remove(fullPath);
         }
         return;
       } else if (e instanceof AbstractFileError) {
@@ -130,20 +108,22 @@ export abstract class AbstractAccessor {
     } else {
       await this.doPutBase64(fullPath, content);
     }
-    this.putContentToCache(fullPath, content);
   }
 
   async getContent(
-    fullPath: string,
+    obj: FileSystemObject,
     type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
-    if (this.options.useIndex) {
+    const fullPath = obj.fullPath;
+    if (this.options.index) {
       await this.checkGetPermission(fullPath);
     }
 
     try {
       this.debug("getContent", fullPath);
-      let content = this.getContentFromCache(fullPath);
+      if (this.contentsCache) {
+        var content = await this.contentsCache.get(fullPath);
+      }
       if (!content) {
         content = await this.doGetContent(fullPath);
       }
@@ -154,11 +134,15 @@ export abstract class AbstractAccessor {
       } else if (type === "base64") {
         content = await toBase64(content);
       }
-      this.putContentToCache(fullPath, content);
+      if (this.contentsCache) {
+        this.contentsCache.put(obj, content);
+      }
       return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        delete this.contentCache[fullPath];
+        if (this.contentsCache) {
+          this.contentsCache.remove(fullPath);
+        }
         await this.removeFromIndex(fullPath);
         throw e;
       } else if (e instanceof AbstractFileError) {
@@ -198,7 +182,7 @@ export abstract class AbstractAccessor {
     if (fullPath === DIR_SEPARATOR) {
       return ROOT_OBJECT;
     }
-    if (this.options.useIndex) {
+    if (this.options.index) {
       const record = await this.checkGetPermission(fullPath);
       return record.obj;
     }
@@ -208,7 +192,9 @@ export abstract class AbstractAccessor {
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        delete this.contentCache[fullPath];
+        if (this.contentsCache) {
+          this.contentsCache.remove(fullPath);
+        }
         throw e;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -219,7 +205,7 @@ export abstract class AbstractAccessor {
 
   async getObjects(dirPath: string) {
     try {
-      return this.options.useIndex
+      return this.options.index
         ? await this.getObjectsFromIndex(dirPath)
         : await this.getObjectsFromStorage(dirPath);
     } catch (e) {
@@ -244,8 +230,8 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  async getText(fullPath: string): Promise<string> {
-    const content = await this.getContent(fullPath);
+  async getText(obj: FileSystemObject): Promise<string> {
+    const content = await this.getContent(obj);
     const text = await toText(content);
     return text;
   }
@@ -257,6 +243,15 @@ export abstract class AbstractAccessor {
     try {
       this.debug("putContent", fullPath);
       await this.doPutContent(fullPath, content);
+
+      const obj = await this.doGetObject(fullPath);
+      if (this.options.index) {
+        await this.updateIndex(obj);
+      }
+
+      if (this.contentsCache) {
+        this.contentsCache.put(obj, content);
+      }
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -275,7 +270,7 @@ export abstract class AbstractAccessor {
     const dirPathIndex = await this.getDirPathIndex();
     dirPathIndex[dirPath] = fileNameIndex;
 
-    if (this.options.indexWriteDelayMillis <= 0) {
+    if (this.options.indexOptions.writeDelayMillis <= 0) {
       await this.putDirPathIndex(dirPathIndex);
       return;
     }
@@ -291,7 +286,7 @@ export abstract class AbstractAccessor {
         `cannot write to root "${DIR_SEPARATOR}"`
       );
     }
-    if (this.options.useIndex && obj.fullPath === INDEX_FILE_PATH) {
+    if (this.options.index && obj.fullPath === INDEX_FILE_PATH) {
       throw new InvalidModificationError(
         this.name,
         obj.fullPath,
@@ -313,7 +308,7 @@ export abstract class AbstractAccessor {
       await this.putContent(obj.fullPath, content);
     }
 
-    if (this.options.useIndex) {
+    if (this.options.index) {
       await this.updateIndex(obj);
     }
   }
@@ -460,8 +455,76 @@ export abstract class AbstractAccessor {
     }
   }
 
+  protected initialize(options: FileSystemOptions) {
+    this.initializeIndexOptions(options);
+    this.initializeContentCacheOptions(options);
+    if (options.contentsCache) {
+      this.contentsCache = new ContentsCache(this);
+    }
+  }
+
+  protected initializeContentCacheOptions(options: FileSystemOptions) {
+    if (options.contentsCache == null) {
+      options.contentsCache = true;
+    } else if (options.contentsCache === false) {
+      return;
+    }
+
+    if (options.contentsCacheOptions == null) {
+      options.contentsCacheOptions = {};
+    }
+    const contentsCacheOptions = options.contentsCacheOptions;
+    if (!(0 < contentsCacheOptions.capacity)) {
+      contentsCacheOptions.capacity = 10 * 1024 * 1024; // 10MB
+    }
+    if (!(0 < contentsCacheOptions.limitSize)) {
+      contentsCacheOptions.limitSize = 128 * 1024; // 128KB;
+    }
+    if (contentsCacheOptions.capacity < contentsCacheOptions.limitSize) {
+      contentsCacheOptions.limitSize = contentsCacheOptions.capacity;
+    }
+    if (contentsCacheOptions.private == null) {
+      contentsCacheOptions.private = false;
+    }
+  }
+
+  protected initializeIndexOptions(options: FileSystemOptions) {
+    if (options.index == null) {
+      options.index = false;
+    }
+    if (options.index === false) {
+      return;
+    }
+
+    if (options.indexOptions == null) {
+      options.indexOptions = {};
+    }
+    const indexOptions = options.indexOptions;
+    if (indexOptions.logicalDelete == null) {
+      indexOptions.logicalDelete = false;
+    }
+    if (
+      indexOptions.writeDelayMillis == null ||
+      indexOptions.writeDelayMillis <= 0
+    ) {
+      indexOptions.writeDelayMillis = 3000;
+    }
+    if (0 < indexOptions.writeDelayMillis) {
+      setInterval(async () => {
+        if (!this.dirPathIndexUpdated) {
+          return;
+        }
+        try {
+          const dirPathIndex = await this.getDirPathIndex();
+          await this.putDirPathIndex(dirPathIndex);
+          this.dirPathIndexUpdated = false;
+        } catch {}
+      }, indexOptions.writeDelayMillis);
+    }
+  }
+
   protected async removeFromIndex(fullPath: string) {
-    if (!this.options.useIndex) {
+    if (!this.options.index) {
       return;
     }
 
@@ -542,65 +605,5 @@ export abstract class AbstractAccessor {
         "Cannot update"
       );
     }
-  }
-
-  private getContentFromCache(fullPath: string) {
-    if (this.options.contentCacheCapacity <= 0) {
-      // No cache.
-      return null;
-    }
-
-    const entry = this.contentCache[fullPath];
-    if (!entry) {
-      return null;
-    }
-    entry.access = Date.now();
-    return entry.content;
-  }
-
-  private putContentToCache(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ) {
-    if (this.options.contentCacheCapacity <= 0) {
-      // No cache.
-      return;
-    }
-
-    const size = getSize(content);
-    if (this.options.contentCacheCapacity < size) {
-      return;
-    }
-
-    let sum = 0;
-    const list: { fullPath: string; size: number; access: number }[] = [];
-    for (const [fullPath, entry] of Object.entries(this.contentCache)) {
-      sum += entry.size;
-      list.push({ fullPath, size: entry.size, access: entry.access });
-    }
-
-    let current = sum + size;
-    if (current <= this.options.contentCacheCapacity) {
-      this.contentCache[fullPath] = {
-        content,
-        access: Date.now(),
-        size,
-      };
-      return;
-    }
-    list.sort((a, b) => {
-      return a.access < b.access ? -1 : 1;
-    });
-
-    const limit = this.options.contentCacheCapacity - size;
-    for (const item of list) {
-      delete this.contentCache[item.fullPath];
-      current -= item.size;
-      if (current <= limit) {
-        break;
-      }
-    }
-
-    this.contentCache[fullPath] = { content, access: Date.now(), size };
   }
 }

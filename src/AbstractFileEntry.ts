@@ -89,7 +89,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     }
     const accessor = this.params.accessor;
     accessor
-      .getContent(this.fullPath, "blob")
+      .getContent(this.params, "blob")
       .then(async (blob) => {
         if (!blob) {
           successCallback(null);
@@ -133,7 +133,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     type?: DataType
   ): void {
     this.params.accessor
-      .getContent(this.fullPath, type)
+      .getContent(this.params, type)
       .then((content) => {
         successCallback(content);
       })
@@ -144,7 +144,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
 
   readText(successCallback: TextCallback, errorCallback?: ErrorCallback): void {
     this.params.accessor
-      .getText(this.fullPath)
+      .getText(this.params)
       .then((text) => {
         successCallback(text);
       })

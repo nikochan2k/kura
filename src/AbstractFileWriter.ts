@@ -129,16 +129,13 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
       name: this.fileEntry.name,
       fullPath: this.fileEntry.fullPath,
       lastModified: Date.now(),
-      size: blob.size
+      size: blob.size,
     };
 
     const accessor = this.fileEntry.params.accessor;
     accessor
       .putObject(obj, blob)
       .then(async () => {
-        if (accessor.options.useIndex) {
-          await accessor.updateIndex(obj);
-        }
         this.fileEntry.params.lastModified = obj.lastModified;
         this.fileEntry.params.size = obj.size;
         onsuccess();
@@ -146,12 +143,12 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
           const evt: ProgressEvent<EventTarget> = {
             loaded: this.position,
             total: this.length,
-            lengthComputable: true
+            lengthComputable: true,
           } as any;
           this.onwriteend(evt);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         this.handleError(err);
       });
   }
@@ -162,7 +159,7 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
         error: err,
         loaded: this.position,
         total: this.length,
-        lengthComputable: true
+        lengthComputable: true,
       } as any;
       this.onerror(evt);
     } else {
