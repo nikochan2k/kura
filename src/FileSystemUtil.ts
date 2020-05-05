@@ -1,6 +1,14 @@
+import { AbstractAccessor } from "./AbstractAccessor";
+import { AbstractFileSystem } from "./AbstractFileSystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
-import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
+import {
+  DirectoryEntry,
+  Entry,
+  ErrorCallback,
+  FileEntry,
+  FileSystem,
+} from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import {
   DEFAULT_CONTENT_TYPE,
@@ -121,6 +129,34 @@ export function getSize(content: Blob | Uint8Array | ArrayBuffer | string) {
 
 export function getTextSize(text: string) {
   return encodeURIComponent(text).replace(/%../g, "x").length; // UTF-8
+}
+
+export async function vacuum(filesystem: FileSystem) {
+  if (!(filesystem instanceof AbstractFileSystem)) {
+    console.info("This is not kura FileSystem.");
+    return;
+  }
+
+  const afs = filesystem as AbstractFileSystem<AbstractAccessor>;
+  const accessor = afs.accessor;
+  if (!accessor.options.useIndex) {
+    console.info("This filesystem does not use index.");
+    return;
+  }
+
+  const dirPathIndex = await afs.accessor.getDirPathIndex();
+  for (const fileNameIndex of Object.values(dirPathIndex)) {
+    const namesToDelete: string[] = [];
+    for (const [name, record] of Object.entries(fileNameIndex)) {
+      if (record.deleted) {
+        namesToDelete.push(name);
+      }
+    }
+    for (const name of namesToDelete) {
+      delete fileNameIndex[name];
+    }
+  }
+  await afs.accessor.putDirPathIndex(dirPathIndex);
 }
 
 export function onError(err: DOMError, errorCallback?: ErrorCallback) {
