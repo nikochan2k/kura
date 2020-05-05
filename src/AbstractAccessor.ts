@@ -50,16 +50,11 @@ export abstract class AbstractAccessor {
       if (this.options.index) {
         const record = await this.getRecord(fullPath);
         await this.checkDeletePermission(fullPath, record);
-        const dirPath = getParentPath(fullPath);
-        await this.handleIndex(dirPath, async () => {
-          this.debug("delete", fullPath);
-          if (this.options.indexOptions.logicalDelete) {
-            await this.doDelete(fullPath, isFile);
-          }
-          if (record.deleted == null) {
-            record.deleted = Date.now();
-          }
-        });
+        this.debug("delete", fullPath);
+        if (this.options.indexOptions.logicalDelete) {
+          await this.doDelete(fullPath, isFile);
+        }
+        await this.removeFromIndex(fullPath);
       } else {
         this.debug("delete", fullPath);
         await this.doDelete(fullPath, isFile);
@@ -140,10 +135,10 @@ export abstract class AbstractAccessor {
       return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
         if (this.contentsCache) {
           this.contentsCache.remove(fullPath);
         }
-        await this.removeFromIndex(fullPath);
         throw e;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -192,6 +187,7 @@ export abstract class AbstractAccessor {
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
         if (this.contentsCache) {
           this.contentsCache.remove(fullPath);
         }
@@ -261,21 +257,17 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    const text = objectToText(dirPathIndex);
-    const buffer = textToArrayBuffer(text);
-    await this.doPutContent(INDEX_FILE_PATH, buffer);
+    if (this.options.indexOptions.writeDelayMillis <= 0) {
+      await this.doPutDirPathIndex(dirPathIndex);
+    } else {
+      this.dirPathIndexUpdated = true;
+    }
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
     const dirPathIndex = await this.getDirPathIndex();
     dirPathIndex[dirPath] = fileNameIndex;
-
-    if (this.options.indexOptions.writeDelayMillis <= 0) {
-      await this.putDirPathIndex(dirPathIndex);
-      return;
-    }
-
-    this.dirPathIndexUpdated = true;
+    await this.putDirPathIndex(dirPathIndex);
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {
@@ -358,6 +350,12 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
+  }
+
+  protected async doPutDirPathIndex(dirPathIndex: DirPathIndex) {
+    const text = objectToText(dirPathIndex);
+    const buffer = textToArrayBuffer(text);
+    await this.doPutContent(INDEX_FILE_PATH, buffer);
   }
 
   protected async doPutUint8Array(
@@ -528,20 +526,22 @@ export abstract class AbstractAccessor {
       return;
     }
 
+    // Is fullPath directory ?
+    const dirPathIndex = await this.getDirPathIndex();
+    if (dirPathIndex[fullPath]) {
+      delete dirPathIndex[fullPath];
+      await this.putDirPathIndex(dirPathIndex);
+    }
+
     const dirPath = getParentPath(fullPath);
-    const name = getName(fullPath);
-    try {
-      const index = await this.getFileNameIndex(dirPath);
+    const index = dirPathIndex[dirPath];
+    if (index) {
+      const name = getName(fullPath);
       const record = index[name];
       if (record && record.deleted == null) {
         record.deleted = Date.now();
         await this.putFileNameIndex(dirPath, index);
       }
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        return;
-      }
-      console.warn(err);
     }
   }
 
