@@ -16,15 +16,7 @@ import {
   LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
 
-let chunkSize = 3 * 256 * 1024; // 3 is for base64
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
-
-export function setChunkSize(size: number) {
-  if (size % 3 !== 0) {
-    throw new Error("slice size should be divisible by 3");
-  }
-  chunkSize = size;
-}
 
 export function getParentPath(fullPath: string) {
   const parentPath = fullPath.replace(LAST_PATH_PART, "");

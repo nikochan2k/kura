@@ -409,7 +409,11 @@ export abstract class AbstractAccessor {
           try {
             await this.checkGetPermission(record.obj.fullPath, record);
           } catch (e) {
-            this.debug(e, record.obj);
+            if (e instanceof NotFoundError) {
+              console.debug(e, record.obj);
+            } else {
+              console.warn(e, record.obj);
+            }
             continue;
           }
           if (record.deleted == null) {
@@ -436,7 +440,11 @@ export abstract class AbstractAccessor {
             try {
               await this.checkAddPermission(obj.fullPath, record);
             } catch (e) {
-              this.debug(e, record.obj);
+              if (e instanceof NoModificationAllowedError) {
+                console.debug(e, record.obj);
+              } else {
+                console.warn(e, record.obj);
+              }
               continue;
             }
             fileNameIndex[obj.name] = record;
@@ -509,6 +517,9 @@ export abstract class AbstractAccessor {
   private async checkGetPermission(fullPath: string, record?: Record) {
     if (!record) {
       record = await this.getRecord(fullPath);
+    }
+    if (record.deleted) {
+      throw new NotFoundError(this.name, fullPath);
     }
 
     if (!this.options.permission.onGet) {

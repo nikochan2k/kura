@@ -5,7 +5,6 @@ import {
   PathExistsError,
 } from "../FileError";
 import { FileSystemAsync } from "../FileSystemAsync";
-import { setChunkSize } from "../FileSystemUtil";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 import { toText } from "../TextConverter";
 
@@ -21,8 +20,6 @@ if (!globalVar.setTimeout || !globalVar.clearTimeout) {
   globalVar.clearTimeout = timers.clearTimeout;
   globalVar.setTimeout = timers.setTimeout;
 }
-
-setChunkSize(3);
 
 export function testAll(
   factory: LocalFileSystemAsync,
@@ -246,6 +243,16 @@ export function testAll(
     const reader = fs.root.createReader();
     const entries = await reader.readEntries();
     expect(entries.length).toBe(0);
+
+    done();
+  });
+
+  test("get removed folder", async (done) => {
+    try {
+      await fs.root.getDirectory("folder1");
+    } catch (e) {
+      expect(e).toBeInstanceOf(NotFoundError);
+    }
 
     done();
   });
