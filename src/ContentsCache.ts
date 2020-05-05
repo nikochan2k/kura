@@ -14,9 +14,8 @@ export interface ContentCacheEntry {
 export class ContentsCache {
   private cache: { [fullPath: string]: ContentCacheEntry } = {};
   private options: ContentsCacheOptions;
-  private accessor: AbstractAccessor;
 
-  constructor(accessor: AbstractAccessor) {
+  constructor(private accessor: AbstractAccessor) {
     this.options = accessor.options.contentsCacheOptions;
   }
 
