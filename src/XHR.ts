@@ -2,7 +2,6 @@ import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { NotFoundError } from "./FileError";
 
 export interface XHROptions {
-  noCache?: boolean;
   timeout?: number;
   requestHeaders?: { [key: string]: string };
 }
@@ -17,9 +16,6 @@ export class XHR {
   ) {
     if (options == null) {
       options = {};
-    }
-    if (options.noCache == null) {
-      options.noCache = true;
     }
     if (!(0 <= options.timeout)) {
       options.timeout = 3000;
@@ -37,14 +33,6 @@ export class XHR {
     const { xhr, promise } = this.createXMLHttpRequest();
     xhr.open("GET", url);
     this.configure(xhr);
-    if (this.options.noCache) {
-      xhr.setRequestHeader("Pragma", "no-cache");
-      xhr.setRequestHeader("Cache-Control", "no-cache");
-      xhr.setRequestHeader(
-        "If-Modified-Since",
-        "Thu, 01 Jun 1970 00:00:00 GMT"
-      );
-    }
     xhr.responseType = responseType;
     xhr.send();
     return await promise;
