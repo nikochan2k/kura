@@ -33,7 +33,7 @@ export abstract class AbstractAccessor {
 
   private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
-  private dirPathIndexExpired = Number.MAX_VALUE;
+  private dirPathIndexExpired = 0;
   private dirPathIndexUpdateTime = Number.MAX_VALUE;
 
   abstract readonly filesystem: FileSystem;
@@ -395,6 +395,7 @@ export abstract class AbstractAccessor {
     const text = objectToText(dirPathIndex);
     const buffer = textToArrayBuffer(text);
     await this.doPutContent(INDEX_FILE_PATH, buffer);
+    this.dirPathIndexUpdateTime = Number.MAX_VALUE;
   }
 
   protected async doPutUint8Array(
