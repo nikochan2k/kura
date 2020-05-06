@@ -33,8 +33,8 @@ export abstract class AbstractAccessor {
 
   private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
-  private dirPathIndexAccessed = Number.MAX_VALUE;
-  private dirPathIndexUpdated = Number.MAX_VALUE;
+  private dirPathIndexExpired = Number.MAX_VALUE;
+  private dirPathIndexUpdateTime = Number.MAX_VALUE;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -154,9 +154,7 @@ export abstract class AbstractAccessor {
     const now = Date.now();
     if (
       this.dirPathIndex == null ||
-      (this.options.shared &&
-        this.dirPathIndexAccessed + this.options.indexOptions.maxAgeMillis <=
-          now)
+      (this.options.shared && this.dirPathIndexExpired <= now)
     ) {
       try {
         const content = await this.doGetContent(INDEX_FILE_PATH);
@@ -169,8 +167,9 @@ export abstract class AbstractAccessor {
           throw e;
         }
       }
+      this.dirPathIndexExpired =
+        Date.now() + this.options.indexOptions.maxAgeSeconds * 1000;
     }
-    this.dirPathIndexAccessed = Date.now();
     return this.dirPathIndex;
   }
 
@@ -297,7 +296,8 @@ export abstract class AbstractAccessor {
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
     if (0 < this.options.indexOptions.writeDelayMillis) {
-      this.dirPathIndexUpdated = Date.now();
+      this.dirPathIndexUpdateTime =
+        Date.now() + this.options.indexOptions.writeDelayMillis;
     } else {
       await this.doPutDirPathIndex(dirPathIndex);
     }
@@ -482,10 +482,10 @@ export abstract class AbstractAccessor {
       indexOptions.logicalDelete = false;
     }
 
-    if (indexOptions.maxAgeMillis == null) {
-      indexOptions.maxAgeMillis = 10000;
-    } else if (indexOptions.maxAgeMillis < 0) {
-      indexOptions.maxAgeMillis = 0;
+    if (indexOptions.maxAgeSeconds == null) {
+      indexOptions.maxAgeSeconds = 60;
+    } else if (indexOptions.maxAgeSeconds < 0) {
+      indexOptions.maxAgeSeconds = 0;
     }
 
     if (indexOptions.writeDelayMillis == null) {
@@ -600,10 +600,7 @@ export abstract class AbstractAccessor {
 
   private async putDirPathIndexPeriodically() {
     const now = Date.now();
-    if (
-      now <
-      this.dirPathIndexUpdated + this.options.indexOptions.writeDelayMillis
-    ) {
+    if (now < this.dirPathIndexUpdateTime) {
       return;
     }
 

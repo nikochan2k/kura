@@ -2,7 +2,7 @@ import { Permission } from "./FileSystemIndex";
 
 export interface IndexOptions {
   writeDelayMillis?: number;
-  maxAgeMillis?: number;
+  maxAgeSeconds?: number;
   logicalDelete?: boolean;
 }
 
