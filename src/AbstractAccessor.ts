@@ -477,10 +477,9 @@ export abstract class AbstractAccessor {
       indexOptions.writeDelayMillis = 3000;
     }
     if (0 < indexOptions.writeDelayMillis) {
-      setInterval(
-        this.putDirPathIndexPeriodically,
-        indexOptions.writeDelayMillis
-      );
+      setInterval(async () => {
+        await this.putDirPathIndexPeriodically();
+      }, indexOptions.writeDelayMillis);
     }
   }
 
