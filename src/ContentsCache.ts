@@ -5,17 +5,19 @@ import { getSize } from "./FileSystemUtil";
 import { FileSystemObject } from "./FileSystemObject";
 
 export interface ContentCacheEntry {
-  content: Blob | Uint8Array | ArrayBuffer | string;
-  size: number;
-  lastModified: number;
   access: number;
+  content: Blob | Uint8Array | ArrayBuffer | string;
+  lastModified: number;
+  size: number;
 }
 
 export class ContentsCache {
   private cache: { [fullPath: string]: ContentCacheEntry } = {};
   private options: ContentsCacheOptions;
+  private shared: boolean;
 
   constructor(private accessor: AbstractAccessor) {
+    this.shared = accessor.options.shared;
     this.options = accessor.options.contentsCacheOptions;
   }
 
@@ -25,7 +27,7 @@ export class ContentsCache {
       return null;
     }
 
-    if (!this.options.private) {
+    if (this.shared) {
       const obj = await this.accessor.doGetObject(fullPath);
       if (entry.lastModified !== obj.lastModified) {
         return null;

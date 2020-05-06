@@ -33,7 +33,8 @@ export abstract class AbstractAccessor {
 
   private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
-  private dirPathIndexUpdated: boolean;
+  private dirPathIndexAccessed = Number.MAX_VALUE;
+  private dirPathIndexUpdated = Number.MAX_VALUE;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -150,7 +151,13 @@ export abstract class AbstractAccessor {
   }
 
   async getDirPathIndex() {
-    if (this.dirPathIndex == null) {
+    const now = Date.now();
+    if (
+      this.dirPathIndex == null ||
+      (this.options.shared &&
+        this.dirPathIndexAccessed + this.options.indexOptions.delayMillis <=
+          now)
+    ) {
       try {
         const content = await this.doGetContent(INDEX_FILE_PATH);
         const text = await toText(content);
@@ -163,6 +170,7 @@ export abstract class AbstractAccessor {
         }
       }
     }
+    this.dirPathIndexAccessed = Date.now();
     return this.dirPathIndex;
   }
 
@@ -288,8 +296,8 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    if (0 < this.options.indexOptions.writeDelayMillis) {
-      this.dirPathIndexUpdated = true;
+    if (0 < this.options.indexOptions.delayMillis) {
+      this.dirPathIndexUpdated = Date.now();
     } else {
       await this.doPutDirPathIndex(dirPathIndex);
     }
@@ -426,17 +434,17 @@ export abstract class AbstractAccessor {
 
   protected initialize(options: FileSystemOptions) {
     this.initializeIndexOptions(options);
-    this.initializeContentCacheOptions(options);
-    console.info(options);
-    if (options.contentsCache) {
-      this.contentsCache = new ContentsCache(this);
+
+    if (options.contentsCache == null) {
+      options.contentsCache = true;
     }
+    this.initializeContentCacheOptions(options);
+
+    console.info(options);
   }
 
   protected initializeContentCacheOptions(options: FileSystemOptions) {
-    if (options.contentsCache == null) {
-      options.contentsCache = true;
-    } else if (options.contentsCache === false) {
+    if (!options.contentsCache) {
       return;
     }
 
@@ -453,16 +461,12 @@ export abstract class AbstractAccessor {
     if (contentsCacheOptions.capacity < contentsCacheOptions.limitSize) {
       contentsCacheOptions.limitSize = contentsCacheOptions.capacity;
     }
-    if (contentsCacheOptions.private == null) {
-      contentsCacheOptions.private = false;
-    }
+
+    this.contentsCache = new ContentsCache(this);
   }
 
   protected initializeIndexOptions(options: FileSystemOptions) {
-    if (options.index == null) {
-      options.index = false;
-    }
-    if (options.index === false) {
+    if (!options.index) {
       return;
     }
 
@@ -473,13 +477,15 @@ export abstract class AbstractAccessor {
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
     }
-    if (!(0 < indexOptions.writeDelayMillis)) {
-      indexOptions.writeDelayMillis = 3000;
+    if (indexOptions.delayMillis == null) {
+      indexOptions.delayMillis = 3000;
+    } else if (indexOptions.delayMillis < 0) {
+      indexOptions.delayMillis = 0;
     }
-    if (0 < indexOptions.writeDelayMillis) {
+    if (0 < indexOptions.delayMillis) {
       setInterval(async () => {
         await this.putDirPathIndexPeriodically();
-      }, indexOptions.writeDelayMillis);
+      }, 1000);
     }
   }
 
@@ -582,13 +588,17 @@ export abstract class AbstractAccessor {
   }
 
   private async putDirPathIndexPeriodically() {
-    if (!this.dirPathIndexUpdated) {
+    const now = Date.now();
+    if (
+      now <
+      this.dirPathIndexUpdated + this.options.indexOptions.delayMillis
+    ) {
       return;
     }
+
     try {
       const dirPathIndex = await this.getDirPathIndex();
       await this.doPutDirPathIndex(dirPathIndex);
-      this.dirPathIndexUpdated = false;
     } catch (e) {
       console.warn("putDirPathIndexPeriodically", e);
     }
