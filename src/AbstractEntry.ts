@@ -7,7 +7,7 @@ import {
   EntryCallback,
   ErrorCallback,
   MetadataCallback,
-  VoidCallback
+  VoidCallback,
 } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
@@ -42,7 +42,7 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
         this.params.lastModified == null
           ? null
           : new Date(this.params.lastModified),
-      size: this.params.size
+      size: this.params.size,
     });
   }
 
@@ -101,7 +101,7 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
       name: path.split(DIR_SEPARATOR).pop(),
       fullPath: path,
       lastModified: isFile ? Date.now() : undefined,
-      size: isFile ? 0 : undefined
+      size: isFile ? 0 : undefined,
     };
   }
 

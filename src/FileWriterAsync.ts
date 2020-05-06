@@ -20,7 +20,7 @@ export class FileWriterAsync {
       this.fileWriter.onwriteend = () => {
         resolve();
       };
-      this.fileWriter.onerror = err => {
+      this.fileWriter.onerror = (err) => {
         reject(err);
       };
       this.fileWriter.truncate(size);
@@ -32,7 +32,7 @@ export class FileWriterAsync {
       this.fileWriter.onwriteend = () => {
         resolve();
       };
-      this.fileWriter.onerror = err => {
+      this.fileWriter.onerror = (err) => {
         reject(err);
       };
       this.fileWriter.write(data);

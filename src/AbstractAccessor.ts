@@ -288,10 +288,10 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    if (this.options.indexOptions.writeDelayMillis <= 0) {
-      await this.doPutDirPathIndex(dirPathIndex);
-    } else {
+    if (0 < this.options.indexOptions.writeDelayMillis) {
       this.dirPathIndexUpdated = true;
+    } else {
+      await this.doPutDirPathIndex(dirPathIndex);
     }
   }
 
@@ -341,8 +341,8 @@ export abstract class AbstractAccessor {
     await this.putContent(fullPath, buffer);
   }
 
-  toURL(path: string): string {
-    throw new NotImplementedError(this.filesystem.name, path);
+  toURL(fullPath: string): string {
+    throw new NotImplementedError(this.filesystem.name, fullPath);
   }
 
   async updateIndex(obj: FileSystemObject) {
@@ -427,6 +427,7 @@ export abstract class AbstractAccessor {
   protected initialize(options: FileSystemOptions) {
     this.initializeIndexOptions(options);
     this.initializeContentCacheOptions(options);
+    console.info(options);
     if (options.contentsCache) {
       this.contentsCache = new ContentsCache(this);
     }
@@ -472,10 +473,7 @@ export abstract class AbstractAccessor {
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
     }
-    if (
-      indexOptions.writeDelayMillis == null ||
-      indexOptions.writeDelayMillis <= 0
-    ) {
+    if (!(0 < indexOptions.writeDelayMillis)) {
       indexOptions.writeDelayMillis = 3000;
     }
     if (0 < indexOptions.writeDelayMillis) {

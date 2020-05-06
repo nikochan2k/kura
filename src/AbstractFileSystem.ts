@@ -12,7 +12,7 @@ export abstract class AbstractFileSystem<T extends AbstractAccessor>
     this.root = this.createRoot({
       accessor: accessor,
       name: "",
-      fullPath: DIR_SEPARATOR
+      fullPath: DIR_SEPARATOR,
     });
   }
 

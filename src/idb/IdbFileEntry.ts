@@ -18,7 +18,7 @@ export class IdbFileEntry extends AbstractFileEntry<IdbAccessor> {
   protected toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
       accessor: this.params.accessor,
-      ...obj
+      ...obj,
     });
   }
 }

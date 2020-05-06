@@ -2,7 +2,7 @@ import {
   EntryCallback,
   ErrorCallback,
   FileSystemCallback,
-  LocalFileSystem
+  LocalFileSystem,
 } from "../filesystem";
 
 export class EmbeddedLocalFileSystem implements LocalFileSystem {

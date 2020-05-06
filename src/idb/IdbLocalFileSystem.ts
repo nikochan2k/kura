@@ -16,7 +16,7 @@ export class IdbLocalFileSystem extends AbstractLocalFileSystem {
         .then(() => {
           resolve(accessor);
         })
-        .catch(err => {
+        .catch((err) => {
           reject(err);
         });
     });

@@ -21,7 +21,7 @@ export function createDirectoryEntry(
 ): DirectoryEntry {
   return new IdbDirectoryEntry({
     accessor: accessor,
-    ...obj
+    ...obj,
   });
 }
 
@@ -31,7 +31,7 @@ export function createFileEntry(
 ): FileEntry {
   return new IdbFileEntry({
     accessor: accessor,
-    ...obj
+    ...obj,
   });
 }
 

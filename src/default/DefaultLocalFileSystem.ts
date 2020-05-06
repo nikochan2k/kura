@@ -3,7 +3,7 @@ import {
   EntryCallback,
   ErrorCallback,
   FileSystemCallback,
-  LocalFileSystem
+  LocalFileSystem,
 } from "../filesystem";
 import { IdbLocalFileSystem } from "../idb/IdbLocalFileSystem";
 
