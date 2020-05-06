@@ -146,7 +146,7 @@ export class IdbAccessor extends AbstractAccessor {
       IdbAccessor.SUPPORTS_BLOB == null ||
       IdbAccessor.SUPPORTS_ARRAY_BUFFER == null
     ) {
-      await this.initialize();
+      await this.initializeDB();
     }
 
     const self = this;
@@ -226,7 +226,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  protected async initialize() {
+  protected async initializeDB() {
     await new Promise((resolve, reject) => {
       const dbName = "blob-support";
       indexedDB.deleteDatabase(dbName).onsuccess = function () {
