@@ -278,12 +278,28 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   protected initializeContentCacheOptions(options: FileSystemOptions) {
-    if (options.contentsCache) {
-      if (options.contentsCacheOptions.private == null) {
-        options.contentsCacheOptions.private = true;
-      }
+    if (options.contentsCache == null) {
+      options.contentsCache = true;
+    } else if (options.contentsCache === false) {
+      return;
     }
-    super.initializeContentCacheOptions(options);
+
+    if (options.contentsCacheOptions == null) {
+      options.contentsCacheOptions = {};
+    }
+    const contentsCacheOptions = options.contentsCacheOptions;
+    if (!(0 < contentsCacheOptions.capacity)) {
+      contentsCacheOptions.capacity = 10 * 1024 * 1024; // 10MB
+    }
+    if (!(0 < contentsCacheOptions.limitSize)) {
+      contentsCacheOptions.limitSize = 128 * 1024; // 128KB;
+    }
+    if (contentsCacheOptions.capacity < contentsCacheOptions.limitSize) {
+      contentsCacheOptions.limitSize = contentsCacheOptions.capacity;
+    }
+    if (contentsCacheOptions.private == null) {
+      contentsCacheOptions.private = true;
+    }
   }
 
   private doPutContentToIdb(fullPath: string, content: any) {
