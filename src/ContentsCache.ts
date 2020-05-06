@@ -27,7 +27,11 @@ export class ContentsCache {
       return null;
     }
 
-    if (this.shared) {
+    const now = Date.now();
+    if (
+      this.shared &&
+      entry.access + this.options.maxAgeSeconds * 1000 <= now
+    ) {
       const obj = await this.accessor.doGetObject(fullPath);
       if (entry.lastModified !== obj.lastModified) {
         return null;

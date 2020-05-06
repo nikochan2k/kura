@@ -155,7 +155,7 @@ export abstract class AbstractAccessor {
     if (
       this.dirPathIndex == null ||
       (this.options.shared &&
-        this.dirPathIndexAccessed + this.options.indexOptions.delayMillis <=
+        this.dirPathIndexAccessed + this.options.indexOptions.maxAgeMillis <=
           now)
     ) {
       try {
@@ -296,7 +296,7 @@ export abstract class AbstractAccessor {
   }
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
-    if (0 < this.options.indexOptions.delayMillis) {
+    if (0 < this.options.indexOptions.writeDelayMillis) {
       this.dirPathIndexUpdated = Date.now();
     } else {
       await this.doPutDirPathIndex(dirPathIndex);
@@ -461,6 +461,9 @@ export abstract class AbstractAccessor {
     if (contentsCacheOptions.capacity < contentsCacheOptions.limitSize) {
       contentsCacheOptions.limitSize = contentsCacheOptions.capacity;
     }
+    if (!(0 < contentsCacheOptions.maxAgeSeconds)) {
+      contentsCacheOptions.maxAgeSeconds = 60;
+    }
 
     this.contentsCache = new ContentsCache(this);
   }
@@ -474,15 +477,23 @@ export abstract class AbstractAccessor {
       options.indexOptions = {};
     }
     const indexOptions = options.indexOptions;
+
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
     }
-    if (indexOptions.delayMillis == null) {
-      indexOptions.delayMillis = 3000;
-    } else if (indexOptions.delayMillis < 0) {
-      indexOptions.delayMillis = 0;
+
+    if (indexOptions.maxAgeMillis == null) {
+      indexOptions.maxAgeMillis = 10000;
+    } else if (indexOptions.maxAgeMillis < 0) {
+      indexOptions.maxAgeMillis = 0;
     }
-    if (0 < indexOptions.delayMillis) {
+
+    if (indexOptions.writeDelayMillis == null) {
+      indexOptions.writeDelayMillis = 3000;
+    } else if (indexOptions.writeDelayMillis < 0) {
+      indexOptions.writeDelayMillis = 0;
+    }
+    if (0 < indexOptions.writeDelayMillis) {
       setInterval(async () => {
         await this.putDirPathIndexPeriodically();
       }, 1000);
@@ -591,7 +602,7 @@ export abstract class AbstractAccessor {
     const now = Date.now();
     if (
       now <
-      this.dirPathIndexUpdated + this.options.indexOptions.delayMillis
+      this.dirPathIndexUpdated + this.options.indexOptions.writeDelayMillis
     ) {
       return;
     }
