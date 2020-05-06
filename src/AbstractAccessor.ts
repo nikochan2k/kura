@@ -191,9 +191,9 @@ export abstract class AbstractAccessor {
           await this.checkAddPermission(obj.fullPath, record);
         } catch (e) {
           if (e instanceof NoModificationAllowedError) {
-            console.debug(e, record.obj);
+            console.debug("getFileNameIndex", e, record.obj);
           } else {
-            console.warn(e, record.obj);
+            console.warn("getFileNameIndex", e, record.obj);
           }
           continue;
         }
@@ -375,9 +375,9 @@ export abstract class AbstractAccessor {
       return;
     }
     if (typeof value === "string") {
-      console.log(`${this.name} - ${title}: fullPath=${value}`);
+      console.debug(`${this.name} - ${title}: fullPath=${value}`);
     } else {
-      console.log(
+      console.debug(
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
@@ -406,7 +406,7 @@ export abstract class AbstractAccessor {
         await this.checkGetPermission(record.obj.fullPath, record);
       } catch (e) {
         if (!(e instanceof NotFoundError)) {
-          console.warn(e, record.obj);
+          console.warn("getObjectsFromIndex", e, record.obj);
         }
         continue;
       }
@@ -477,16 +477,10 @@ export abstract class AbstractAccessor {
       indexOptions.writeDelayMillis = 3000;
     }
     if (0 < indexOptions.writeDelayMillis) {
-      setInterval(async () => {
-        if (!this.dirPathIndexUpdated) {
-          return;
-        }
-        try {
-          const dirPathIndex = await this.getDirPathIndex();
-          await this.putDirPathIndex(dirPathIndex);
-          this.dirPathIndexUpdated = false;
-        } catch {}
-      }, indexOptions.writeDelayMillis);
+      setInterval(
+        this.putDirPathIndexPeriodically,
+        indexOptions.writeDelayMillis
+      );
     }
   }
 
@@ -585,6 +579,19 @@ export abstract class AbstractAccessor {
         fullPath,
         "Cannot update"
       );
+    }
+  }
+
+  private async putDirPathIndexPeriodically() {
+    if (!this.dirPathIndexUpdated) {
+      return;
+    }
+    try {
+      const dirPathIndex = await this.getDirPathIndex();
+      await this.doPutDirPathIndex(dirPathIndex);
+      this.dirPathIndexUpdated = false;
+    } catch (e) {
+      console.warn("putDirPathIndexPeriodically", e);
     }
   }
 }

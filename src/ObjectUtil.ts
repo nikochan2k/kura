@@ -7,7 +7,7 @@ export function textToObject(text: string) {
     const obj = JSON.parse(text);
     return obj;
   } catch (e) {
-    console.warn(text, e);
+    console.warn("ObjectUtil#textToObject", text, e);
     return {};
   }
 }

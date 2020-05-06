@@ -149,21 +149,17 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
         }
       })
       .catch((err) => {
-        this.handleError(err);
+        if (this.onerror) {
+          const evt: ProgressEvent<EventTarget> = {
+            error: err,
+            loaded: this.position,
+            total: this.length,
+            lengthComputable: true,
+          } as any;
+          this.onerror(evt);
+        } else {
+          console.error("AbstractFileWriter#doWrite", err);
+        }
       });
-  }
-
-  protected handleError(err: Error) {
-    if (this.onerror) {
-      const evt: ProgressEvent<EventTarget> = {
-        error: err,
-        loaded: this.position,
-        total: this.length,
-        lengthComputable: true,
-      } as any;
-      this.onerror(evt);
-    } else {
-      console.error(err);
-    }
   }
 }
