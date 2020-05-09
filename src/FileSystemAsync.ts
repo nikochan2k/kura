@@ -1,5 +1,6 @@
+import { AbstractAccessor } from "./AbstractAccessor";
+import { AbstractFileSystem } from "./AbstractFileSystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
-import { NotImplementedError } from "./FileError";
 import { FileSystem } from "./filesystem";
 import { resolveToFullPath } from "./FileSystemUtil";
 
@@ -12,6 +13,11 @@ export class FileSystemAsync implements FileSystem {
 
   get root(): DirectoryEntryAsync {
     return new DirectoryEntryAsync(this, this.filesystem.root);
+  }
+
+  clearContentsCache(prefix?: string) {
+    const afs = this.filesystem as AbstractFileSystem<AbstractAccessor>;
+    afs.accessor.clearContentsCache(prefix);
   }
 
   toURL(path: string): string {

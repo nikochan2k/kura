@@ -43,6 +43,13 @@ export abstract class AbstractAccessor {
     this.initialize(options);
   }
 
+  async clearContentsCache(prefix?: string) {
+    if (this.contentsCache == null) {
+      return;
+    }
+    this.contentsCache.removeBy(prefix);
+  }
+
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === DIR_SEPARATOR) {
       throw new InvalidModificationError(this.name, fullPath);
