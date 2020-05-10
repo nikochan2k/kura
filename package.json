@@ -1,6 +1,6 @@
 {
   "name": "kura",
-  "version": "0.2.55",
+  "version": "0.2.56",
   "description": "The FileSystem API abstraction library.",
   "author": "Yoshihiro Seki",
   "license": "MIT",
