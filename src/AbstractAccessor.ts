@@ -175,7 +175,7 @@ export abstract class AbstractAccessor {
       } catch (e) {
         if (e instanceof NotFoundError) {
           dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
-          await this.putDirPathIndex(dirPathIndex);
+          await this.putDirPathIndex();
         }
         throw e;
       }
@@ -299,18 +299,18 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async putDirPathIndex(dirPathIndex: DirPathIndex) {
+  async putDirPathIndex() {
     if (0 < this.options.indexOptions.writeDelayMillis) {
       this.saveDirPathIndexLater();
     } else {
-      await this.saveDirPathIndex(dirPathIndex);
+      await this.saveDirPathIndex();
     }
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
     const dirPathIndex = await this.getDirPathIndex();
     dirPathIndex[dirPath] = fileNameIndex;
-    await this.putDirPathIndex(dirPathIndex);
+    await this.putDirPathIndex();
   }
 
   async putObject(obj: FileSystemObject, content?: Blob) {
@@ -353,8 +353,12 @@ export abstract class AbstractAccessor {
     await this.putContent(fullPath, buffer);
   }
 
-  async saveDirPathIndex(dirPathIndex: DirPathIndex) {
-    const text = objectToText(dirPathIndex);
+  async saveDirPathIndex() {
+    if (this.dirPathIndexUpdateTimer != null) {
+      clearTimeout(this.dirPathIndexUpdateTimer);
+    }
+    this.dirPathIndexUpdateTimer = null;
+    const text = objectToText(this.dirPathIndex);
     const buffer = textToArrayBuffer(text);
     await this.doPutContent(INDEX_FILE_PATH, buffer);
   }
@@ -522,7 +526,7 @@ export abstract class AbstractAccessor {
     }
 
     if (removed) {
-      await this.putDirPathIndex(dirPathIndex);
+      await this.putDirPathIndex();
     }
   }
 
@@ -594,13 +598,8 @@ export abstract class AbstractAccessor {
     }
 
     this.dirPathIndexUpdateTimer = setTimeout(async () => {
-      try {
-        this.dirPathIndexUpdateTimer = null;
-        const dirPathIndex = await this.getDirPathIndex();
-        await this.saveDirPathIndex(dirPathIndex);
-      } catch (e) {
-        console.warn("putDirPathIndexLater", e);
-      }
+      this.dirPathIndexUpdateTimer = null;
+      await this.saveDirPathIndex();
     }, this.options.indexOptions.writeDelayMillis);
   }
 }
