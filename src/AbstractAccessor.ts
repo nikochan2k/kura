@@ -9,7 +9,11 @@ import {
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
+import {
+  DIR_SEPARATOR,
+  INDEX_FILE_PATH,
+  INDEX_FILE_NAME,
+} from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -367,7 +371,16 @@ export abstract class AbstractAccessor {
     this.dirPathIndexUpdateTimer = null;
     const text = objectToText(this.dirPathIndex);
     const buffer = textToArrayBuffer(text);
+    let obj: FileSystemObject = {
+      fullPath: INDEX_FILE_PATH,
+      name: INDEX_FILE_NAME,
+      size: buffer.byteLength,
+      lastModified: Date.now(),
+    };
+    await this.doPutObject(obj);
     await this.doPutContent(INDEX_FILE_PATH, buffer);
+    obj = await this.doGetObject(INDEX_FILE_PATH);
+    this.dirPathIndexLastModified = obj.lastModified;
   }
 
   toURL(fullPath: string): string {
@@ -494,10 +507,10 @@ export abstract class AbstractAccessor {
       indexOptions.logicalDelete = false;
     }
 
-    if (indexOptions.writeDelayMillis == null) {
-      indexOptions.writeDelayMillis = 5000;
-    } else if (indexOptions.writeDelayMillis < 0) {
+    if (options.shared || indexOptions.writeDelayMillis < 0) {
       indexOptions.writeDelayMillis = 0;
+    } else if (indexOptions.writeDelayMillis == null) {
+      indexOptions.writeDelayMillis = 5000;
     }
   }
 
@@ -605,8 +618,10 @@ export abstract class AbstractAccessor {
     }
 
     this.dirPathIndexUpdateTimer = setTimeout(async () => {
-      this.dirPathIndexUpdateTimer = null;
-      await this.saveDirPathIndex();
+      if (this.dirPathIndexUpdateTimer != null) {
+        this.dirPathIndexUpdateTimer = null;
+        await this.saveDirPathIndex();
+      }
     }, this.options.indexOptions.writeDelayMillis);
   }
 }
