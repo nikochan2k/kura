@@ -319,8 +319,7 @@ export abstract class AbstractAccessor {
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
-    const dirPathIndex = await this.getDirPathIndex();
-    dirPathIndex[dirPath] = fileNameIndex;
+    this.dirPathIndex[dirPath] = fileNameIndex;
     await this.putDirPathIndex();
   }
 
@@ -438,15 +437,19 @@ export abstract class AbstractAccessor {
     const fileNameIndex = await this.getFileNameIndex(dirPath);
     const objects: FileSystemObject[] = [];
     for (const record of Object.values(fileNameIndex)) {
+      const fullPath = record.obj.fullPath;
+      if (fullPath === INDEX_FILE_PATH) {
+        continue;
+      }
+      if (record.deleted != null) {
+        continue;
+      }
       try {
-        await this.checkGetPermission(record.obj.fullPath, record);
+        await this.checkGetPermission(fullPath, record);
       } catch (e) {
         if (!(e instanceof NotFoundError)) {
           console.warn("getObjectsFromIndex", e, record.obj);
         }
-        continue;
-      }
-      if (record.deleted != null) {
         continue;
       }
       objects.push(record.obj);
