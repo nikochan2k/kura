@@ -47,11 +47,11 @@ export abstract class AbstractAccessor {
     this.initialize(options);
   }
 
-  async clearContentsCache(prefix?: string) {
+  async clearContentsCache(startsWith?: string) {
     if (this.contentsCache == null) {
       return;
     }
-    this.contentsCache.removeBy(prefix);
+    this.contentsCache.removeBy(startsWith);
   }
 
   async delete(fullPath: string, isFile: boolean) {

@@ -105,7 +105,7 @@ export class ContentsCache {
   }
 
   public removeBy(startsWith: string) {
-    if (!startsWith) {
+    if (!startsWith || startsWith === DIR_SEPARATOR) {
       this.cache = {};
       return;
     }
