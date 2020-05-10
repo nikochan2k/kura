@@ -14,10 +14,8 @@ export interface ContentCacheEntry {
 export class ContentsCache {
   private cache: { [fullPath: string]: ContentCacheEntry } = {};
   private options: ContentsCacheOptions;
-  private shared: boolean;
 
-  constructor(private accessor: AbstractAccessor) {
-    this.shared = accessor.options.shared;
+  constructor(accessor: AbstractAccessor) {
     this.options = accessor.options.contentsCacheOptions;
   }
 
@@ -25,17 +23,6 @@ export class ContentsCache {
     const entry = this.cache[fullPath];
     if (!entry) {
       return null;
-    }
-
-    const now = Date.now();
-    if (
-      this.shared &&
-      entry.access + this.options.maxAgeSeconds * 1000 <= now
-    ) {
-      const obj = await this.accessor.doGetObject(fullPath);
-      if (entry.lastModified !== obj.lastModified) {
-        return null;
-      }
     }
 
     entry.access = Date.now();
@@ -100,14 +87,14 @@ export class ContentsCache {
     delete this.cache[fullPath];
   }
 
-  public removeBy(prefix: string) {
-    if (!prefix) {
+  public removeBy(startsWith: string) {
+    if (!startsWith) {
       this.cache = {};
       return;
     }
-    const dirPrefix = prefix + DIR_SEPARATOR;
+    const dirPrefix = startsWith + DIR_SEPARATOR;
     for (const fullPath of Object.keys(this.cache)) {
-      if (fullPath === prefix || fullPath.startsWith(dirPrefix)) {
+      if (fullPath === startsWith || fullPath.startsWith(dirPrefix)) {
         delete this.cache[fullPath];
       }
     }

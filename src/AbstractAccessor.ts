@@ -34,7 +34,7 @@ export abstract class AbstractAccessor {
   private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
   private dirPathIndexExpired = 0;
-  private dirPathIndexUpdateTime = Number.MAX_VALUE;
+  private dirPathIndexUpdateTimer: any;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -158,24 +158,8 @@ export abstract class AbstractAccessor {
   }
 
   async getDirPathIndex() {
-    const now = Date.now();
-    if (
-      this.dirPathIndex == null ||
-      (this.options.shared && this.dirPathIndexExpired <= now)
-    ) {
-      try {
-        const content = await this.doGetContent(INDEX_FILE_PATH);
-        const text = await toText(content);
-        this.dirPathIndex = textToObject(text) as DirPathIndex;
-      } catch (e) {
-        if (e instanceof NotFoundError) {
-          this.dirPathIndex = {};
-        } else {
-          throw e;
-        }
-      }
-      this.dirPathIndexExpired =
-        Date.now() + this.options.indexOptions.maxAgeSeconds * 1000;
+    if (this.dirPathIndex == null) {
+      await this.loadDirPathIndex();
     }
     return this.dirPathIndex;
   }
@@ -277,6 +261,20 @@ export abstract class AbstractAccessor {
     return text;
   }
 
+  async loadDirPathIndex() {
+    try {
+      const content = await this.doGetContent(INDEX_FILE_PATH);
+      const text = await toText(content);
+      this.dirPathIndex = textToObject(text) as DirPathIndex;
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        this.dirPathIndex = {};
+      } else {
+        throw e;
+      }
+    }
+  }
+
   async putContent(
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
@@ -303,10 +301,9 @@ export abstract class AbstractAccessor {
 
   async putDirPathIndex(dirPathIndex: DirPathIndex) {
     if (0 < this.options.indexOptions.writeDelayMillis) {
-      this.dirPathIndexUpdateTime =
-        Date.now() + this.options.indexOptions.writeDelayMillis;
+      this.saveDirPathIndexLater();
     } else {
-      await this.doPutDirPathIndex(dirPathIndex);
+      await this.saveDirPathIndex(dirPathIndex);
     }
   }
 
@@ -356,6 +353,12 @@ export abstract class AbstractAccessor {
     await this.putContent(fullPath, buffer);
   }
 
+  async saveDirPathIndex(dirPathIndex: DirPathIndex) {
+    const text = objectToText(dirPathIndex);
+    const buffer = textToArrayBuffer(text);
+    await this.doPutContent(INDEX_FILE_PATH, buffer);
+  }
+
   toURL(fullPath: string): string {
     throw new NotImplementedError(this.filesystem.name, fullPath);
   }
@@ -396,13 +399,6 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
-  }
-
-  protected async doPutDirPathIndex(dirPathIndex: DirPathIndex) {
-    const text = objectToText(dirPathIndex);
-    const buffer = textToArrayBuffer(text);
-    await this.doPutContent(INDEX_FILE_PATH, buffer);
-    this.dirPathIndexUpdateTime = Number.MAX_VALUE;
   }
 
   protected async doPutUint8Array(
@@ -469,9 +465,6 @@ export abstract class AbstractAccessor {
     if (contentsCacheOptions.capacity < contentsCacheOptions.limitSize) {
       contentsCacheOptions.limitSize = contentsCacheOptions.capacity;
     }
-    if (!(0 < contentsCacheOptions.maxAgeSeconds)) {
-      contentsCacheOptions.maxAgeSeconds = 60;
-    }
 
     this.contentsCache = new ContentsCache(this);
   }
@@ -490,21 +483,10 @@ export abstract class AbstractAccessor {
       indexOptions.logicalDelete = false;
     }
 
-    if (indexOptions.maxAgeSeconds == null) {
-      indexOptions.maxAgeSeconds = 60;
-    } else if (indexOptions.maxAgeSeconds < 0) {
-      indexOptions.maxAgeSeconds = 0;
-    }
-
     if (indexOptions.writeDelayMillis == null) {
       indexOptions.writeDelayMillis = 3000;
     } else if (indexOptions.writeDelayMillis < 0) {
       indexOptions.writeDelayMillis = 0;
-    }
-    if (0 < indexOptions.writeDelayMillis) {
-      setInterval(async () => {
-        await this.putDirPathIndexPeriodically();
-      }, 1000);
     }
   }
 
@@ -606,17 +588,19 @@ export abstract class AbstractAccessor {
     }
   }
 
-  private async putDirPathIndexPeriodically() {
-    const now = Date.now();
-    if (now < this.dirPathIndexUpdateTime) {
-      return;
+  private saveDirPathIndexLater() {
+    if (this.dirPathIndexUpdateTimer != null) {
+      clearTimeout(this.dirPathIndexUpdateTimer);
     }
 
-    try {
-      const dirPathIndex = await this.getDirPathIndex();
-      await this.doPutDirPathIndex(dirPathIndex);
-    } catch (e) {
-      console.warn("putDirPathIndexPeriodically", e);
-    }
+    this.dirPathIndexUpdateTimer = setTimeout(async () => {
+      try {
+        this.dirPathIndexUpdateTimer = null;
+        const dirPathIndex = await this.getDirPathIndex();
+        await this.saveDirPathIndex(dirPathIndex);
+      } catch (e) {
+        console.warn("putDirPathIndexLater", e);
+      }
+    }, this.options.indexOptions.writeDelayMillis);
   }
 }
