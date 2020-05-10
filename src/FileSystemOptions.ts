@@ -11,6 +11,7 @@ export interface ContentsCacheOptions {
 }
 
 export interface FileSystemOptions {
+  shared?: boolean;
   index?: boolean;
   indexOptions?: IndexOptions;
   contentsCache?: boolean;

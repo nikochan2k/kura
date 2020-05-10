@@ -32,8 +32,8 @@ export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
   private contentsCache: ContentsCache;
+  private dirPathIndexLastModified: number;
   private dirPathIndex: DirPathIndex;
-  private dirPathIndexExpired = 0;
   private dirPathIndexUpdateTimer: any;
 
   abstract readonly filesystem: FileSystem;
@@ -160,6 +160,11 @@ export abstract class AbstractAccessor {
   async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       await this.loadDirPathIndex();
+    } else if (this.options.shared) {
+      const obj = await this.doGetObject(INDEX_FILE_PATH);
+      if (obj.lastModified !== this.dirPathIndexLastModified) {
+        await this.loadDirPathIndex();
+      }
     }
     return this.dirPathIndex;
   }
@@ -263,9 +268,11 @@ export abstract class AbstractAccessor {
 
   async loadDirPathIndex() {
     try {
+      const obj = await this.doGetObject(INDEX_FILE_PATH);
       const content = await this.doGetContent(INDEX_FILE_PATH);
       const text = await toText(content);
       this.dirPathIndex = textToObject(text) as DirPathIndex;
+      this.dirPathIndexLastModified = obj.lastModified;
     } catch (e) {
       if (e instanceof NotFoundError) {
         this.dirPathIndex = {};
@@ -488,7 +495,7 @@ export abstract class AbstractAccessor {
     }
 
     if (indexOptions.writeDelayMillis == null) {
-      indexOptions.writeDelayMillis = 3000;
+      indexOptions.writeDelayMillis = 5000;
     } else if (indexOptions.writeDelayMillis < 0) {
       indexOptions.writeDelayMillis = 0;
     }

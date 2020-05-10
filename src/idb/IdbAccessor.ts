@@ -226,6 +226,13 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  protected initialize(options: FileSystemOptions) {
+    if (options.shared == null) {
+      options.shared = false;
+    }
+    super.initialize(options);
+  }
+
   protected async initializeDB() {
     await new Promise((resolve, reject) => {
       const dbName = "blob-support";

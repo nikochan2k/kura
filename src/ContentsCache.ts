@@ -1,8 +1,8 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { ContentsCacheOptions } from "./FileSystemOptions";
-import { INDEX_FILE_PATH, DIR_SEPARATOR } from "./FileSystemConstants";
-import { getSize } from "./FileSystemUtil";
+import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
+import { ContentsCacheOptions } from "./FileSystemOptions";
+import { getSize } from "./FileSystemUtil";
 
 export interface ContentCacheEntry {
   access: number;
@@ -14,8 +14,10 @@ export interface ContentCacheEntry {
 export class ContentsCache {
   private cache: { [fullPath: string]: ContentCacheEntry } = {};
   private options: ContentsCacheOptions;
+  private shared: boolean;
 
-  constructor(accessor: AbstractAccessor) {
+  constructor(private accessor: AbstractAccessor) {
+    this.shared = accessor.options.shared;
     this.options = accessor.options.contentsCacheOptions;
   }
 
@@ -23,6 +25,13 @@ export class ContentsCache {
     const entry = this.cache[fullPath];
     if (!entry) {
       return null;
+    }
+
+    if (this.shared) {
+      const obj = await this.accessor.doGetObject(fullPath);
+      if (entry.lastModified !== obj.lastModified) {
+        return null;
+      }
     }
 
     entry.access = Date.now();
