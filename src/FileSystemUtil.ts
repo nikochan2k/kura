@@ -148,7 +148,7 @@ export async function vacuum(filesystem: FileSystem) {
       delete fileNameIndex[name];
     }
   }
-  await afs.accessor.putDirPathIndex(dirPathIndex);
+  await afs.accessor.saveDirPathIndex();
 }
 
 export function onError(err: DOMError, errorCallback?: ErrorCallback) {

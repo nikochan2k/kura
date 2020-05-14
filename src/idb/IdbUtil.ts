@@ -1,9 +1,11 @@
-import { DIR_OPEN_BOUND, DIR_SEPARATOR } from "../FileSystemConstants";
 import { DirectoryEntry, FileEntry } from "../filesystem";
+import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileEntry } from "./IdbFileEntry";
+
+const DIR_OPEN_BOUND = String.fromCharCode(DIR_SEPARATOR.charCodeAt(0) + 1);
 
 export function countSlash(path: string) {
   let result = 0;

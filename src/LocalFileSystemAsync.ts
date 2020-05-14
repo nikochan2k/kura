@@ -2,6 +2,8 @@ import { EntryAsync } from "./EntryAsync";
 import { NotImplementedError } from "./FileError";
 import { Entry, LocalFileSystem } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
+import { AbstractFileSystem } from "./AbstractFileSystem";
+import { AbstractAccessor } from "./AbstractAccessor";
 
 export class LocalFileSystemAsync {
   constructor(public localFileSystem: LocalFileSystem) {}
@@ -20,7 +22,8 @@ export class LocalFileSystemAsync {
         type,
         size,
         (filesystem) => {
-          resolve(new FileSystemAsync(filesystem));
+          const afs = filesystem as AbstractFileSystem<AbstractAccessor>;
+          resolve(new FileSystemAsync(afs));
         },
         (err) => {
           reject(err);

@@ -1,8 +1,9 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { ContentsCacheOptions } from "./FileSystemOptions";
-import { INDEX_FILE_PATH, DIR_SEPARATOR } from "./FileSystemConstants";
-import { getSize } from "./FileSystemUtil";
+import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
+import { ContentsCacheOptions } from "./FileSystemOptions";
+import { getSize } from "./FileSystemUtil";
+import { NotFoundError } from "./FileError";
 
 export interface ContentCacheEntry {
   access: number;
@@ -27,14 +28,17 @@ export class ContentsCache {
       return null;
     }
 
-    const now = Date.now();
-    if (
-      this.shared &&
-      entry.access + this.options.maxAgeSeconds * 1000 <= now
-    ) {
-      const obj = await this.accessor.doGetObject(fullPath);
-      if (entry.lastModified !== obj.lastModified) {
-        return null;
+    if (this.shared) {
+      try {
+        const obj = await this.accessor.doGetObject(fullPath);
+        if (entry.lastModified !== obj.lastModified) {
+          return null;
+        }
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          delete this.cache[fullPath];
+        }
+        throw e;
       }
     }
 
@@ -100,14 +104,14 @@ export class ContentsCache {
     delete this.cache[fullPath];
   }
 
-  public removeBy(prefix: string) {
-    if (!prefix) {
+  public removeBy(startsWith: string) {
+    if (!startsWith || startsWith === DIR_SEPARATOR) {
       this.cache = {};
       return;
     }
-    const dirPrefix = prefix + DIR_SEPARATOR;
+    const dirPrefix = startsWith + DIR_SEPARATOR;
     for (const fullPath of Object.keys(this.cache)) {
-      if (fullPath === prefix || fullPath.startsWith(dirPrefix)) {
+      if (fullPath === startsWith || fullPath.startsWith(dirPrefix)) {
         delete this.cache[fullPath];
       }
     }
