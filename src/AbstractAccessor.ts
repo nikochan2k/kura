@@ -37,7 +37,6 @@ export abstract class AbstractAccessor {
 
   private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
-  private dirPathIndexLastModified: number;
   private dirPathIndexUpdateTimer: any;
 
   abstract readonly filesystem: FileSystem;
@@ -175,11 +174,6 @@ export abstract class AbstractAccessor {
   async getDirPathIndex() {
     if (this.dirPathIndex == null) {
       await this.loadDirPathIndex();
-    } else if (this.options.shared) {
-      const obj = await this.doGetObject(INDEX_FILE_PATH);
-      if (obj.lastModified !== this.dirPathIndexLastModified) {
-        await this.loadDirPathIndex();
-      }
     }
     return this.dirPathIndex;
   }
@@ -281,11 +275,10 @@ export abstract class AbstractAccessor {
 
   async loadDirPathIndex() {
     try {
-      const obj = await this.doGetObject(INDEX_FILE_PATH);
+      await this.doGetObject(INDEX_FILE_PATH);
       const content = await this.doGetContent(INDEX_FILE_PATH);
       const text = await toText(content);
       this.dirPathIndex = textToObject(text) as DirPathIndex;
-      this.dirPathIndexLastModified = obj.lastModified;
     } catch (e) {
       if (e instanceof NotFoundError) {
         this.dirPathIndex = {};
@@ -324,7 +317,8 @@ export abstract class AbstractAccessor {
   }
 
   async putFileNameIndex(dirPath: string, fileNameIndex: FileNameIndex) {
-    this.dirPathIndex[dirPath] = fileNameIndex;
+    const dirPathIndex = await this.getDirPathIndex();
+    dirPathIndex[dirPath] = fileNameIndex;
     await this.putDirPathIndex();
   }
 
@@ -412,7 +406,8 @@ export abstract class AbstractAccessor {
       clearTimeout(this.dirPathIndexUpdateTimer);
     }
     this.dirPathIndexUpdateTimer = null;
-    const text = objectToText(this.dirPathIndex);
+    const dirPathIndex = await this.getDirPathIndex();
+    const text = objectToText(dirPathIndex);
     const buffer = textToArrayBuffer(text);
     let obj: FileSystemObject = {
       fullPath: INDEX_FILE_PATH,
@@ -423,7 +418,6 @@ export abstract class AbstractAccessor {
     await this.doPutObject(obj);
     await this.doPutContent(INDEX_FILE_PATH, buffer);
     obj = await this.doGetObject(INDEX_FILE_PATH);
-    this.dirPathIndexLastModified = obj.lastModified;
   }
 
   toURL(fullPath: string): string {
