@@ -54,7 +54,7 @@ export abstract class AbstractAccessor {
   }
 
   createRecord(obj: FileSystemObject): Record {
-    return { obj, updated: obj.lastModified || Date.now() };
+    return { obj, updated: Date.now() };
   }
 
   async delete(fullPath: string, isFile: boolean) {
@@ -297,6 +297,19 @@ export abstract class AbstractAccessor {
       await this.doPutContent(fullPath, content);
 
       const obj = await this.doGetObject(fullPath);
+      if (this.options.index) {
+        let record: Record;
+        try {
+          record = await this.getRecord(obj.fullPath);
+        } catch (e) {
+          if (e instanceof NotFoundError) {
+            record = this.createRecord(obj);
+          } else {
+            throw e;
+          }
+        }
+        await this.updateIndex(record);
+      }
       if (this.contentsCache) {
         this.contentsCache.put(obj, content);
       }
@@ -386,7 +399,7 @@ export abstract class AbstractAccessor {
     }
 
     if (this.options.index) {
-      await this.updateIndex(record, add);
+      await this.updateIndex(record);
     }
 
     if (add) {
@@ -424,18 +437,13 @@ export abstract class AbstractAccessor {
     throw new NotImplementedError(this.filesystem.name, fullPath);
   }
 
-  async updateIndex(record: Record, add: boolean) {
+  async updateIndex(record: Record) {
     const obj = record.obj;
     const dirPath = getParentPath(obj.fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    if (add) {
-      // Add
-      record.updated = Date.now();
-      fileNameIndex[obj.name] = record;
-    } else {
-      // Update
-      delete record.deleted;
-    }
+    record.updated = Date.now();
+    fileNameIndex[obj.name] = record;
+    delete record.deleted;
     await this.putFileNameIndex(dirPath, fileNameIndex);
   }
 
