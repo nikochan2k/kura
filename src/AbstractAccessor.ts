@@ -59,12 +59,13 @@ export abstract class AbstractAccessor {
       await this.doGetObject(fullPath); // Check existance.
       if (this.options.index) {
         const record = await this.getRecord(fullPath);
-        await this.checkDeletePermission(fullPath, record);
+        await this.beforeDelete(record);
         this.debug("delete", fullPath);
         if (this.options.indexOptions.logicalDelete) {
           await this.doDelete(fullPath, isFile);
         }
         await this.removeFromIndex(fullPath);
+        this.afterDelete(record);
       } else {
         this.debug("delete", fullPath);
         await this.doDelete(fullPath, isFile);
@@ -120,8 +121,13 @@ export abstract class AbstractAccessor {
     type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     const fullPath = obj.fullPath;
+    let record: Record;
     if (this.options.index) {
-      await this.checkGetPermission(fullPath);
+      record = await this.getRecord(fullPath);
+      await this.beforeGet(record, true);
+    } else {
+      record = this.createRecord(obj);
+      await this.beforeGet(record, true);
     }
 
     try {
@@ -142,6 +148,7 @@ export abstract class AbstractAccessor {
       if (this.contentsCache) {
         this.contentsCache.put(obj, content);
       }
+      this.afterGet(record);
       return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
@@ -200,17 +207,7 @@ export abstract class AbstractAccessor {
         if (obj.fullPath == INDEX_FILE_PATH) {
           continue;
         }
-        const record: Record = { obj: obj, updated: Date.now() };
-        try {
-          await this.checkAddPermission(obj.fullPath, record);
-        } catch (e) {
-          if (e instanceof NoModificationAllowedError) {
-            console.debug("getFileNameIndex", e, record.obj);
-          } else {
-            console.warn("getFileNameIndex", e, record.obj);
-          }
-          continue;
-        }
+        const record = this.createRecord(obj);
         fileNameIndex[obj.name] = record;
       }
       await this.putFileNameIndex(dirPath, fileNameIndex);
@@ -222,13 +219,21 @@ export abstract class AbstractAccessor {
     if (fullPath === DIR_SEPARATOR) {
       return ROOT_OBJECT;
     }
+
     if (this.options.index) {
-      const record = await this.checkGetPermission(fullPath);
+      const record = await this.getRecord(fullPath);
+      await this.beforeGet(record, true);
       return record.obj;
     }
+
     try {
       this.debug("getObject", fullPath);
       const obj = await this.doGetObject(fullPath);
+      if (!this.options.index) {
+        const record = this.createRecord(obj);
+        await this.beforeGet(record, true); // Actually, after get.
+      }
+
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
@@ -286,10 +291,6 @@ export abstract class AbstractAccessor {
       await this.doPutContent(fullPath, content);
 
       const obj = await this.doGetObject(fullPath);
-      if (this.options.index) {
-        await this.updateIndex(obj);
-      }
-
       if (this.contentsCache) {
         this.contentsCache.put(obj, content);
       }
@@ -332,6 +333,39 @@ export abstract class AbstractAccessor {
       );
     }
 
+    let add = false;
+    let record: Record;
+    if (this.options.index) {
+      try {
+        record = await this.getRecord(obj.fullPath);
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          record = this.createRecord(obj);
+          add = true;
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      try {
+        obj = await this.doGetObject(obj.fullPath);
+        record = this.createRecord(obj);
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          record = this.createRecord(obj);
+          add = true;
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    if (add) {
+      await this.beforeAdd(record);
+    } else {
+      await this.beforeUpdate(record);
+    }
+
     try {
       this.debug("putObject", obj);
       await this.doPutObject(obj);
@@ -347,7 +381,13 @@ export abstract class AbstractAccessor {
     }
 
     if (this.options.index) {
-      await this.updateIndex(obj);
+      await this.updateIndex(record, add);
+    }
+
+    if (add) {
+      this.afterAdd(record);
+    } else {
+      this.afterUpdate(record);
     }
   }
 
@@ -360,18 +400,16 @@ export abstract class AbstractAccessor {
     throw new NotImplementedError(this.filesystem.name, fullPath);
   }
 
-  async updateIndex(obj: FileSystemObject) {
+  async updateIndex(record: Record, add: boolean) {
+    const obj = record.obj;
     const dirPath = getParentPath(obj.fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    let record = fileNameIndex[obj.name];
-    if (!record) {
-      record = { obj: obj, updated: Date.now() };
-      await this.checkAddPermission(obj.fullPath, record);
+    if (add) {
+      // Add
+      record.updated = Date.now();
       fileNameIndex[obj.name] = record;
     } else {
-      record.obj = obj;
-      record.updated = Date.now();
-      await this.checkUpdatePermission(obj.fullPath, record);
+      // Update
       delete record.deleted;
     }
     await this.putFileNameIndex(dirPath, fileNameIndex);
@@ -418,15 +456,10 @@ export abstract class AbstractAccessor {
     const fileNameIndex = await this.getFileNameIndex(dirPath);
     const objects: FileSystemObject[] = [];
     for (const record of Object.values(fileNameIndex)) {
-      try {
-        await this.checkGetPermission(record.obj.fullPath, record);
-      } catch (e) {
-        if (!(e instanceof NotFoundError)) {
-          console.warn("getObjectsFromIndex", e, record.obj);
-        }
+      if (record.deleted != null) {
         continue;
       }
-      if (record.deleted != null) {
+      if (!(await this.beforeGet(record, false))) {
         continue;
       }
       objects.push(record.obj);
@@ -437,6 +470,14 @@ export abstract class AbstractAccessor {
   protected async getObjectsFromStorage(dirPath: string) {
     this.debug("getObjectsFromStorage", dirPath);
     const objects = await this.doGetObjects(dirPath);
+    if (this.options.event.preGet) {
+      for (const obj of objects) {
+        const record = this.createRecord(obj);
+        if (!(await this.beforeGet(record, false))) {
+          continue;
+        }
+      }
+    }
     return objects.filter((obj) => obj.fullPath !== INDEX_FILE_PATH);
   }
 
@@ -554,56 +595,103 @@ export abstract class AbstractAccessor {
   ): Promise<void>;
   protected abstract doPutBlob(fullPath: string, blob: Blob): Promise<void>;
 
-  private async checkAddPermission(fullPath: string, record: Record) {
-    if (!this.options.permission.onAdd) {
+  private afterAdd(record: Record) {
+    if (!this.options.event.postAdd) {
       return;
     }
-    if (!this.options.permission.onAdd(record)) {
-      throw new NoModificationAllowedError(this.name, fullPath, "Cannot add");
+    this.options.event.postAdd(record);
+  }
+
+  private afterDelete(record: Record) {
+    if (!this.options.event.postDelete) {
+      return;
+    }
+    this.options.event.postDelete(record);
+  }
+
+  private afterGet(record: Record) {
+    if (!this.options.event.postGet) {
+      return;
+    }
+    this.options.event.postGet(record);
+  }
+
+  private afterUpdate(record: Record) {
+    if (!this.options.event.postUpdate) {
+      return;
+    }
+    this.options.event.postUpdate(record);
+  }
+
+  private async beforeAdd(record: Record) {
+    if (!this.options.event.preAdd) {
+      return;
+    }
+    if (!this.options.event.preAdd(record)) {
+      throw new NoModificationAllowedError(
+        this.name,
+        record.obj.fullPath,
+        "Cannot add"
+      );
     }
   }
 
-  private async checkDeletePermission(fullPath: string, record: Record) {
-    if (!this.options.permission.onDelete) {
+  private async beforeDelete(record: Record) {
+    if (!this.options.event.preDelete) {
       return;
     }
-    if (!this.options.permission.onDelete(record)) {
+    if (!this.options.event.preDelete(record)) {
       throw new NoModificationAllowedError(
         this.name,
-        fullPath,
+        record.obj.fullPath,
         "Cannot delete"
       );
     }
   }
 
-  private async checkGetPermission(fullPath: string, record?: Record) {
-    if (!record) {
-      record = await this.getRecord(fullPath);
-    }
+  private async beforeGet(record: Record, throwError: boolean) {
     if (record.deleted) {
-      throw new NotFoundError(this.name, fullPath);
+      if (throwError) {
+        throw new NotFoundError(this.name, record.obj.fullPath);
+      } else {
+        return false;
+      }
     }
 
-    if (!this.options.permission.onGet) {
-      return record;
+    if (!this.options.event.preGet) {
+      return true;
     }
-    if (!this.options.permission.onGet(record)) {
-      throw new NotFoundError(this.name, fullPath);
+
+    if (!this.options.event.preGet(record)) {
+      if (throwError) {
+        throw new NotReadableError(
+          this.name,
+          record.obj.fullPath,
+          "Cannot get"
+        );
+      } else {
+        return false;
+      }
     }
-    return record;
+
+    return true;
   }
 
-  private async checkUpdatePermission(fullPath: string, record: Record) {
-    if (!this.options.permission.onUpdate) {
+  private async beforeUpdate(record: Record) {
+    if (!this.options.event.preUpdate) {
       return;
     }
-    if (!this.options.permission.onUpdate(record)) {
+    if (!this.options.event.preUpdate(record)) {
       throw new NoModificationAllowedError(
         this.name,
-        fullPath,
+        record.obj.fullPath,
         "Cannot update"
       );
     }
+  }
+
+  private createRecord(obj: FileSystemObject): Record {
+    return { obj, updated: obj.lastModified };
   }
 
   private async putDirPathIndexPeriodically() {

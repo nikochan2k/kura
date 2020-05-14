@@ -1,4 +1,4 @@
-import { Permission } from "./FileSystemIndex";
+import { Event } from "./FileSystemIndex";
 
 export interface IndexOptions {
   writeDelayMillis?: number;
@@ -18,6 +18,6 @@ export interface FileSystemOptions {
   indexOptions?: IndexOptions;
   contentsCache?: boolean;
   contentsCacheOptions?: ContentsCacheOptions;
-  permission?: Permission;
+  event?: Event;
   verbose?: boolean;
 }

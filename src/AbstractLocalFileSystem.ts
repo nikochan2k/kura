@@ -21,7 +21,7 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   TEMPORARY: number;
 
   constructor(protected options: FileSystemOptions = {}) {
-    if (options.permission == null) options.permission = {};
+    if (options.event == null) options.event = {};
     if (options.verbose == null) options.verbose = false;
     this.PERSISTENT = window.PERSISTENT;
     this.TEMPORARY = window.TEMPORARY;

@@ -16,9 +16,13 @@ export interface DirPathIndex {
   [dirPath: string]: FileNameIndex;
 }
 
-export interface Permission {
-  onGet?: (record: Record) => boolean;
-  onAdd?: (record: Record) => boolean;
-  onUpdate?: (record: Record) => boolean;
-  onDelete?: (record: Record) => boolean;
+export interface Event {
+  preGet?: (record: Record) => Promise<boolean>;
+  preAdd?: (record: Record) => Promise<boolean>;
+  preUpdate?: (record: Record) => Promise<boolean>;
+  preDelete?: (record: Record) => Promise<boolean>;
+  postGet?: (record: Record) => void;
+  postAdd?: (record: Record) => void;
+  postUpdate?: (record: Record) => void;
+  postDelete?: (record: Record) => void;
 }
