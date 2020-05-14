@@ -386,10 +386,10 @@ export abstract class AbstractAccessor {
     }
 
     if (content) {
+      // File
       await this.putContent(obj.fullPath, content);
-    }
-
-    if (this.options.index) {
+    } else if (this.options.index) {
+      // Directory
       await this.updateIndex(record);
     }
 
