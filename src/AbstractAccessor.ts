@@ -1,8 +1,19 @@
 import { toArrayBuffer, toBase64, toBlob } from "./BinaryConverter";
 import { ContentsCache } from "./ContentsCache";
-import { AbstractFileError, InvalidModificationError, NoModificationAllowedError, NotFoundError, NotImplementedError, NotReadableError } from "./FileError";
+import {
+  AbstractFileError,
+  InvalidModificationError,
+  NoModificationAllowedError,
+  NotFoundError,
+  NotImplementedError,
+  NotReadableError,
+} from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import { DIR_SEPARATOR, INDEX_FILE_NAME, INDEX_FILE_PATH } from "./FileSystemConstants";
+import {
+  DIR_SEPARATOR,
+  INDEX_FILE_NAME,
+  INDEX_FILE_PATH,
+} from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -25,8 +36,8 @@ export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
   private contentsCache: ContentsCache;
-  private dirPathIndexLastModified: number;
   private dirPathIndex: DirPathIndex;
+  private dirPathIndexLastModified: number;
   private dirPathIndexUpdateTimer: any;
 
   abstract readonly filesystem: FileSystem;
@@ -41,6 +52,10 @@ export abstract class AbstractAccessor {
       return;
     }
     this.contentsCache.removeBy(startsWith);
+  }
+
+  createRecord(obj: FileSystemObject): Record {
+    return { obj, updated: obj.lastModified };
   }
 
   async delete(fullPath: string, isFile: boolean) {
@@ -686,10 +701,6 @@ export abstract class AbstractAccessor {
         "Cannot update"
       );
     }
-  }
-
-  private createRecord(obj: FileSystemObject): Record {
-    return { obj, updated: obj.lastModified };
   }
 
   private async saveDirPathIndexLater() {
