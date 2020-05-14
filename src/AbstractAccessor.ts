@@ -55,7 +55,7 @@ export abstract class AbstractAccessor {
   }
 
   createRecord(obj: FileSystemObject): Record {
-    return { obj, updated: obj.lastModified };
+    return { obj, updated: obj.lastModified || Date.now() };
   }
 
   async delete(fullPath: string, isFile: boolean) {
