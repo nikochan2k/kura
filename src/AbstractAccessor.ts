@@ -298,16 +298,7 @@ export abstract class AbstractAccessor {
 
       const obj = await this.doGetObject(fullPath);
       if (this.options.index) {
-        let record: Record;
-        try {
-          record = await this.getRecord(obj.fullPath);
-        } catch (e) {
-          if (e instanceof NotFoundError) {
-            record = this.createRecord(obj);
-          } else {
-            throw e;
-          }
-        }
+        const record = this.createRecord(obj);
         await this.updateIndex(record);
       }
       if (this.contentsCache) {
