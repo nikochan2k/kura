@@ -59,7 +59,7 @@ function base64ToArrayBuffer(base64: string) {
   return view.buffer;
 }
 
-function uint8ArrayToViewToArrayBuffer(view: Uint8Array) {
+function uint8ArrayToArrayBuffer(view: Uint8Array) {
   const viewLength = view.length;
   const buffer = view.buffer;
   if (viewLength === buffer.byteLength) {
@@ -84,8 +84,8 @@ export async function toArrayBuffer(
   let buffer: ArrayBuffer;
   if (content instanceof ArrayBuffer) {
     buffer = content;
-  } else if (content instanceof Uint8Array) {
-    buffer = uint8ArrayToViewToArrayBuffer(content);
+  } else if (ArrayBuffer.isView(content)) {
+    buffer = uint8ArrayToArrayBuffer(content);
   } else if (content instanceof Blob) {
     buffer = await blobToArrayBuffer(content);
   } else {
