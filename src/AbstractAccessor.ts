@@ -399,14 +399,7 @@ export abstract class AbstractAccessor {
     const dirPathIndex = await this.getDirPathIndex();
     const text = objectToText(dirPathIndex);
     const buffer = textToArrayBuffer(text);
-    let obj: FileSystemObject = {
-      fullPath: INDEX_FILE_PATH,
-      name: INDEX_FILE_NAME,
-      size: buffer.byteLength,
-      lastModified: Date.now(),
-    };
     await this.doWriteContent(INDEX_FILE_PATH, buffer);
-    obj = await this.doGetObject(INDEX_FILE_PATH);
   }
 
   toURL(fullPath: string): string {
