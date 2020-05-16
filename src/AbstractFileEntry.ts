@@ -14,10 +14,8 @@ import {
   VoidCallback,
 } from "./filesystem";
 import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
-import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
-import { getSize, getTextSize, onError } from "./FileSystemUtil";
-import { FileWriterAsync } from "./FileWriterAsync";
+import { onError } from "./FileSystemUtil";
 
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
@@ -44,26 +42,17 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       return;
     }
 
-    parent.getFile(
-      newName || this.name,
-      { create: true },
-      (fileEntry) => {
-        fileEntry.createWriter((writer) => {
-          this.file((file) => {
-            const writerAsync = new FileWriterAsync(writer);
-            writerAsync
-              .write(file)
-              .then(() => {
-                if (successCallback) {
-                  successCallback(fileEntry);
-                }
-              })
-              .catch((err) => onError(err, errorCallback));
-          }, errorCallback);
-        }, errorCallback);
-      },
-      errorCallback
-    );
+    this.readFile((content) => {
+      parent.getFile(newName || this.name, { create: true }, (fileEntry) => {
+        fileEntry.writeFile(
+          content,
+          () => {
+            successCallback(fileEntry);
+          },
+          errorCallback
+        );
+      });
+    }, errorCallback);
   }
 
   createWriter(
