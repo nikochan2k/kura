@@ -113,14 +113,14 @@ export abstract class AbstractAccessor {
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
   ) {
-    if (content instanceof Blob) {
+    if (typeof content === "string") {
+      await this.doWriteBase64(fullPath, content);
+    } else if (content instanceof Blob) {
       await this.doWriteBlob(fullPath, content);
-    } else if (content instanceof ArrayBuffer) {
-      await this.doWriteArrayBuffer(fullPath, content);
-    } else if (content instanceof Uint8Array) {
+    } else if (ArrayBuffer.isView(content)) {
       await this.doWriteUint8Array(fullPath, content);
     } else {
-      await this.doWriteBase64(fullPath, content);
+      await this.doWriteArrayBuffer(fullPath, content);
     }
   }
 

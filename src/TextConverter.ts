@@ -36,12 +36,12 @@ export async function toText(
   let text: string;
   if (typeof content === "string") {
     text = await base64ToText(content);
-  } else if (content instanceof ArrayBuffer) {
-    text = textDecoder.decode(new Uint8Array(content));
+  } else if (content instanceof Blob) {
+    text = await blobToText(content);
   } else if (ArrayBuffer.isView(content)) {
     text = textDecoder.decode(content);
   } else {
-    text = await blobToText(content);
+    text = textDecoder.decode(new Uint8Array(content));
   }
   return text;
 }

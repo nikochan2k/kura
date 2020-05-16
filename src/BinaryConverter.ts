@@ -82,14 +82,14 @@ export async function toArrayBuffer(
   }
 
   let buffer: ArrayBuffer;
-  if (content instanceof ArrayBuffer) {
-    buffer = content;
-  } else if (ArrayBuffer.isView(content)) {
-    buffer = uint8ArrayToArrayBuffer(content);
+  if (typeof content === "string") {
+    buffer = base64ToArrayBuffer(content);
   } else if (content instanceof Blob) {
     buffer = await blobToArrayBuffer(content);
+  } else if (ArrayBuffer.isView(content)) {
+    buffer = uint8ArrayToArrayBuffer(content);
   } else {
-    buffer = base64ToArrayBuffer(content);
+    buffer = content;
   }
   return buffer;
 }
@@ -119,14 +119,12 @@ export function toBlob(
   }
 
   let blob: Blob;
-  if (content instanceof Blob) {
-    blob = content;
-  } else if (content instanceof ArrayBuffer) {
-    blob = new Blob([content]);
-  } else if (ArrayBuffer.isView(content)) {
-    blob = new Blob([content]);
-  } else {
+  if (typeof content === "string") {
     blob = base64ToBlob(content);
+  } else if (content instanceof Blob) {
+    blob = content;
+  } else {
+    blob = new Blob([content]);
   }
   return blob;
 }
@@ -175,14 +173,14 @@ export async function toBase64(
   }
 
   let base64: string;
-  if (content instanceof Blob) {
+  if (typeof content === "string") {
+    base64 = content;
+  } else if (content instanceof Blob) {
     base64 = await blobToBase64(content);
-  } else if (content instanceof ArrayBuffer) {
-    base64 = arrayBufferToBase64(content);
-  } else if (content instanceof Uint8Array) {
+  } else if (ArrayBuffer.isView(content)) {
     base64 = uint8ArrayToBase64(content);
   } else {
-    base64 = content;
+    base64 = arrayBufferToBase64(content);
   }
   return base64;
 }

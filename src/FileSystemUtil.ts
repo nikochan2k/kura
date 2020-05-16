@@ -107,14 +107,12 @@ export function getSize(content: Blob | Uint8Array | ArrayBuffer | string) {
   }
 
   let size: number;
-  if (content instanceof Blob) {
-    size = content.size;
-  } else if (content instanceof ArrayBuffer) {
-    size = content.byteLength;
-  } else if (ArrayBuffer.isView(content)) {
-    size = content.byteLength;
-  } else {
+  if (typeof content === "string") {
     size = Math.floor(content.replace(/=/g, "").length * 0.75); // Base64
+  } else if (content instanceof Blob) {
+    size = content.size;
+  } else {
+    size = content.byteLength;
   }
   return size;
 }
