@@ -8,6 +8,7 @@ import {
 import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
+import { getName, getSize } from "../FileSystemUtil";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
 
@@ -46,29 +47,6 @@ export class IdbAccessor extends AbstractAccessor {
       let range = IDBKeyRange.only(fullPath);
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
       request.onerror = onerror;
-    });
-  }
-
-  doGetContent(
-    fullPath: string
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
-    return new Promise<any>((resolve, reject) => {
-      const onerror = (ev: Event) =>
-        reject(new NotReadableError(this.name, fullPath, ev));
-      const tx = this.db.transaction([CONTENT_STORE], "readonly");
-      const range = IDBKeyRange.only(fullPath);
-      tx.onabort = onerror;
-      tx.onerror = onerror;
-      const request = tx.objectStore(CONTENT_STORE).get(range);
-      request.onerror = onerror;
-      const name = this.name;
-      tx.oncomplete = () => {
-        if (request.result != null) {
-          resolve(request.result);
-        } else {
-          reject(new NotFoundError(name, fullPath));
-        }
-      };
     });
   }
 
@@ -126,6 +104,10 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  doMakeDirectory(obj: FileSystemObject) {
+    return this.doPutObject(obj);
+  }
+
   doPutObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
@@ -138,6 +120,29 @@ export class IdbAccessor extends AbstractAccessor {
       };
       const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
       entryReq.onerror = onerror;
+    });
+  }
+
+  doReadContent(
+    fullPath: string
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+    return new Promise<any>((resolve, reject) => {
+      const onerror = (ev: Event) =>
+        reject(new NotReadableError(this.name, fullPath, ev));
+      const tx = this.db.transaction([CONTENT_STORE], "readonly");
+      const range = IDBKeyRange.only(fullPath);
+      tx.onabort = onerror;
+      tx.onerror = onerror;
+      const request = tx.objectStore(CONTENT_STORE).get(range);
+      request.onerror = onerror;
+      const name = this.name;
+      tx.oncomplete = () => {
+        if (request.result != null) {
+          resolve(request.result);
+        } else {
+          reject(new NotFoundError(name, fullPath));
+        }
+      };
     });
   }
 
@@ -183,7 +188,7 @@ export class IdbAccessor extends AbstractAccessor {
     delete this.db;
   }
 
-  protected async doPutArrayBuffer(
+  protected async doWriteArrayBuffer(
     fullPath: string,
     buffer: ArrayBuffer
   ): Promise<void> {
@@ -195,14 +200,17 @@ export class IdbAccessor extends AbstractAccessor {
     } else {
       content = await toBase64(buffer);
     }
-    await this.doPutContentToIdb(fullPath, content);
+    await this.doWriteContentToIdb(fullPath, content);
   }
 
-  protected async doPutBase64(fullPath: string, base64: string): Promise<void> {
-    await this.doPutContentToIdb(fullPath, base64);
+  protected async doWriteBase64(
+    fullPath: string,
+    base64: string
+  ): Promise<void> {
+    await this.doWriteContentToIdb(fullPath, base64);
   }
 
-  protected async doPutBlob(fullPath: string, blob: Blob): Promise<void> {
+  protected async doWriteBlob(fullPath: string, blob: Blob): Promise<void> {
     let content: Blob | Uint8Array | ArrayBuffer | string;
     if (IdbAccessor.SUPPORTS_BLOB) {
       content = blob;
@@ -211,10 +219,55 @@ export class IdbAccessor extends AbstractAccessor {
     } else {
       content = await toBase64(blob);
     }
-    await this.doPutContentToIdb(fullPath, content);
+    await this.doWriteContentToIdb(fullPath, content);
   }
 
-  protected drop() {
+  protected initialize(options: FileSystemOptions) {
+    if (options.shared == null) {
+      options.shared = false;
+    }
+    super.initialize(options);
+  }
+
+  protected async refreshObject(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ): Promise<FileSystemObject> {
+    const obj: FileSystemObject = {
+      fullPath: fullPath,
+      name: getName(fullPath),
+      lastModified: Date.now(),
+      size: getSize(content),
+    };
+    await this.doPutObject(obj);
+    if (this.options.index) {
+      const record = this.createRecord(obj);
+      await this.updateIndex(record);
+    }
+    if (this.contentsCache) {
+      this.contentsCache.put(obj, content);
+    }
+    return obj;
+  }
+
+  private doWriteContentToIdb(fullPath: string, content: any) {
+    return new Promise<void>((resolve, reject) => {
+      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
+      const onerror = (ev: Event) =>
+        reject(new InvalidModificationError(this.name, fullPath, ev));
+      contentTx.onabort = onerror;
+      contentTx.onerror = onerror;
+      contentTx.oncomplete = () => {
+        resolve();
+      };
+      const contentReq = contentTx
+        .objectStore(CONTENT_STORE)
+        .put(content, fullPath);
+      contentReq.onerror = onerror;
+    });
+  }
+
+  private drop() {
     return new Promise<void>((resolve, reject) => {
       const dbName = this.db.name;
       const request = indexedDB.deleteDatabase(dbName);
@@ -226,14 +279,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  protected initialize(options: FileSystemOptions) {
-    if (options.shared == null) {
-      options.shared = false;
-    }
-    super.initialize(options);
-  }
-
-  protected async initializeDB() {
+  private async initializeDB() {
     await new Promise((resolve, reject) => {
       const dbName = "blob-support";
       indexedDB.deleteDatabase(dbName).onsuccess = function () {
@@ -281,23 +327,6 @@ export class IdbAccessor extends AbstractAccessor {
         };
         request.onerror = (ev: Event) => reject(ev);
       };
-    });
-  }
-
-  private doPutContentToIdb(fullPath: string, content: any) {
-    return new Promise<void>((resolve, reject) => {
-      const contentTx = this.db.transaction([CONTENT_STORE], "readwrite");
-      const onerror = (ev: Event) =>
-        reject(new InvalidModificationError(this.name, fullPath, ev));
-      contentTx.onabort = onerror;
-      contentTx.onerror = onerror;
-      contentTx.oncomplete = () => {
-        resolve();
-      };
-      const contentReq = contentTx
-        .objectStore(CONTENT_STORE)
-        .put(content, fullPath);
-      contentReq.onerror = onerror;
     });
   }
 }

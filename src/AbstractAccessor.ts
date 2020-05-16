@@ -35,9 +35,10 @@ const ROOT_RECORD: Record = {
 export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
-  private contentsCache: ContentsCache;
   private dirPathIndex: DirPathIndex;
   private dirPathIndexUpdateTimer: any;
+
+  protected contentsCache: ContentsCache;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
@@ -108,66 +109,18 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async doPutContent(
+  async doWriteContent(
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
   ) {
     if (content instanceof Blob) {
-      await this.doPutBlob(fullPath, content);
+      await this.doWriteBlob(fullPath, content);
     } else if (content instanceof ArrayBuffer) {
-      await this.doPutArrayBuffer(fullPath, content);
+      await this.doWriteArrayBuffer(fullPath, content);
     } else if (content instanceof Uint8Array) {
-      await this.doPutUint8Array(fullPath, content);
+      await this.doWriteUint8Array(fullPath, content);
     } else {
-      await this.doPutBase64(fullPath, content);
-    }
-  }
-
-  async getContent(
-    obj: FileSystemObject,
-    type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
-    const fullPath = obj.fullPath;
-    let record: Record;
-    if (this.options.index) {
-      record = await this.getRecord(fullPath);
-      await this.beforeGet(record, true);
-    } else {
-      record = this.createRecord(obj);
-      await this.beforeGet(record, true);
-    }
-
-    try {
-      this.debug("getContent", fullPath);
-      if (this.contentsCache) {
-        var content = await this.contentsCache.get(fullPath);
-      }
-      if (!content) {
-        content = await this.doGetContent(fullPath);
-      }
-      if (type === "blob") {
-        content = toBlob(content);
-      } else if (type === "arraybuffer") {
-        content = await toArrayBuffer(content);
-      } else if (type === "base64") {
-        content = await toBase64(content);
-      }
-      if (this.contentsCache) {
-        this.contentsCache.put(obj, content);
-      }
-      this.afterGet(record);
-      return content;
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
-        if (this.contentsCache) {
-          this.contentsCache.remove(fullPath);
-        }
-        throw e;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, fullPath, e);
+      await this.doWriteBase64(fullPath, content);
     }
   }
 
@@ -267,16 +220,10 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  async getText(obj: FileSystemObject): Promise<string> {
-    const content = await this.getContent(obj);
-    const text = await toText(content);
-    return text;
-  }
-
   async loadDirPathIndex() {
     try {
       await this.doGetObject(INDEX_FILE_PATH);
-      const content = await this.doGetContent(INDEX_FILE_PATH);
+      const content = await this.doReadContent(INDEX_FILE_PATH);
       const text = await toText(content);
       this.dirPathIndex = textToObject(text) as DirPathIndex;
     } catch (e) {
@@ -285,30 +232,6 @@ export abstract class AbstractAccessor {
       } else {
         throw e;
       }
-    }
-  }
-
-  async putContent(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<void> {
-    try {
-      this.debug("putContent", fullPath);
-      await this.doPutContent(fullPath, content);
-
-      const obj = await this.doGetObject(fullPath);
-      if (this.options.index) {
-        const record = this.createRecord(obj);
-        await this.updateIndex(record);
-      }
-      if (this.contentsCache) {
-        this.contentsCache.put(obj, content);
-      }
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
     }
   }
 
@@ -326,7 +249,10 @@ export abstract class AbstractAccessor {
     await this.putDirPathIndex();
   }
 
-  async putObject(obj: FileSystemObject, content?: Blob) {
+  async putObject(
+    obj: FileSystemObject,
+    content?: Blob | Uint8Array | ArrayBuffer | string
+  ): Promise<FileSystemObject> {
     if (obj.fullPath === DIR_SEPARATOR) {
       throw new InvalidModificationError(
         this.name,
@@ -376,8 +302,17 @@ export abstract class AbstractAccessor {
     }
 
     try {
-      this.debug("putObject", obj);
-      await this.doPutObject(obj);
+      if (content == null) {
+        // Directory
+        this.makeDirectory(obj);
+        if (this.options.index) {
+          await this.updateIndex(record);
+        }
+      } else {
+        // File
+        await this.writeContent(obj.fullPath, content);
+        obj = await this.refreshObject(obj.fullPath, content);
+      }
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -385,24 +320,75 @@ export abstract class AbstractAccessor {
       throw new InvalidModificationError(this.name, obj.fullPath, e);
     }
 
-    if (content) {
-      // File
-      await this.putContent(obj.fullPath, content);
-    } else if (this.options.index) {
-      // Directory
-      await this.updateIndex(record);
-    }
-
     if (add) {
       this.afterAdd(record);
     } else {
       this.afterUpdate(record);
     }
+
+    return obj;
   }
 
-  async putText(fullPath: string, text: string): Promise<void> {
+  async putText(
+    obj: FileSystemObject,
+    text: string
+  ): Promise<FileSystemObject> {
     const buffer = textToArrayBuffer(text);
-    await this.putContent(fullPath, buffer);
+    return this.putObject(obj, buffer);
+  }
+
+  async readContent(
+    obj: FileSystemObject,
+    type?: DataType
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+    const fullPath = obj.fullPath;
+    let record: Record;
+    if (this.options.index) {
+      record = await this.getRecord(fullPath);
+      await this.beforeGet(record, true);
+    } else {
+      record = this.createRecord(obj);
+      await this.beforeGet(record, true);
+    }
+
+    try {
+      this.debug("readContent", fullPath);
+      if (this.contentsCache) {
+        var content = await this.contentsCache.get(fullPath);
+      }
+      if (!content) {
+        content = await this.doReadContent(fullPath);
+      }
+      if (type === "blob") {
+        content = toBlob(content);
+      } else if (type === "arraybuffer") {
+        content = await toArrayBuffer(content);
+      } else if (type === "base64") {
+        content = await toBase64(content);
+      }
+      if (this.contentsCache) {
+        this.contentsCache.put(obj, content);
+      }
+      this.afterGet(record);
+      return content;
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.removeFromIndex(fullPath);
+        if (this.contentsCache) {
+          this.contentsCache.remove(fullPath);
+        }
+        throw e;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new NotReadableError(this.name, fullPath, e);
+    }
+  }
+
+  async readText(obj: FileSystemObject): Promise<string> {
+    const content = await this.readContent(obj);
+    const text = await toText(content);
+    return text;
   }
 
   async saveDirPathIndex() {
@@ -419,8 +405,7 @@ export abstract class AbstractAccessor {
       size: buffer.byteLength,
       lastModified: Date.now(),
     };
-    await this.doPutObject(obj);
-    await this.doPutContent(INDEX_FILE_PATH, buffer);
+    await this.doWriteContent(INDEX_FILE_PATH, buffer);
     obj = await this.doGetObject(INDEX_FILE_PATH);
   }
 
@@ -439,12 +424,12 @@ export abstract class AbstractAccessor {
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  abstract doGetContent(
-    fullPath: string
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
   abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
-  abstract doPutObject(obj: FileSystemObject): Promise<void>;
+  abstract doMakeDirectory(obj: FileSystemObject): Promise<void>;
+  abstract doReadContent(
+    fullPath: string
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -459,12 +444,12 @@ export abstract class AbstractAccessor {
     }
   }
 
-  protected async doPutUint8Array(
+  protected async doWriteUint8Array(
     fullPath: string,
     view: Uint8Array
   ): Promise<void> {
     const buffer = await toArrayBuffer(view);
-    await this.doPutArrayBuffer(fullPath, buffer);
+    await this.doWriteArrayBuffer(fullPath, buffer);
   }
 
   protected async getObjectsFromIndex(dirPath: string) {
@@ -555,6 +540,26 @@ export abstract class AbstractAccessor {
     }
   }
 
+  protected async makeDirectory(obj: FileSystemObject) {
+    this.debug("makeDirectory", obj);
+    await this.doMakeDirectory(obj);
+  }
+
+  protected async refreshObject(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ): Promise<FileSystemObject> {
+    const obj = await this.doGetObject(fullPath);
+    if (this.options.index) {
+      const record = this.createRecord(obj);
+      await this.updateIndex(record);
+    }
+    if (this.contentsCache) {
+      this.contentsCache.put(obj, content);
+    }
+    return obj;
+  }
+
   protected async removeFromIndex(fullPath: string) {
     if (!this.options.index) {
       return;
@@ -591,15 +596,30 @@ export abstract class AbstractAccessor {
     }
   }
 
-  protected abstract doPutArrayBuffer(
+  protected async writeContent(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ): Promise<void> {
+    try {
+      this.debug("writeContent", fullPath);
+      await this.doWriteContent(fullPath, content);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
+  }
+
+  protected abstract doWriteArrayBuffer(
     fullPath: string,
     buffer: ArrayBuffer
   ): Promise<void>;
-  protected abstract doPutBase64(
+  protected abstract doWriteBase64(
     fullPath: string,
     base64: string
   ): Promise<void>;
-  protected abstract doPutBlob(fullPath: string, blob: Blob): Promise<void>;
+  protected abstract doWriteBlob(fullPath: string, blob: Blob): Promise<void>;
 
   private afterAdd(record: Record) {
     if (!this.options.event.postAdd) {

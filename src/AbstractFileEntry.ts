@@ -46,7 +46,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
 
     parent.getFile(
       newName || this.name,
-      { create: true, exclusive: true },
+      { create: true },
       (fileEntry) => {
         fileEntry.createWriter((writer) => {
           this.file((file) => {
@@ -89,7 +89,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     }
     const accessor = this.params.accessor;
     accessor
-      .getContent(this.params, "blob")
+      .readContent(this.params, "blob")
       .then(async (blob) => {
         if (!blob) {
           successCallback(null);
@@ -133,7 +133,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     type?: DataType
   ): void {
     this.params.accessor
-      .getContent(this.params, type)
+      .readContent(this.params, type)
       .then((content) => {
         successCallback(content);
       })
@@ -144,7 +144,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
 
   readText(successCallback: TextCallback, errorCallback?: ErrorCallback): void {
     this.params.accessor
-      .getText(this.params)
+      .readText(this.params)
       .then((text) => {
         successCallback(text);
       })
@@ -173,23 +173,10 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback
   ): void {
     this.params.accessor
-      .putContent(this.fullPath, content)
-      .then(() => {
-        const obj: FileSystemObject = {
-          name: this.name,
-          fullPath: this.fullPath,
-          lastModified: Date.now(),
-          size: getSize(content),
-        };
-        this.params.accessor
-          .putObject(obj)
-          .then(() => {
-            this.params.size = obj.size;
-            successCallback();
-          })
-          .catch((err) => {
-            onError(err, errorCallback);
-          });
+      .putObject(this.params, content)
+      .then((obj) => {
+        this.params.size = obj.size;
+        successCallback();
       })
       .catch((err) => {
         onError(err, errorCallback);
@@ -202,23 +189,10 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback
   ): void {
     this.params.accessor
-      .putText(this.fullPath, text)
-      .then(() => {
-        const obj: FileSystemObject = {
-          name: this.name,
-          fullPath: this.fullPath,
-          lastModified: Date.now(),
-          size: getTextSize(text),
-        };
-        this.params.accessor
-          .putObject(obj)
-          .then(() => {
-            this.params.size = obj.size;
-            successCallback();
-          })
-          .catch((err) => {
-            onError(err, errorCallback);
-          });
+      .putText(this.params, text)
+      .then((obj) => {
+        this.params.size = obj.size;
+        successCallback();
       })
       .catch((err) => {
         onError(err, errorCallback);
