@@ -69,7 +69,7 @@ export abstract class AbstractAccessor {
         const record = await this.getRecord(fullPath);
         await this.beforeDelete(record);
         this.debug("delete", fullPath);
-        if (this.options.indexOptions.logicalDelete) {
+        if (!this.options.indexOptions.logicalDelete) {
           await this.doDelete(fullPath, isFile);
         }
         await this.removeFromIndex(fullPath);
