@@ -34,8 +34,8 @@ export class IdbAccessor extends AbstractAccessor {
     return this.dbName;
   }
 
-  doDelete(fullPath: string, isFile: boolean) {
-    return new Promise<void>(async (resolve, reject) => {
+  async doDelete(fullPath: string, isFile: boolean) {
+    await new Promise<void>(async (resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) =>
         reject(new InvalidModificationError(this.name, fullPath, ev));
@@ -46,6 +46,19 @@ export class IdbAccessor extends AbstractAccessor {
       };
       let range = IDBKeyRange.only(fullPath);
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
+      request.onerror = onerror;
+    });
+    await new Promise<void>(async (resolve, reject) => {
+      const entryTx = this.db.transaction([CONTENT_STORE], "readwrite");
+      const onerror = (ev: Event) =>
+        reject(new InvalidModificationError(this.name, fullPath, ev));
+      entryTx.onabort = onerror;
+      entryTx.onerror = onerror;
+      entryTx.oncomplete = () => {
+        resolve();
+      };
+      let range = IDBKeyRange.only(fullPath);
+      const request = entryTx.objectStore(CONTENT_STORE).delete(range);
       request.onerror = onerror;
     });
   }
