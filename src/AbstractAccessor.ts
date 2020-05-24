@@ -222,7 +222,6 @@ export abstract class AbstractAccessor {
 
   async loadDirPathIndex() {
     try {
-      await this.doGetObject(INDEX_FILE_PATH);
       const content = await this.doReadContent(INDEX_FILE_PATH);
       const text = await toText(content);
       this.dirPathIndex = textToObject(text) as DirPathIndex;
