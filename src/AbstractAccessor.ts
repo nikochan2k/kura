@@ -9,11 +9,7 @@ import {
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import {
-  DIR_SEPARATOR,
-  INDEX_FILE_NAME,
-  INDEX_FILE_PATH,
-} from "./FileSystemConstants";
+import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -166,7 +162,8 @@ export abstract class AbstractAccessor {
 
     if (this.options.index) {
       const record = await this.getRecord(fullPath);
-      await this.beforeGet(record, true);
+      await this.beforeHead(record, true);
+      this.afterHead(record);
       return record.obj;
     }
 
@@ -175,9 +172,9 @@ export abstract class AbstractAccessor {
       const obj = await this.doGetObject(fullPath);
       if (!this.options.index) {
         const record = this.createRecord(obj);
-        await this.beforeGet(record, true); // Actually, after get.
+        await this.beforeHead(record, true); // Actually, after get.
+        this.afterHead(record);
       }
-
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
@@ -295,9 +292,9 @@ export abstract class AbstractAccessor {
     }
 
     if (add) {
-      await this.beforeAdd(record);
+      await this.beforePost(record);
     } else {
-      await this.beforeUpdate(record);
+      await this.beforePut(record);
     }
 
     try {
@@ -320,9 +317,9 @@ export abstract class AbstractAccessor {
     }
 
     if (add) {
-      this.afterAdd(record);
+      this.afterPost(record);
     } else {
-      this.afterUpdate(record);
+      this.afterPut(record);
     }
 
     return obj;
@@ -456,9 +453,10 @@ export abstract class AbstractAccessor {
       if (record.deleted != null) {
         continue;
       }
-      if (!(await this.beforeGet(record, false))) {
+      if (!(await this.beforeHead(record, false))) {
         continue;
       }
+      this.afterHead(record);
       objects.push(obj);
     }
     return objects;
@@ -467,12 +465,13 @@ export abstract class AbstractAccessor {
   protected async getObjectsFromStorage(dirPath: string) {
     this.debug("getObjectsFromStorage", dirPath);
     const objects = await this.doGetObjects(dirPath);
-    if (this.options.event.preGet) {
+    if (this.options.event.preHead) {
       for (const obj of objects) {
         const record = this.createRecord(obj);
-        if (!(await this.beforeGet(record, false))) {
+        if (!(await this.beforeHead(record, false))) {
           continue;
         }
+        this.afterHead(record);
       }
     }
     return objects.filter((obj) => obj.fullPath !== INDEX_FILE_PATH);
@@ -613,13 +612,6 @@ export abstract class AbstractAccessor {
   ): Promise<void>;
   protected abstract doWriteBlob(fullPath: string, blob: Blob): Promise<void>;
 
-  private afterAdd(record: Record) {
-    if (!this.options.event.postAdd) {
-      return;
-    }
-    this.options.event.postAdd(record);
-  }
-
   private afterDelete(record: Record) {
     if (!this.options.event.postDelete) {
       return;
@@ -631,27 +623,28 @@ export abstract class AbstractAccessor {
     if (!this.options.event.postGet) {
       return;
     }
-    this.options.event.postGet(record);
+    this.options.event.postHead(record);
   }
 
-  private afterUpdate(record: Record) {
-    if (!this.options.event.postUpdate) {
+  private afterHead(record: Record) {
+    if (!this.options.event.postHead) {
       return;
     }
-    this.options.event.postUpdate(record);
+    this.options.event.postHead(record);
   }
 
-  private async beforeAdd(record: Record) {
-    if (!this.options.event.preAdd) {
+  private afterPost(record: Record) {
+    if (!this.options.event.postPost) {
       return;
     }
-    if (!this.options.event.preAdd(record)) {
-      throw new NoModificationAllowedError(
-        this.name,
-        record.obj.fullPath,
-        "Cannot add"
-      );
+    this.options.event.postPost(record);
+  }
+
+  private afterPut(record: Record) {
+    if (!this.options.event.postPut) {
+      return;
     }
+    this.options.event.postPut(record);
   }
 
   private async beforeDelete(record: Record) {
@@ -695,15 +688,56 @@ export abstract class AbstractAccessor {
     return true;
   }
 
-  private async beforeUpdate(record: Record) {
-    if (!this.options.event.preUpdate) {
+  private async beforeHead(record: Record, throwError: boolean) {
+    if (record.deleted) {
+      if (throwError) {
+        throw new NotFoundError(this.name, record.obj.fullPath);
+      } else {
+        return false;
+      }
+    }
+
+    if (!this.options.event.preHead) {
+      return true;
+    }
+
+    if (!this.options.event.preHead(record)) {
+      if (throwError) {
+        throw new NotReadableError(
+          this.name,
+          record.obj.fullPath,
+          "Cannot head"
+        );
+      } else {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private async beforePost(record: Record) {
+    if (!this.options.event.prePost) {
       return;
     }
-    if (!this.options.event.preUpdate(record)) {
+    if (!this.options.event.prePost(record)) {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
-        "Cannot update"
+        "Cannot post"
+      );
+    }
+  }
+
+  private async beforePut(record: Record) {
+    if (!this.options.event.prePut) {
+      return;
+    }
+    if (!this.options.event.prePut(record)) {
+      throw new NoModificationAllowedError(
+        this.name,
+        record.obj.fullPath,
+        "Cannot put"
       );
     }
   }

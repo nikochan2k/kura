@@ -17,12 +17,14 @@ export interface DirPathIndex {
 }
 
 export interface Event {
+  preHead?: (record: Record) => Promise<boolean>;
   preGet?: (record: Record) => Promise<boolean>;
-  preAdd?: (record: Record) => Promise<boolean>;
-  preUpdate?: (record: Record) => Promise<boolean>;
+  prePost?: (record: Record) => Promise<boolean>;
+  prePut?: (record: Record) => Promise<boolean>;
   preDelete?: (record: Record) => Promise<boolean>;
+  postHead?: (record: Record) => void;
   postGet?: (record: Record) => void;
-  postAdd?: (record: Record) => void;
-  postUpdate?: (record: Record) => void;
+  postPost?: (record: Record) => void;
+  postPut?: (record: Record) => void;
   postDelete?: (record: Record) => void;
 }
