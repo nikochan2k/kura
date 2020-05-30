@@ -1,9 +1,9 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { DIR_SEPARATOR, INDEX_FILE_PATH } from "./FileSystemConstants";
+import { NotFoundError } from "./FileError";
+import { DIR_SEPARATOR, INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { ContentsCacheOptions } from "./FileSystemOptions";
 import { getSize } from "./FileSystemUtil";
-import { NotFoundError } from "./FileError";
 
 export interface ContentCacheEntry {
   access: number;
@@ -51,7 +51,7 @@ export class ContentsCache {
     content: Blob | Uint8Array | ArrayBuffer | string
   ) {
     const fullPath = obj.fullPath;
-    if (fullPath === INDEX_FILE_PATH) {
+    if (fullPath.startsWith(INDEX_DIR)) {
       return;
     }
 
