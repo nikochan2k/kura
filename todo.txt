@@ -5,3 +5,8 @@
 レIDBに保存する際にArrayBufferにする
 □オリジナルのfilesystemをラップする
 □CacheStorageを使う
+
+　□kura
+　　□accessed→ファイルはget、フォルダはオープン
+　　□.index.jsonはheadして変わってたらとってくる
+　　□.index.jsonはフォルダごとに分けて良いかも

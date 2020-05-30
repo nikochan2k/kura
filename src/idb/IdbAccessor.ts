@@ -255,7 +255,7 @@ export class IdbAccessor extends AbstractAccessor {
     await this.doPutObject(obj);
     if (this.options.index) {
       const record = this.createRecord(obj);
-      await this.updateIndex(record);
+      await this.updateIndex(record, true);
     }
     if (this.contentsCache) {
       this.contentsCache.put(obj, content);

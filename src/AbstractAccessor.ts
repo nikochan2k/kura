@@ -25,7 +25,8 @@ const ROOT_OBJECT: FileSystemObject = {
 
 const ROOT_RECORD: Record = {
   obj: ROOT_OBJECT,
-  updated: 0,
+  accessed: 0,
+  modified: 0,
 };
 
 export abstract class AbstractAccessor {
@@ -51,7 +52,8 @@ export abstract class AbstractAccessor {
   }
 
   createRecord(obj: FileSystemObject): Record {
-    return { obj, updated: Date.now() };
+    const now = Date.now();
+    return { obj, accessed: now, created: now, modified: now };
   }
 
   async delete(fullPath: string, isFile: boolean) {
@@ -264,7 +266,7 @@ export abstract class AbstractAccessor {
       );
     }
 
-    let add = false;
+    let create = false;
     let record: Record;
     if (this.options.index) {
       try {
@@ -272,7 +274,7 @@ export abstract class AbstractAccessor {
       } catch (e) {
         if (e instanceof NotFoundError) {
           record = this.createRecord(obj);
-          add = true;
+          create = true;
         } else {
           throw e;
         }
@@ -284,14 +286,14 @@ export abstract class AbstractAccessor {
       } catch (e) {
         if (e instanceof NotFoundError) {
           record = this.createRecord(obj);
-          add = true;
+          create = true;
         } else {
           throw e;
         }
       }
     }
 
-    if (add) {
+    if (create) {
       await this.beforePost(record);
     } else {
       await this.beforePut(record);
@@ -302,7 +304,7 @@ export abstract class AbstractAccessor {
         // Directory
         this.makeDirectory(obj);
         if (this.options.index) {
-          await this.updateIndex(record);
+          await this.updateIndex(record, true);
         }
       } else {
         // File
@@ -316,7 +318,7 @@ export abstract class AbstractAccessor {
       throw new InvalidModificationError(this.name, obj.fullPath, e);
     }
 
-    if (add) {
+    if (create) {
       this.afterPost(record);
     } else {
       this.afterPut(record);
@@ -362,6 +364,9 @@ export abstract class AbstractAccessor {
       } else if (type === "base64") {
         content = await toBase64(content);
       }
+      if (this.options.index) {
+        await this.updateIndex(record, false);
+      }
       if (this.contentsCache) {
         this.contentsCache.put(obj, content);
       }
@@ -402,14 +407,18 @@ export abstract class AbstractAccessor {
     throw new NotImplementedError(this.filesystem.name, fullPath);
   }
 
-  async updateIndex(record: Record) {
+  async updateIndex(record: Record, modified: boolean) {
     const obj = record.obj;
     const dirPath = getParentPath(obj.fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    record.updated = Date.now();
+    if (modified) {
+      record.modified = Date.now();
+    } else {
+      record.accessed = Date.now();
+    }
     fileNameIndex[obj.name] = record;
     delete record.deleted;
-    await this.putFileNameIndex(dirPath, fileNameIndex);
+    // await this.putFileNameIndex(dirPath, fileNameIndex);
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
@@ -459,6 +468,12 @@ export abstract class AbstractAccessor {
       this.afterHead(record);
       objects.push(obj);
     }
+
+    if (dirPath !== DIR_SEPARATOR) {
+      const record = await this.getRecord(dirPath);
+      await this.updateIndex(record, false);
+    }
+
     return objects;
   }
 
@@ -543,7 +558,7 @@ export abstract class AbstractAccessor {
     const obj = await this.doGetObject(fullPath);
     if (this.options.index) {
       const record = this.createRecord(obj);
-      await this.updateIndex(record);
+      await this.updateIndex(record, true);
     }
     if (this.contentsCache) {
       this.contentsCache.put(obj, content);
