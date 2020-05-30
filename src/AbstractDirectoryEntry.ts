@@ -19,7 +19,7 @@ import {
   Flags,
   VoidCallback,
 } from "./filesystem";
-import { EMPTY_BLOB, INDEX_FILE_PATH } from "./FileSystemConstants";
+import { EMPTY_BLOB, INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import { onError, resolveToFullPath } from "./FileSystemUtil";
@@ -312,7 +312,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   protected createEntries(objects: FileSystemObject[]) {
     const entries: AbstractEntry<T>[] = [];
     for (const obj of objects) {
-      if (obj.fullPath === INDEX_FILE_PATH) {
+      if (obj.fullPath.startsWith(INDEX_DIR)) {
         continue;
       }
       entries.push(this.createEntry(obj));

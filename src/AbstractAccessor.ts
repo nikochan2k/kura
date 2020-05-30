@@ -718,7 +718,7 @@ export abstract class AbstractAccessor {
     }
   }
 
-  private async doLoadFileNameIndex(dirPath: string) {
+  async doLoadFileNameIndex(dirPath: string) {
     var indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
     const content = await this.doReadContent(indexPath);
     const text = await toText(content);

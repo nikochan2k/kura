@@ -121,6 +121,17 @@ export function getTextSize(text: string) {
   return encodeURIComponent(text).replace(/%../g, "x").length; // UTF-8
 }
 
+async function vacuumDirectory(accessor: AbstractAccessor, dirPath: string) {
+  const fileNameIndex = await accessor.doLoadFileNameIndex(dirPath);
+  for (const [name, record] of Object.entries(fileNameIndex)) {
+    const obj = record.obj;
+    if (obj.size == null) {
+      await vacuumDirectory(accessor, obj.fullPath);
+    }
+    delete fileNameIndex[name];
+  }
+}
+
 export async function vacuum(filesystem: FileSystem) {
   if (!(filesystem instanceof AbstractFileSystem)) {
     console.info("This is not kura FileSystem.");
@@ -133,20 +144,7 @@ export async function vacuum(filesystem: FileSystem) {
     console.info("This filesystem does not use index.");
     return;
   }
-
-  const dirPathIndex = await afs.accessor.getDirPathIndex();
-  for (const fileNameIndex of Object.values(dirPathIndex)) {
-    const namesToDelete: string[] = [];
-    for (const [name, record] of Object.entries(fileNameIndex)) {
-      if (record.deleted) {
-        namesToDelete.push(name);
-      }
-    }
-    for (const name of namesToDelete) {
-      delete fileNameIndex[name];
-    }
-  }
-  await afs.accessor.saveDirPathIndex();
+  await vacuumDirectory(accessor, filesystem.root.fullPath);
 }
 
 export function onError(err: DOMError, errorCallback?: ErrorCallback) {
