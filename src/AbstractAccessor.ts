@@ -23,12 +23,6 @@ const ROOT_OBJECT: FileSystemObject = {
   lastModified: 0,
 };
 
-const ROOT_RECORD: Record = {
-  obj: ROOT_OBJECT,
-  accessed: 0,
-  modified: 0,
-};
-
 export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
@@ -58,7 +52,7 @@ export abstract class AbstractAccessor {
 
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === DIR_SEPARATOR) {
-      throw new InvalidModificationError(this.name, fullPath);
+      throw new InvalidModificationError(this.name, fullPath, "delete");
     }
 
     try {
@@ -130,10 +124,13 @@ export abstract class AbstractAccessor {
   }
 
   async getFileNameIndex(dirPath: string) {
+    if (dirPath === DIR_SEPARATOR) {
+      dirPath = "";
+    }
     const dirPathIndex = await this.getDirPathIndex();
     let fileNameIndex = dirPathIndex[dirPath];
     if (fileNameIndex === AbstractAccessor.INDEX_NOT_FOUND) {
-      throw new NotFoundError(this.name, dirPath);
+      throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
     } else if (typeof fileNameIndex === "undefined") {
       try {
         var objects = await this.doGetObjects(dirPath);
@@ -158,15 +155,15 @@ export abstract class AbstractAccessor {
   }
 
   async getObject(fullPath: string) {
-    if (fullPath === DIR_SEPARATOR) {
-      return ROOT_OBJECT;
-    }
-
     if (this.options.index) {
       const record = await this.getRecord(fullPath);
       await this.beforeHead(record, true);
       this.afterHead(record);
       return record.obj;
+    }
+
+    if (fullPath === DIR_SEPARATOR) {
+      return ROOT_OBJECT;
     }
 
     try {
@@ -206,15 +203,12 @@ export abstract class AbstractAccessor {
   }
 
   async getRecord(fullPath: string) {
-    if (fullPath === DIR_SEPARATOR) {
-      return ROOT_RECORD;
-    }
     const dirPath = getParentPath(fullPath);
     const name = getName(fullPath);
     const index = await this.getFileNameIndex(dirPath);
     const record = index[name];
     if (!record || record.deleted != null) {
-      throw new NotFoundError(this.name, fullPath);
+      throw new NotFoundError(this.name, fullPath, "getRecord");
     }
     return record;
   }
@@ -226,7 +220,16 @@ export abstract class AbstractAccessor {
       this.dirPathIndex = textToObject(text) as DirPathIndex;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        this.dirPathIndex = {};
+        const now = Date.now();
+        this.dirPathIndex = {
+          "": {
+            "": {
+              obj: ROOT_OBJECT,
+              accessed: now,
+              modified: now,
+            },
+          },
+        };
       } else {
         throw e;
       }
@@ -404,12 +407,17 @@ export abstract class AbstractAccessor {
   }
 
   toURL(fullPath: string): string {
-    throw new NotImplementedError(this.filesystem.name, fullPath);
+    throw new NotImplementedError(
+      this.filesystem.name,
+      fullPath,
+      "saveDirPathIndex"
+    );
   }
 
   async updateIndex(record: Record, modified: boolean) {
     const obj = record.obj;
-    const dirPath = getParentPath(obj.fullPath);
+    const dirPath =
+      obj.fullPath === DIR_SEPARATOR ? "" : getParentPath(obj.fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
     if (modified) {
       record.modified = Date.now();
@@ -469,10 +477,8 @@ export abstract class AbstractAccessor {
       objects.push(obj);
     }
 
-    if (dirPath !== DIR_SEPARATOR) {
-      const record = await this.getRecord(dirPath);
-      await this.updateIndex(record, false);
-    }
+    const record = await this.getRecord(dirPath);
+    await this.updateIndex(record, false);
 
     return objects;
   }
@@ -587,10 +593,10 @@ export abstract class AbstractAccessor {
     }
 
     const dirPath = getParentPath(fullPath);
-    const index = dirPathIndex[dirPath];
-    if (index) {
+    const fileNameIndex = await this.getFileNameIndex(dirPath);
+    if (fileNameIndex) {
       const name = getName(fullPath);
-      const record = index[name];
+      const record = fileNameIndex[name];
       if (record && record.deleted == null) {
         record.deleted = Date.now();
         removed = true;
@@ -670,7 +676,7 @@ export abstract class AbstractAccessor {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
-        "Cannot delete"
+        "beforeDelete"
       );
     }
   }
@@ -678,7 +684,7 @@ export abstract class AbstractAccessor {
   private async beforeGet(record: Record, throwError: boolean) {
     if (record.deleted) {
       if (throwError) {
-        throw new NotFoundError(this.name, record.obj.fullPath);
+        throw new NotFoundError(this.name, record.obj.fullPath, "beforeGet");
       } else {
         return false;
       }
@@ -690,11 +696,7 @@ export abstract class AbstractAccessor {
 
     if (!this.options.event.preGet(record)) {
       if (throwError) {
-        throw new NotReadableError(
-          this.name,
-          record.obj.fullPath,
-          "Cannot get"
-        );
+        throw new NotReadableError(this.name, record.obj.fullPath, "beforeGet");
       } else {
         return false;
       }
@@ -706,7 +708,7 @@ export abstract class AbstractAccessor {
   private async beforeHead(record: Record, throwError: boolean) {
     if (record.deleted) {
       if (throwError) {
-        throw new NotFoundError(this.name, record.obj.fullPath);
+        throw new NotFoundError(this.name, record.obj.fullPath, "beforeHead");
       } else {
         return false;
       }
@@ -721,7 +723,7 @@ export abstract class AbstractAccessor {
         throw new NotReadableError(
           this.name,
           record.obj.fullPath,
-          "Cannot head"
+          "beforeHead"
         );
       } else {
         return false;
@@ -739,7 +741,7 @@ export abstract class AbstractAccessor {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
-        "Cannot post"
+        "beforePost"
       );
     }
   }
@@ -752,7 +754,7 @@ export abstract class AbstractAccessor {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
-        "Cannot put"
+        "beforePut"
       );
     }
   }
