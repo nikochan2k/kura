@@ -6,5 +6,5 @@ export const DEFAULT_BLOB_PROPS: BlobPropertyBag = {
 };
 export const EMPTY_BLOB = new Blob([], DEFAULT_BLOB_PROPS);
 export const EMPTY_ARRAY_BUFFER = new ArrayBuffer(0);
-export const INDEX_FILE_PATH = "/.index.json";
-export const INDEX_FILE_NAME = ".index.json";
+export const INDEX_DIR = "/.index";
+export const INDEX_FILE_NAME = "index.json";
