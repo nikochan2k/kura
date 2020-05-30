@@ -109,6 +109,16 @@ export abstract class AbstractAccessor {
     }
   }
 
+  async doLoadFileNameIndex(dirPath: string) {
+    var indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
+    const content = await this.doReadContent(indexPath);
+    const text = await toText(content);
+    if (!text) {
+      throw new NotFoundError(this.name, dirPath, "doLoadFileNameIndex");
+    }
+    return textToObject(text) as FileNameIndex;
+  }
+
   async doWriteContent(
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
@@ -411,6 +421,18 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
+  }
+
+  protected async doSaveFileNameIndex(
+    dirPath: string,
+    fileNameIndex: FileNameIndex
+  ) {
+    this.clearFileNameIndexUpdateTimer(dirPath);
+
+    const text = objectToText(fileNameIndex);
+    const buffer = textToArrayBuffer(text);
+    const indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
+    await this.doWriteContent(indexPath, buffer);
   }
 
   protected async doWriteUint8Array(
@@ -716,28 +738,6 @@ export abstract class AbstractAccessor {
     if (fileNameIndexUpdateTimer != null) {
       clearTimeout(fileNameIndexUpdateTimer);
     }
-  }
-
-  async doLoadFileNameIndex(dirPath: string) {
-    var indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
-    const content = await this.doReadContent(indexPath);
-    const text = await toText(content);
-    if (!text) {
-      throw new NotFoundError(this.name, dirPath, "doLoadFileNameIndex");
-    }
-    return textToObject(text) as FileNameIndex;
-  }
-
-  private async doSaveFileNameIndex(
-    dirPath: string,
-    fileNameIndex: FileNameIndex
-  ) {
-    this.clearFileNameIndexUpdateTimer(dirPath);
-
-    const text = objectToText(fileNameIndex);
-    const buffer = textToArrayBuffer(text);
-    const indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
-    await this.doWriteContent(indexPath, buffer);
   }
 
   private doSaveFileNameIndexLater(
