@@ -26,7 +26,15 @@ const ROOT_OBJECT: FileSystemObject = {
 export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
-  private dirPathIndex: DirPathIndex;
+  private dirPathIndex: DirPathIndex = {
+    "": {
+      "": {
+        obj: ROOT_OBJECT,
+        accessed: Date.now(),
+        modified: Date.now(),
+      },
+    },
+  };
   private dirPathIndexUpdateTimer: any;
 
   protected contentsCache: ContentsCache;
@@ -90,6 +98,10 @@ export abstract class AbstractAccessor {
   async deleteRecursively(fullPath: string) {
     const objects = await this.getObjects(fullPath);
     for (const obj of objects) {
+      if (obj.fullPath === DIR_SEPARATOR) {
+        continue;
+      }
+
       if (obj.size == null) {
         await this.deleteRecursively(obj.fullPath);
         continue;
@@ -219,18 +231,7 @@ export abstract class AbstractAccessor {
       const text = await toText(content);
       this.dirPathIndex = textToObject(text) as DirPathIndex;
     } catch (e) {
-      if (e instanceof NotFoundError) {
-        const now = Date.now();
-        this.dirPathIndex = {
-          "": {
-            "": {
-              obj: ROOT_OBJECT,
-              accessed: now,
-              modified: now,
-            },
-          },
-        };
-      } else {
+      if (!(e instanceof NotFoundError)) {
         throw e;
       }
     }
