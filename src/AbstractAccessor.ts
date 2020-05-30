@@ -137,29 +137,29 @@ export abstract class AbstractAccessor {
         }
         try {
           var objects = await this.doGetObjects(dirPath);
-          if (dirPath === DIR_SEPARATOR) {
-            const now = Date.now();
-            fileNameIndex = {
-              "": {
-                obj: ROOT_OBJECT,
-                modified: now,
-                accessed: now,
-              },
-            };
-          } else {
-            fileNameIndex = {};
-          }
-          for (const obj of objects) {
-            const record = this.createRecord(obj);
-            fileNameIndex[obj.name] = record;
-          }
-          await this.doSaveFileNameIndex(dirPath, fileNameIndex);
         } catch (e2) {
           if (!(e2 instanceof NotFoundError)) {
             throw e2;
           }
           this.dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
         }
+        if (dirPath === DIR_SEPARATOR) {
+          const now = Date.now();
+          fileNameIndex = {
+            "": {
+              obj: ROOT_OBJECT,
+              modified: now,
+              accessed: now,
+            },
+          };
+        } else {
+          fileNameIndex = {};
+        }
+        for (const obj of objects) {
+          const record = this.createRecord(obj);
+          fileNameIndex[obj.name] = record;
+        }
+        await this.doSaveFileNameIndex(dirPath, fileNameIndex);
       }
     }
     return fileNameIndex;
