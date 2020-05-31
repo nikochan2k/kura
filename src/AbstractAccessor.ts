@@ -299,6 +299,9 @@ export abstract class AbstractAccessor {
       if (content == null) {
         // Directory
         this.makeDirectory(obj);
+        if (this.options.index) {
+          await this.updateIndex(record);
+        }
       } else {
         // File
         await this.writeContent(obj.fullPath, content);
