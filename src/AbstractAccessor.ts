@@ -60,7 +60,7 @@ export abstract class AbstractAccessor {
 
   createRecord(obj: FileSystemObject): Record {
     const now = Date.now();
-    return { obj, accessed: now, created: now, modified: now };
+    return { obj, modified: now };
   }
 
   async delete(fullPath: string, isFile: boolean) {
@@ -169,7 +169,6 @@ export abstract class AbstractAccessor {
             "": {
               obj: ROOT_OBJECT,
               modified: now,
-              accessed: now,
             },
           };
         } else {
@@ -300,9 +299,6 @@ export abstract class AbstractAccessor {
       if (content == null) {
         // Directory
         this.makeDirectory(obj);
-        if (this.options.index) {
-          await this.updateIndex(record, true);
-        }
       } else {
         // File
         await this.writeContent(obj.fullPath, content);
@@ -361,9 +357,6 @@ export abstract class AbstractAccessor {
       } else if (type === "base64") {
         content = await toBase64(content);
       }
-      if (this.options.index) {
-        await this.updateIndex(record, false);
-      }
       if (this.contentsCache) {
         this.contentsCache.put(obj, content);
       }
@@ -414,16 +407,12 @@ export abstract class AbstractAccessor {
     throw new NotImplementedError(this.filesystem.name, fullPath, "toURL");
   }
 
-  async updateIndex(record: Record, modified: boolean) {
+  async updateIndex(record: Record) {
     const obj = record.obj;
     const dirPath =
       obj.fullPath === DIR_SEPARATOR ? "" : getParentPath(obj.fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    if (modified) {
-      record.modified = Date.now();
-    } else {
-      record.accessed = Date.now();
-    }
+    record.modified = Date.now();
     fileNameIndex[obj.name] = record;
     delete record.deleted;
     this.saveFileNameIndex(dirPath, fileNameIndex, false);
@@ -491,9 +480,6 @@ export abstract class AbstractAccessor {
       this.afterHead(record);
       objects.push(obj);
     }
-
-    const record = await this.getRecord(dirPath);
-    await this.updateIndex(record, false);
 
     return objects;
   }
@@ -579,7 +565,7 @@ export abstract class AbstractAccessor {
     const obj = await this.doGetObject(fullPath);
     if (this.options.index) {
       const record = this.createRecord(obj);
-      await this.updateIndex(record, true);
+      await this.updateIndex(record);
     }
     if (this.contentsCache) {
       this.contentsCache.put(obj, content);
