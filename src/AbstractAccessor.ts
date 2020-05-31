@@ -49,9 +49,11 @@ export abstract class AbstractAccessor {
     this.contentsCache.removeBy(startsWith);
   }
 
-  async clearDirPathIndex() {
+  async clearFileNameIndexes(prefix: string) {
     for (const dirPath in this.dirPathIndex) {
-      delete this.dirPathIndex[dirPath];
+      if (dirPath.startsWith(prefix)) {
+        delete this.dirPathIndex[dirPath];
+      }
     }
   }
 
@@ -399,18 +401,16 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async saveFileNameIndexes() {
+  async saveFileNameIndexes(prefix: string) {
     for (const [dirPath, fileNameIndex] of Object.entries(this.dirPathIndex)) {
-      await this.doSaveFileNameIndex(dirPath, fileNameIndex);
+      if (dirPath.startsWith(prefix)) {
+        await this.doSaveFileNameIndex(dirPath, fileNameIndex);
+      }
     }
   }
 
   toURL(fullPath: string): string {
-    throw new NotImplementedError(
-      this.filesystem.name,
-      fullPath,
-      "saveDirPathIndex"
-    );
+    throw new NotImplementedError(this.filesystem.name, fullPath, "toURL");
   }
 
   async updateIndex(record: Record, modified: boolean) {
