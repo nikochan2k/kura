@@ -30,13 +30,14 @@ const ROOT_OBJECT: FileSystemObject = {
 export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
-  private dirPathIndex: DirPathIndex = {};
   private fileNameIndexUpdateTimers: { [dirPath: string]: any } = {};
 
   protected contentsCache: ContentsCache;
 
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
+
+  dirPathIndex: DirPathIndex = {};
 
   constructor(public readonly options: FileSystemOptions) {
     this.initialize(options);
