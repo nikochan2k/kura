@@ -158,6 +158,7 @@ export abstract class AbstractAccessor {
             throw e2;
           }
           this.dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
+          throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
         }
         if (dirPath === DIR_SEPARATOR) {
           const now = Date.now();
