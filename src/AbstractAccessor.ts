@@ -119,7 +119,7 @@ export abstract class AbstractAccessor {
   }
 
   async doLoadFileNameIndex(dirPath: string) {
-    var indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
+    const indexPath = this.createIndexPath(dirPath);
     const content = await this.doReadContent(indexPath);
     const text = await toText(content);
     if (!text) {
@@ -450,7 +450,8 @@ export abstract class AbstractAccessor {
 
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
-    const indexPath = INDEX_DIR + dirPath + INDEX_FILE_NAME;
+    const indexPath = this.createIndexPath(dirPath);
+    console.log(indexPath, fileNameIndex);
     await this.doWriteContent(indexPath, buffer);
   }
 
@@ -754,6 +755,20 @@ export abstract class AbstractAccessor {
     if (fileNameIndexUpdateTimer != null) {
       clearTimeout(fileNameIndexUpdateTimer);
     }
+  }
+
+  private createIndexDir(dirPath: string) {
+    let indexDir = INDEX_DIR + dirPath;
+    if (!indexDir.endsWith(DIR_SEPARATOR)) {
+      indexDir += DIR_SEPARATOR;
+    }
+    return indexDir;
+  }
+
+  private createIndexPath(dirPath: string) {
+    const indexDir = this.createIndexDir(dirPath);
+    const indexPath = indexDir + INDEX_FILE_NAME;
+    return indexPath;
   }
 
   private doSaveFileNameIndexLater(
