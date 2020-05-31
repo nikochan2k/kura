@@ -49,6 +49,12 @@ export abstract class AbstractAccessor {
     this.contentsCache.removeBy(startsWith);
   }
 
+  async clearDirPathIndex() {
+    for (const dirPath in this.dirPathIndex) {
+      delete this.dirPathIndex[dirPath];
+    }
+  }
+
   createRecord(obj: FileSystemObject): Record {
     const now = Date.now();
     return { obj, accessed: now, created: now, modified: now };
@@ -379,6 +385,25 @@ export abstract class AbstractAccessor {
     return text;
   }
 
+  async saveFileNameIndex(
+    dirPath: string,
+    fileNameIndex: FileNameIndex,
+    immediately: boolean
+  ) {
+    this.dirPathIndex[dirPath] = fileNameIndex;
+    if (immediately || this.options.indexOptions.writeDelayMillis <= 0) {
+      await this.doSaveFileNameIndex(dirPath, fileNameIndex);
+    } else {
+      this.doSaveFileNameIndexLater(dirPath, fileNameIndex);
+    }
+  }
+
+  async saveFileNameIndexes() {
+    for (const [dirPath, fileNameIndex] of Object.entries(this.dirPathIndex)) {
+      await this.doSaveFileNameIndex(dirPath, fileNameIndex);
+    }
+  }
+
   toURL(fullPath: string): string {
     throw new NotImplementedError(
       this.filesystem.name,
@@ -536,7 +561,7 @@ export abstract class AbstractAccessor {
     if (options.shared || indexOptions.writeDelayMillis < 0) {
       indexOptions.writeDelayMillis = 0;
     } else if (indexOptions.writeDelayMillis == null) {
-      indexOptions.writeDelayMillis = 5000;
+      indexOptions.writeDelayMillis = 1000;
     }
   }
 
@@ -753,18 +778,5 @@ export abstract class AbstractAccessor {
         this.doSaveFileNameIndex(dirPath, fileNameIndex);
       }
     }, this.options.indexOptions.writeDelayMillis);
-  }
-
-  private saveFileNameIndex(
-    dirPath: string,
-    fileNameIndex: FileNameIndex,
-    immediately: boolean
-  ) {
-    this.dirPathIndex[dirPath] = fileNameIndex;
-    if (immediately || this.options.indexOptions.writeDelayMillis <= 0) {
-      this.doSaveFileNameIndex(dirPath, fileNameIndex);
-    } else {
-      this.doSaveFileNameIndexLater(dirPath, fileNameIndex);
-    }
   }
 }
