@@ -451,7 +451,6 @@ export abstract class AbstractAccessor {
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
     const indexPath = this.createIndexPath(dirPath);
-    console.log(indexPath, fileNameIndex);
     await this.doWriteContent(indexPath, buffer);
   }
 
@@ -753,6 +752,7 @@ export abstract class AbstractAccessor {
   private clearFileNameIndexUpdateTimer(dirPath: string) {
     let fileNameIndexUpdateTimer = this.fileNameIndexUpdateTimers[dirPath];
     if (fileNameIndexUpdateTimer != null) {
+      delete this.fileNameIndexUpdateTimers[dirPath];
       clearTimeout(fileNameIndexUpdateTimer);
     }
   }
@@ -780,8 +780,8 @@ export abstract class AbstractAccessor {
     this.fileNameIndexUpdateTimers[dirPath] = setTimeout(async () => {
       const current = this.fileNameIndexUpdateTimers[dirPath];
       if (current != null) {
-        this.fileNameIndexUpdateTimers[dirPath] = null;
-        this.doSaveFileNameIndex(dirPath, fileNameIndex);
+        delete this.fileNameIndexUpdateTimers[dirPath];
+        await this.doSaveFileNameIndex(dirPath, fileNameIndex);
       }
     }, this.options.indexOptions.writeDelayMillis);
   }
