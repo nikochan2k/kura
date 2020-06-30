@@ -418,7 +418,7 @@ export abstract class AbstractAccessor {
     record.modified = Date.now();
     fileNameIndex[obj.name] = record;
     delete record.deleted;
-    this.saveFileNameIndex(dirPath, fileNameIndex, false);
+    await this.saveFileNameIndex(dirPath, fileNameIndex, false);
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
@@ -594,7 +594,7 @@ export abstract class AbstractAccessor {
     }
 
     if (removed) {
-      this.saveFileNameIndex(dirPath, fileNameIndex, false);
+      await this.saveFileNameIndex(dirPath, fileNameIndex, false);
     }
   }
 
