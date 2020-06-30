@@ -178,9 +178,9 @@ export abstract class AbstractAccessor {
           const record = this.createRecord(obj);
           fileNameIndex[obj.name] = record;
         }
-        this.dirPathIndex[dirPath] = fileNameIndex;
         await this.doSaveFileNameIndex(dirPath, fileNameIndex);
       }
+      this.dirPathIndex[dirPath] = fileNameIndex;
     }
     return fileNameIndex;
   }
