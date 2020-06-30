@@ -30,7 +30,6 @@ const ROOT_OBJECT: FileSystemObject = {
 export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
-  private dirPathIndex: DirPathIndex = {};
   private fileNameIndexUpdateTimers: { [dirPath: string]: any } = {};
 
   protected contentsCache: ContentsCache;
@@ -38,8 +37,16 @@ export abstract class AbstractAccessor {
   abstract readonly filesystem: FileSystem;
   abstract readonly name: string;
 
+  dirPathIndex: DirPathIndex = {};
+
   constructor(public readonly options: FileSystemOptions) {
     this.initialize(options);
+
+    // for dirPathIndex
+    this.clearFileNameIndexes = this.clearFileNameIndexes.bind(this);
+    this.getFileNameIndex = this.getFileNameIndex.bind(this);
+    this.saveFileNameIndex = this.saveFileNameIndex.bind(this);
+    this.saveFileNameIndexes = this.saveFileNameIndexes.bind(this);
   }
 
   async clearContentsCache(startsWith?: string) {
@@ -50,10 +57,9 @@ export abstract class AbstractAccessor {
   }
 
   async clearFileNameIndexes(prefix: string) {
-    const dirPathIndex = this.getDirPathIndex();
-    for (const dirPath in dirPathIndex) {
+    for (const dirPath in this.dirPathIndex) {
       if (dirPath.startsWith(prefix)) {
-        delete dirPathIndex[dirPath];
+        delete this.dirPathIndex[dirPath];
       }
     }
   }
@@ -143,13 +149,8 @@ export abstract class AbstractAccessor {
     }
   }
 
-  getDirPathIndex() {
-    return this.dirPathIndex;
-  }
-
   async getFileNameIndex(dirPath: string) {
-    const dirPathIndex = this.getDirPathIndex();
-    let fileNameIndex = dirPathIndex[dirPath];
+    let fileNameIndex = this.dirPathIndex[dirPath];
     if (fileNameIndex === AbstractAccessor.INDEX_NOT_FOUND) {
       throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
     } else if (typeof fileNameIndex === "undefined") {
@@ -165,7 +166,7 @@ export abstract class AbstractAccessor {
           if (!(e2 instanceof NotFoundError)) {
             throw e2;
           }
-          dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
+          this.dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
           throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
         }
         if (dirPath === DIR_SEPARATOR) {
@@ -395,8 +396,7 @@ export abstract class AbstractAccessor {
     fileNameIndex: FileNameIndex,
     immediately: boolean
   ) {
-    const dirPathIndex = this.getDirPathIndex();
-    dirPathIndex[dirPath] = fileNameIndex;
+    this.dirPathIndex[dirPath] = fileNameIndex;
     if (immediately || this.options.indexOptions.writeDelayMillis <= 0) {
       await this.doSaveFileNameIndex(dirPath, fileNameIndex);
     } else {
@@ -405,8 +405,7 @@ export abstract class AbstractAccessor {
   }
 
   async saveFileNameIndexes(prefix: string) {
-    const dirPathIndex = this.getDirPathIndex();
-    for (const [dirPath, fileNameIndex] of Object.entries(dirPathIndex)) {
+    for (const [dirPath, fileNameIndex] of Object.entries(this.dirPathIndex)) {
       if (dirPath.startsWith(prefix)) {
         await this.doSaveFileNameIndex(dirPath, fileNameIndex);
       }
