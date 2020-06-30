@@ -41,12 +41,6 @@ export abstract class AbstractAccessor {
 
   constructor(public readonly options: FileSystemOptions) {
     this.initialize(options);
-
-    // for dirPathIndex
-    this.clearFileNameIndexes = this.clearFileNameIndexes.bind(this);
-    this.getFileNameIndex = this.getFileNameIndex.bind(this);
-    this.saveFileNameIndex = this.saveFileNameIndex.bind(this);
-    this.saveFileNameIndexes = this.saveFileNameIndexes.bind(this);
   }
 
   async clearContentsCache(startsWith?: string) {
@@ -184,6 +178,7 @@ export abstract class AbstractAccessor {
           const record = this.createRecord(obj);
           fileNameIndex[obj.name] = record;
         }
+        this.dirPathIndex[dirPath] = fileNameIndex;
         await this.doSaveFileNameIndex(dirPath, fileNameIndex);
       }
     }
