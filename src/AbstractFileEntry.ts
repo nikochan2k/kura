@@ -165,7 +165,9 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       .putObject(this.params, content)
       .then((obj) => {
         this.params.size = obj.size;
-        successCallback();
+        if (successCallback) {
+          successCallback();
+        }
       })
       .catch((err) => {
         onError(err, errorCallback);
@@ -181,7 +183,9 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       .putText(this.params, text)
       .then((obj) => {
         this.params.size = obj.size;
-        successCallback();
+        if (successCallback) {
+          successCallback();
+        }
       })
       .catch((err) => {
         onError(err, errorCallback);
