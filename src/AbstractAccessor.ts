@@ -334,7 +334,8 @@ export abstract class AbstractAccessor {
 
   async readContent(
     obj: FileSystemObject,
-    type?: DataType
+    type?: DataType,
+    noCache = false
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     const fullPath = obj.fullPath;
     let record: Record;
@@ -348,7 +349,7 @@ export abstract class AbstractAccessor {
 
     try {
       this.debug("readContent", fullPath);
-      if (this.contentsCache) {
+      if (this.contentsCache && !noCache) {
         var content = await this.contentsCache.get(fullPath);
       }
       if (!content) {
