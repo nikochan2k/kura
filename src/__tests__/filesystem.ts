@@ -46,9 +46,10 @@ export function testAll(
       expect(fileEntry.fullPath).toBe("/empty.txt");
       expect(fileEntry.isDirectory).toBe(false);
       expect(fileEntry.isFile).toBe(true);
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -89,10 +90,10 @@ export function testAll(
 
       const str = await toText(file);
       expect(str).toBe("hogeふが");
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -105,10 +106,10 @@ export function testAll(
       expect(dirEntry.isFile).toBe(false);
       expect(dirEntry.isDirectory).toBe(true);
       expect(dirEntry.name).toBe("folder");
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -129,10 +130,10 @@ export function testAll(
       const parent = await fileEntry.getParent();
       expect(parent.fullPath).toBe(dirEntry.fullPath);
       expect(parent.name).toBe(dirEntry.name);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -145,10 +146,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -169,10 +170,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -200,10 +201,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -231,10 +232,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -255,10 +256,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -271,10 +272,10 @@ export function testAll(
       } catch (e) {
         expect(e).toBeInstanceOf(InvalidModificationError);
       }
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -285,10 +286,10 @@ export function testAll(
       const reader = fs.root.createReader();
       const entries = await reader.readEntries();
       expect(entries.length).toBe(0);
-
-      done();
     } catch (e) {
       fail(e);
+    } finally {
+      done();
     }
   });
 
@@ -298,6 +299,7 @@ export function testAll(
       fail();
     } catch (e) {
       expect(e).toBeInstanceOf(NotFoundError);
+    } finally {
       done();
     }
   });

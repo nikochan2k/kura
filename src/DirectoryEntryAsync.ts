@@ -1,7 +1,6 @@
 import { DirectoryReaderAsync } from "./DirectoryReaderAsync";
 import { EntryAsync } from "./EntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
-import { NotFoundError } from "./FileError";
 import { DirectoryEntry, Entry, Flags } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import { createEntry } from "./FileSystemUtil";
@@ -30,10 +29,6 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
           resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
         },
         (err) => {
-          if (err instanceof NotFoundError) {
-            resolve(null);
-            return;
-          }
           reject(err);
         }
       );
@@ -49,10 +44,6 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
           resolve(new FileEntryAsync(this.fileSystemAsync, entry));
         },
         (err) => {
-          if (err instanceof NotFoundError) {
-            resolve(null);
-            return;
-          }
           reject(err);
         }
       );
