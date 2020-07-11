@@ -21,11 +21,10 @@ if (!globalVar.setTimeout || !globalVar.clearTimeout) {
   globalVar.setTimeout = timers.setTimeout;
 }
 
-let ignoreDirectoryNotFound = false;
-
 export function testAll(
   factory: LocalFileSystemAsync,
-  prepare?: () => Promise<void>
+  prepare?: () => Promise<void>,
+  ignoreDirectoryNotFound = false
 ) {
   let fs: FileSystemAsync;
   beforeAll(async () => {
