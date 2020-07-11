@@ -1,10 +1,6 @@
 import { AbstractAccessor } from "../AbstractAccessor";
 import { toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
-import {
-  InvalidModificationError,
-  NotFoundError,
-  NotReadableError,
-} from "../FileError";
+import { InvalidModificationError, NotFoundError } from "../FileError";
 import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
@@ -37,8 +33,11 @@ export class IdbAccessor extends AbstractAccessor {
   async doDelete(fullPath: string, isFile: boolean) {
     await new Promise<void>(async (resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
-      const onerror = (ev: Event) =>
-        reject(new InvalidModificationError(this.name, fullPath, ev));
+      const onerror = (ev: Event) => {
+        const req = ev.target as IDBRequest;
+        this.debug(`doDelete failure (${req.error})`, fullPath);
+        resolve();
+      };
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
       entryTx.oncomplete = () => {
@@ -48,10 +47,13 @@ export class IdbAccessor extends AbstractAccessor {
       const request = entryTx.objectStore(ENTRY_STORE).delete(range);
       request.onerror = onerror;
     });
-    await new Promise<void>(async (resolve, reject) => {
+    await new Promise<void>(async (resolve) => {
       const entryTx = this.db.transaction([CONTENT_STORE], "readwrite");
-      const onerror = (ev: Event) =>
-        reject(new InvalidModificationError(this.name, fullPath, ev));
+      const onerror = (ev: Event) => {
+        const req = ev.target as IDBRequest;
+        this.debug(`doDelete failure (${req.error})`, fullPath);
+        resolve();
+      };
       entryTx.onabort = onerror;
       entryTx.onerror = onerror;
       entryTx.oncomplete = () => {
@@ -67,8 +69,10 @@ export class IdbAccessor extends AbstractAccessor {
     return new Promise<FileSystemObject>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
-      const onerror = (ev: Event) =>
-        reject(new NotReadableError(this.name, fullPath, ev));
+      const onerror = (ev: Event) => {
+        const req = ev.target as IDBRequest;
+        reject(new NotFoundError(this.name, fullPath, req.error));
+      };
       tx.onabort = onerror;
       tx.onerror = onerror;
       const request = tx.objectStore(ENTRY_STORE).get(range);
@@ -76,7 +80,7 @@ export class IdbAccessor extends AbstractAccessor {
         if (request.result != null) {
           resolve(request.result);
         } else {
-          reject(new NotFoundError(name, fullPath));
+          reject(new NotFoundError(this.name, fullPath));
         }
       };
       request.onerror = onerror;
@@ -86,8 +90,10 @@ export class IdbAccessor extends AbstractAccessor {
   doGetObjects(fullPath: string) {
     return new Promise<FileSystemObject[]>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
-      const onerror = (ev: Event) =>
-        reject(new NotReadableError(this.name, fullPath, ev));
+      const onerror = (ev: Event) => {
+        const req = ev.target as IDBRequest;
+        reject(new NotFoundError(this.name, fullPath, req.error));
+      };
       tx.onabort = onerror;
       tx.onerror = onerror;
       const objects: FileSystemObject[] = [];
@@ -140,8 +146,10 @@ export class IdbAccessor extends AbstractAccessor {
     fullPath: string
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     return new Promise<any>((resolve, reject) => {
-      const onerror = (ev: Event) =>
-        reject(new NotReadableError(this.name, fullPath, ev));
+      const onerror = (ev: Event) => {
+        const req = ev.target as IDBRequest;
+        reject(new NotFoundError(this.name, fullPath, req.error));
+      };
       const tx = this.db.transaction([CONTENT_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
       tx.onabort = onerror;
@@ -171,7 +179,8 @@ export class IdbAccessor extends AbstractAccessor {
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(dbName.replace(":", "_"));
       const onError = (ev: Event) => {
-        console.log(ev);
+        const req = ev.target as IDBRequest;
+        this.debug(`open failure (${req.error})`, dbName);
       };
       request.onupgradeneeded = (ev) => {
         const request = ev.target as IDBRequest;
