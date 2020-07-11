@@ -21,6 +21,8 @@ if (!globalVar.setTimeout || !globalVar.clearTimeout) {
   globalVar.setTimeout = timers.setTimeout;
 }
 
+let ignoreDirectoryNotFound = false;
+
 export function testAll(
   factory: LocalFileSystemAsync,
   prepare?: () => Promise<void>
@@ -296,9 +298,15 @@ export function testAll(
   test("get removed folder", async (done) => {
     try {
       await fs.root.getDirectory("folder1");
-      fail();
+      if (!ignoreDirectoryNotFound) {
+        fail();
+      }
     } catch (e) {
-      expect(e).toBeInstanceOf(NotFoundError);
+      if (ignoreDirectoryNotFound) {
+        fail(e);
+      } else {
+        expect(e).toBeInstanceOf(NotFoundError);
+      }
     } finally {
       done();
     }
