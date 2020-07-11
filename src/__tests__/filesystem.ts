@@ -46,10 +46,9 @@ export function testAll(
       expect(fileEntry.fullPath).toBe("/empty.txt");
       expect(fileEntry.isDirectory).toBe(false);
       expect(fileEntry.isFile).toBe(true);
-    } catch (e) {
-      console.error(e);
-    } finally {
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -90,10 +89,10 @@ export function testAll(
 
       const str = await toText(file);
       expect(str).toBe("hogeふが");
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -106,10 +105,10 @@ export function testAll(
       expect(dirEntry.isFile).toBe(false);
       expect(dirEntry.isDirectory).toBe(true);
       expect(dirEntry.name).toBe("folder");
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -130,10 +129,10 @@ export function testAll(
       const parent = await fileEntry.getParent();
       expect(parent.fullPath).toBe(dirEntry.fullPath);
       expect(parent.name).toBe(dirEntry.name);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -146,10 +145,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -170,10 +169,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -201,10 +200,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -232,10 +231,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -256,10 +255,10 @@ export function testAll(
         names = names.filter((name) => name !== entry.name);
       }
       expect(names.length).toBe(0);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -272,10 +271,10 @@ export function testAll(
       } catch (e) {
         expect(e).toBeInstanceOf(InvalidModificationError);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
@@ -286,19 +285,19 @@ export function testAll(
       const reader = fs.root.createReader();
       const entries = await reader.readEntries();
       expect(entries.length).toBe(0);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
       done();
+    } catch (e) {
+      fail(e);
     }
   });
 
   test("get removed folder", async (done) => {
     try {
       await fs.root.getDirectory("folder1");
+      fail();
     } catch (e) {
       expect(e).toBeInstanceOf(NotFoundError);
-    } finally {
       done();
     }
   });
