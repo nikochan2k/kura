@@ -8,6 +8,8 @@ export interface XHROptions {
 
 export class XHR {
   private options: XHROptions;
+  private url: string;
+  private handled: boolean;
 
   constructor(
     private key?: string,
@@ -58,20 +60,23 @@ export class XHR {
   private createXMLHttpRequest() {
     const xhr = new XMLHttpRequest();
     const promise = new Promise<any>((resolve, reject) => {
-      xhr.onerror = (ev) => {
-        reject(new Error(`${xhr.status} (${xhr.statusText})`));
+      xhr.onerror = () => {
+        if (!this.handled) {
+          reject(new Error(`${this.url}: ${xhr.status} (${xhr.statusText})`));
+        }
       };
-      xhr.ontimeout = (ev) => {
-        reject(new Error("Timeout"));
+      xhr.ontimeout = () => {
+        if (!this.handled) {
+          reject(new Error(`${this.url}: timeout`));
+        }
       };
-      xhr.onabort = (ev) => {
-        reject(new Error("Aborted"));
+      xhr.onabort = () => {
+        if (!this.handled) {
+          reject(new Error(`${this.url}: aborted`));
+        }
       };
       xhr.onreadystatechange = () => {
         if (xhr.readyState !== XMLHttpRequest.DONE) {
-          return;
-        }
-        if (xhr.status === 0) {
           return;
         }
 
@@ -80,8 +85,9 @@ export class XHR {
         } else if (xhr.status === 404) {
           reject(new NotFoundError(this.key, this.fullPath));
         } else {
-          reject(new Error(`${xhr.status} (${xhr.statusText})`));
+          reject(new Error(`${this.url}: ${xhr.status} (${xhr.statusText})`));
         }
+        this.handled = true;
       };
     });
     return { xhr, promise };
@@ -94,6 +100,8 @@ export class XHR {
     type?: string
   ): Promise<void> {
     const { xhr, promise } = this.createXMLHttpRequest();
+    this.handled = false;
+    this.url = url;
     xhr.open(method, url);
     this.configure(xhr);
     if (!type) {
