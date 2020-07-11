@@ -58,23 +58,30 @@ export class XHR {
   private createXMLHttpRequest() {
     const xhr = new XMLHttpRequest();
     const promise = new Promise<any>((resolve, reject) => {
-      let error: any;
       xhr.onerror = (ev) => {
-        error = ev;
+        reject(new Error(`${xhr.status} (${xhr.statusText})`));
       };
       xhr.ontimeout = (ev) => {
-        error = ev;
+        reject(new Error("Timeout"));
+      };
+      xhr.onabort = (ev) => {
+        reject(new Error("Aborted"));
       };
       xhr.onreadystatechange = () => {
         if (xhr.readyState !== XMLHttpRequest.DONE) {
           return;
         }
+        if (xhr.status === 0) {
+          return;
+        }
+
         if ((200 <= xhr.status && xhr.status < 300) || xhr.status === 304) {
           resolve(xhr.response);
         } else if (xhr.status === 404) {
-          reject(new NotFoundError(this.key, this.fullPath, error));
+          reject(new NotFoundError(this.key, this.fullPath));
+        } else {
+          reject(new Error(`${xhr.status} (${xhr.statusText})`));
         }
-        reject(`${xhr.status}(${xhr.statusText}): ${error}`);
       };
     });
     return { xhr, promise };
