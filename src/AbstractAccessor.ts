@@ -414,13 +414,12 @@ export abstract class AbstractAccessor {
 
   async updateIndex(record: Record) {
     const obj = record.obj;
-    const dirPath =
-      obj.fullPath === DIR_SEPARATOR ? "" : getParentPath(obj.fullPath);
-    const fileNameIndex = await this.getFileNameIndex(dirPath);
+    const parentPath = getParentPath(obj.fullPath);
+    const fileNameIndex = await this.getFileNameIndex(parentPath);
     record.modified = Date.now();
     fileNameIndex[obj.name] = record;
     delete record.deleted;
-    await this.saveFileNameIndex(dirPath, fileNameIndex, false);
+    await this.saveFileNameIndex(parentPath, fileNameIndex, false);
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
