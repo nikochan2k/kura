@@ -43,11 +43,19 @@ export abstract class AbstractAccessor {
     this.initialize(options);
   }
 
-  async clearContentsCache(startsWith?: string) {
+  async clearContentsCache(fullPath: string) {
+    this.contentsCache.remove(fullPath);
+  }
+
+  async clearContentsCaches(prefix?: string) {
     if (this.contentsCache == null) {
       return;
     }
-    this.contentsCache.removeBy(startsWith);
+    this.contentsCache.removeWith(prefix);
+  }
+
+  async clearFileNameIndex(dirPath: string) {
+    delete this.dirPathIndex[dirPath];
   }
 
   async clearFileNameIndexes(prefix: string) {
@@ -387,12 +395,8 @@ export abstract class AbstractAccessor {
     return text;
   }
 
-  async saveFileNameIndex(
-    dirPath: string,
-    fileNameIndex: FileNameIndex,
-    immediately: boolean
-  ) {
-    this.dirPathIndex[dirPath] = fileNameIndex;
+  async saveFileNameIndex(dirPath: string, immediately = false) {
+    const fileNameIndex = this.dirPathIndex[dirPath];
     if (immediately || this.options.indexOptions.writeDelayMillis <= 0) {
       await this.doSaveFileNameIndex(dirPath, fileNameIndex);
     } else {
@@ -419,7 +423,8 @@ export abstract class AbstractAccessor {
     record.modified = Date.now();
     fileNameIndex[obj.name] = record;
     delete record.deleted;
-    await this.saveFileNameIndex(parentPath, fileNameIndex, false);
+    this.dirPathIndex[parentPath] = fileNameIndex;
+    await this.saveFileNameIndex(parentPath);
   }
 
   abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
@@ -595,7 +600,8 @@ export abstract class AbstractAccessor {
     }
 
     if (removed) {
-      await this.saveFileNameIndex(dirPath, fileNameIndex, false);
+      this.dirPathIndex[dirPath] = fileNameIndex;
+      await this.saveFileNameIndex(dirPath);
     }
   }
 

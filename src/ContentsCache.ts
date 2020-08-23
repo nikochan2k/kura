@@ -104,7 +104,7 @@ export class ContentsCache {
     delete this.cache[fullPath];
   }
 
-  public removeBy(startsWith: string) {
+  public removeWith(startsWith: string) {
     if (!startsWith || startsWith === DIR_SEPARATOR) {
       this.cache = {};
       return;
