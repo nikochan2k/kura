@@ -44,6 +44,9 @@ export abstract class AbstractAccessor {
   }
 
   async clearContentsCache(fullPath: string) {
+    if (this.contentsCache == null) {
+      return;
+    }
     this.contentsCache.remove(fullPath);
   }
 
