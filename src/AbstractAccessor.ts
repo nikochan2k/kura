@@ -50,28 +50,12 @@ export abstract class AbstractAccessor {
     this.contentsCache.remove(fullPath);
   }
 
-  async clearContentsCaches(prefix?: string) {
-    if (this.contentsCache == null) {
-      return;
-    }
-    this.contentsCache.removeWith(prefix);
-  }
-
   async clearFileNameIndex(dirPath: string) {
     delete this.dirPathIndex[dirPath];
   }
 
-  async clearFileNameIndexes(prefix: string) {
-    for (const dirPath in this.dirPathIndex) {
-      if (dirPath.startsWith(prefix)) {
-        delete this.dirPathIndex[dirPath];
-      }
-    }
-  }
-
   createRecord(obj: FileSystemObject): Record {
-    const now = Date.now();
-    return { obj, modified: now };
+    return { obj, modified: Date.now() };
   }
 
   async delete(fullPath: string, isFile: boolean) {
@@ -345,8 +329,7 @@ export abstract class AbstractAccessor {
 
   async readContent(
     obj: FileSystemObject,
-    type?: DataType,
-    noCache = false
+    type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     const fullPath = obj.fullPath;
     let record: Record;
@@ -359,7 +342,7 @@ export abstract class AbstractAccessor {
 
     try {
       this.debug("readContent", fullPath);
-      const content = await this.readContentInternal(obj, type, noCache);
+      const content = await this.readContentInternal(obj, type);
       this.afterGet(record);
       return content;
     } catch (e) {
@@ -378,11 +361,10 @@ export abstract class AbstractAccessor {
 
   async readContentInternal(
     obj: FileSystemObject,
-    type?: DataType,
-    noCache = false
+    type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     const fullPath = obj.fullPath;
-    if (this.contentsCache && !noCache) {
+    if (this.contentsCache) {
       var content = await this.contentsCache.get(fullPath);
     }
     if (!content) {
@@ -414,14 +396,6 @@ export abstract class AbstractAccessor {
       await this.doSaveFileNameIndex(dirPath, fileNameIndex);
     } else {
       this.doSaveFileNameIndexLater(dirPath, fileNameIndex);
-    }
-  }
-
-  async saveFileNameIndexes(prefix: string) {
-    for (const [dirPath, fileNameIndex] of Object.entries(this.dirPathIndex)) {
-      if (dirPath.startsWith(prefix)) {
-        await this.doSaveFileNameIndex(dirPath, fileNameIndex);
-      }
     }
   }
 

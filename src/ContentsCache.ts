@@ -1,6 +1,6 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { NotFoundError } from "./FileError";
-import { DIR_SEPARATOR, INDEX_DIR } from "./FileSystemConstants";
+import { INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { ContentsCacheOptions } from "./FileSystemOptions";
 import { getSize } from "./FileSystemUtil";
@@ -102,18 +102,5 @@ export class ContentsCache {
 
   public remove(fullPath: string) {
     delete this.cache[fullPath];
-  }
-
-  public removeWith(startsWith: string) {
-    if (!startsWith || startsWith === DIR_SEPARATOR) {
-      this.cache = {};
-      return;
-    }
-    const dirPrefix = startsWith + DIR_SEPARATOR;
-    for (const fullPath of Object.keys(this.cache)) {
-      if (fullPath === startsWith || fullPath.startsWith(dirPrefix)) {
-        delete this.cache[fullPath];
-      }
-    }
   }
 }
