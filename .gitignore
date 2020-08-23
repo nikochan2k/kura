@@ -2,3 +2,5 @@ node_modules
 dist
 lib
 yarn-error.log
+tsconfig.tsbuildinfo
+.DS_Store

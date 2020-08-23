@@ -1,3 +1,4 @@
+import "tslib";
 import "./polyfill";
 export * from "./AbstractAccessor";
 export * from "./AbstractDirectoryEntry";

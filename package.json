@@ -63,6 +63,7 @@
   },
   "dependencies": {
     "base-64": "^0.1.0",
-    "text-encoding-shim": "^1.0.5"
+    "text-encoding-shim": "^1.0.5",
+    "tslib": "^2.0.1"
   }
 }
