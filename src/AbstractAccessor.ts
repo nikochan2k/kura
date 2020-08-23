@@ -349,30 +349,14 @@ export abstract class AbstractAccessor {
     let record: Record;
     if (this.options.index) {
       record = await this.getRecord(fullPath);
-      await this.beforeGet(record, true);
     } else {
       record = this.createRecord(obj);
-      await this.beforeGet(record, true);
     }
+    await this.beforeGet(record, true);
 
     try {
       this.debug("readContent", fullPath);
-      if (this.contentsCache && !noCache) {
-        var content = await this.contentsCache.get(fullPath);
-      }
-      if (!content) {
-        content = await this.doReadContent(fullPath);
-      }
-      if (type === "blob") {
-        content = toBlob(content);
-      } else if (type === "arraybuffer") {
-        content = await toArrayBuffer(content);
-      } else if (type === "base64") {
-        content = await toBase64(content);
-      }
-      if (this.contentsCache) {
-        this.contentsCache.put(obj, content);
-      }
+      const content = await this.readContentInternal(obj, type, noCache);
       this.afterGet(record);
       return content;
     } catch (e) {
@@ -387,6 +371,32 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, fullPath, e);
     }
+  }
+
+  async readContentInternal(
+    obj: FileSystemObject,
+    type?: DataType,
+    noCache = false
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+    const fullPath = obj.fullPath;
+    if (this.contentsCache && !noCache) {
+      var content = await this.contentsCache.get(fullPath);
+    }
+    if (!content) {
+      content = await this.doReadContent(fullPath);
+      var read = true;
+    }
+    if (type === "blob") {
+      content = toBlob(content);
+    } else if (type === "arraybuffer") {
+      content = await toArrayBuffer(content);
+    } else if (type === "base64") {
+      content = await toBase64(content);
+    }
+    if (this.contentsCache && read) {
+      this.contentsCache.put(obj, content);
+    }
+    return content;
   }
 
   async readText(obj: FileSystemObject): Promise<string> {
