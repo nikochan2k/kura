@@ -57,7 +57,7 @@ export class ContentsCache {
 
     delete this.cache[fullPath];
     const size = getSize(content);
-    if (this.options.limitSize < size) {
+    if (size == 0 || this.options.limitSize < size) {
       return;
     }
 
