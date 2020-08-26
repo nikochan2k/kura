@@ -378,8 +378,7 @@ export abstract class AbstractAccessor {
       content = await toBase64(content);
     }
     if (this.contentsCache && read) {
-      const buffer = await toArrayBuffer(content);
-      this.contentsCache.put(obj, buffer);
+      this.contentsCache.put(obj, content);
     }
     return content;
   }
@@ -588,8 +587,7 @@ export abstract class AbstractAccessor {
       await this.updateIndex(record);
     }
     if (this.contentsCache) {
-      const buffer = await toArrayBuffer(content);
-      this.contentsCache.put(obj, buffer);
+      this.contentsCache.put(obj, content);
     }
     return obj;
   }

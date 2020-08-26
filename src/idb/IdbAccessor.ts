@@ -267,8 +267,7 @@ export class IdbAccessor extends AbstractAccessor {
       await this.updateIndex(record);
     }
     if (this.contentsCache) {
-      const buffer = await toArrayBuffer(content);
-      this.contentsCache.put(obj, buffer);
+      this.contentsCache.put(obj, content);
     }
     return obj;
   }
