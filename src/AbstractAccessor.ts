@@ -300,8 +300,7 @@ export abstract class AbstractAccessor {
         }
       } else {
         // File
-        await this.writeContent(obj.fullPath, content);
-        obj = await this.refreshObject(obj.fullPath, content);
+        obj = await this.writeContent(obj.fullPath, content);
       }
     } catch (e) {
       if (e instanceof AbstractFileError) {
@@ -379,7 +378,8 @@ export abstract class AbstractAccessor {
       content = await toBase64(content);
     }
     if (this.contentsCache && read) {
-      this.contentsCache.put(obj, content);
+      const buffer = await toArrayBuffer(content);
+      this.contentsCache.put(obj, buffer);
     }
     return content;
   }
@@ -588,7 +588,8 @@ export abstract class AbstractAccessor {
       await this.updateIndex(record);
     }
     if (this.contentsCache) {
-      this.contentsCache.put(obj, content);
+      const buffer = await toArrayBuffer(content);
+      this.contentsCache.put(obj, buffer);
     }
     return obj;
   }
@@ -619,10 +620,11 @@ export abstract class AbstractAccessor {
   protected async writeContent(
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<void> {
+  ): Promise<FileSystemObject> {
     try {
       this.debug("writeContent", fullPath);
       await this.doWriteContent(fullPath, content);
+      return await this.refreshObject(fullPath, content);
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
