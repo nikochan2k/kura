@@ -542,7 +542,7 @@ export abstract class AbstractAccessor {
       contentsCacheOptions.capacity = 10 * 1024 * 1024; // 10MB
     }
     if (!(0 < contentsCacheOptions.limitSize)) {
-      contentsCacheOptions.limitSize = 128 * 1024; // 128KB;
+      contentsCacheOptions.limitSize = 256 * 1024; // 256KB;
     }
     if (contentsCacheOptions.capacity < contentsCacheOptions.limitSize) {
       contentsCacheOptions.limitSize = contentsCacheOptions.capacity;
