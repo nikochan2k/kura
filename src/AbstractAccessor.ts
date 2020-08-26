@@ -586,9 +586,6 @@ export abstract class AbstractAccessor {
       const record = this.createRecord(obj);
       await this.updateIndex(record);
     }
-    if (this.contentsCache) {
-      this.contentsCache.put(obj, content);
-    }
     return obj;
   }
 
@@ -622,7 +619,11 @@ export abstract class AbstractAccessor {
     try {
       this.debug("writeContent", fullPath);
       await this.doWriteContent(fullPath, content);
-      return await this.refreshObject(fullPath, content);
+      const obj = await this.refreshObject(fullPath, content);
+      if (this.contentsCache) {
+        this.contentsCache.put(obj, content);
+      }
+      return obj;
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
