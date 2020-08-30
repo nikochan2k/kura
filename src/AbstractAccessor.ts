@@ -681,7 +681,9 @@ export abstract class AbstractAccessor {
     if (!this.options.event.preDelete) {
       return;
     }
-    if (!this.options.event.preDelete(record)) {
+
+    const result = await this.options.event.preDelete(record);
+    if (!result) {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
@@ -703,7 +705,8 @@ export abstract class AbstractAccessor {
       return true;
     }
 
-    if (!this.options.event.preGet(record)) {
+    const result = await this.options.event.preGet(record);
+    if (!result) {
       if (throwError) {
         throw new NotReadableError(this.name, record.obj.fullPath, "beforeGet");
       } else {
@@ -727,7 +730,8 @@ export abstract class AbstractAccessor {
       return true;
     }
 
-    if (!this.options.event.preHead(record)) {
+    const result = await this.options.event.preHead(record);
+    if (!result) {
       if (throwError) {
         throw new NotReadableError(
           this.name,
@@ -746,7 +750,9 @@ export abstract class AbstractAccessor {
     if (!this.options.event.prePost) {
       return;
     }
-    if (!this.options.event.prePost(record)) {
+
+    const result = await this.options.event.prePost(record);
+    if (!result) {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
@@ -759,7 +765,9 @@ export abstract class AbstractAccessor {
     if (!this.options.event.prePut) {
       return;
     }
-    if (!this.options.event.prePut(record)) {
+
+    const result = await this.options.event.prePut(record);
+    if (!result) {
       throw new NoModificationAllowedError(
         this.name,
         record.obj.fullPath,
