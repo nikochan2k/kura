@@ -24,11 +24,59 @@ export function getParentPath(fullPath: string) {
 }
 
 export function getName(fullPath: string) {
-  const result = LAST_PATH_PART.exec(fullPath);
-  if (!result || result.length === 0) {
+  if (!fullPath || fullPath === DIR_SEPARATOR) {
     return "";
   }
-  return result[1];
+  if (fullPath.endsWith(DIR_SEPARATOR)) {
+    fullPath = fullPath.substr(0, fullPath.length - 1);
+  }
+  const chunks = fullPath.split(DIR_SEPARATOR);
+  if (0 < chunks.length) {
+    return chunks[chunks.length - 1];
+  } else {
+    return fullPath;
+  }
+}
+
+export function getExtension(fullPath: string) {
+  if (!fullPath || fullPath === DIR_SEPARATOR) {
+    return "";
+  }
+  const name = getName(fullPath);
+  const chunks = name.split(".");
+  if (chunks.length <= 1) {
+    return "";
+  } else if (chunks.length === 2) {
+    if (!chunks[0]) {
+      return name;
+    } else {
+      return chunks[1];
+    }
+  } else {
+    return chunks[chunks.length - 1];
+  }
+}
+
+export function getBaseName(fullPath: string) {
+  if (!fullPath || fullPath === DIR_SEPARATOR) {
+    return "";
+  }
+  const name = getName(fullPath);
+  const chunks = name.split(".");
+  if (chunks.length === 0) {
+    return "";
+  } else if (chunks.length === 1) {
+    return chunks[0];
+  } else if (chunks.length === 2) {
+    if (!chunks[0]) {
+      return name;
+    } else {
+      return chunks[0];
+    }
+  } else {
+    chunks.splice(chunks.length - 1);
+    return chunks.join(".");
+  }
 }
 
 export function createEntry(fileSystemAsync: FileSystemAsync, entry: Entry) {
