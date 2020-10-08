@@ -440,33 +440,10 @@ export abstract class AbstractAccessor {
   ) {
     this.clearFileNameIndexUpdateTimer(dirPath);
 
-    /*
-    let size = 0;
-    let modified = 0;
-    for (const record of Object.values(fileNameIndex)) {
-      if (record.deleted) {
-        continue;
-      }
-      const obj = record.obj;
-      size += obj.size == null ? 0 : obj.size;
-      if (modified < obj.lastModified) {
-        modified = obj.lastModified;
-      }
-    }
-    fileNameIndex[""] = {
-      obj: {
-        fullPath: `${dirPath}/.`,
-        name: "",
-        size,
-        lastModified: modified,
-      },
-      modified,
-    };
-    */
-
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
     const indexPath = this.createIndexPath(dirPath);
+    this.debug("doSaveFileNameIndex", indexPath);
     await this.doWriteContent(indexPath, buffer);
   }
 
