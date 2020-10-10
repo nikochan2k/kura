@@ -440,7 +440,8 @@ export abstract class AbstractAccessor {
   ) {
     this.clearFileNameIndexUpdateTimer(dirPath);
     if(Object.keys(fileNameIndex).length === 0){
-      this.debug("no indexes !", dirPath)
+      this.debug("No indexes !", dirPath)
+      return;
     }
 
     const text = objectToText(fileNameIndex);
