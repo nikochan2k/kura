@@ -83,7 +83,7 @@ export abstract class AbstractAccessor {
       }
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
+        await this.removeFromIndex(fullPath, true);
         if (isFile && this.contentsCache) {
           this.contentsCache.remove(fullPath);
         }
@@ -203,7 +203,7 @@ export abstract class AbstractAccessor {
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
+        await this.removeFromIndex(fullPath, true);
         if (this.contentsCache) {
           this.contentsCache.remove(fullPath);
         }
@@ -346,7 +346,7 @@ export abstract class AbstractAccessor {
       return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath);
+        await this.removeFromIndex(fullPath, true);
         if (this.contentsCache) {
           this.contentsCache.remove(fullPath);
         }
@@ -439,6 +439,9 @@ export abstract class AbstractAccessor {
     fileNameIndex: FileNameIndex
   ) {
     this.clearFileNameIndexUpdateTimer(dirPath);
+    if(Object.keys(fileNameIndex).length === 0){
+      this.debug("no indexes !", dirPath)
+    }
 
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
@@ -566,7 +569,7 @@ export abstract class AbstractAccessor {
     return obj;
   }
 
-  protected async removeFromIndex(fullPath: string) {
+  protected async removeFromIndex(fullPath: string, purge = false) {
     if (!this.options.index) {
       return;
     }
@@ -576,11 +579,15 @@ export abstract class AbstractAccessor {
     const fileNameIndex = await this.getFileNameIndex(dirPath);
     if (fileNameIndex) {
       const name = getName(fullPath);
-      const record = fileNameIndex[name];
-      if (record && record.deleted == null) {
-        record.deleted = Date.now();
-        removed = true;
-      }
+      if(purge) {
+        delete fileNameIndex[name];
+      } else {
+        const record = fileNameIndex[name];
+        if (record && record.deleted == null) {
+          record.deleted = Date.now();
+          removed = true;
+        }
+        }
     }
 
     if (removed) {
