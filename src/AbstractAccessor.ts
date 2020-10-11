@@ -815,12 +815,16 @@ export abstract class AbstractAccessor {
   }
 
   createIndexDir(dirPath: string) {
-    return INDEX_DIR + dirPath;
+    let indexDir = INDEX_DIR + dirPath;
+    if (!indexDir.endsWith(DIR_SEPARATOR)) {
+      indexDir += DIR_SEPARATOR;
+    }
+    return indexDir;
   }
 
   createIndexPath(dirPath: string) {
     const indexDir = this.createIndexDir(dirPath);
-    return indexDir + DIR_SEPARATOR + INDEX_FILE_NAME;
+    return indexDir + INDEX_FILE_NAME;
   }
 
   private doSaveFileNameIndexLater(
