@@ -1,7 +1,7 @@
 import { AbstractAccessor } from "../AbstractAccessor";
 import { toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
 import { InvalidModificationError, NotFoundError } from "../FileError";
-import { DIR_SEPARATOR } from "../FileSystemConstants";
+import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileNameIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
@@ -211,15 +211,12 @@ export class IdbAccessor extends AbstractAccessor {
     delete this.db;
   }
 
-  protected async doSaveFileNameIndex(
-    dirPath: string,
-    fileNameIndex: FileNameIndex
-  ) {
-    const result = await super.doSaveFileNameIndex(dirPath, fileNameIndex);
+  async saveFileNameIndex(dirPath: string) {
+    const result = await super.saveFileNameIndex(dirPath);
     const { indexPath, buffer } = result;
     await this.doPutObject({
       fullPath: indexPath,
-      name: getName(indexPath),
+      name: INDEX_FILE_NAME,
       lastModified: Date.now(),
       size: getSize(buffer),
     });
