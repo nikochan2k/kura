@@ -15,10 +15,8 @@ export interface ContentCacheEntry {
 export class ContentsCache {
   private cache: { [fullPath: string]: ContentCacheEntry } = {};
   private options: ContentsCacheOptions;
-  private shared: boolean;
 
-  constructor(private accessor: AbstractAccessor) {
-    this.shared = accessor.options.shared;
+  constructor(accessor: AbstractAccessor) {
     this.options = accessor.options.contentsCacheOptions;
   }
 
@@ -26,20 +24,6 @@ export class ContentsCache {
     const entry = this.cache[fullPath];
     if (!entry) {
       return null;
-    }
-
-    if (this.shared) {
-      try {
-        const obj = await this.accessor.doGetObject(fullPath);
-        if (entry.lastModified !== obj.lastModified) {
-          return null;
-        }
-      } catch (e) {
-        if (e instanceof NotFoundError) {
-          delete this.cache[fullPath];
-        }
-        throw e;
-      }
     }
 
     entry.access = Date.now();

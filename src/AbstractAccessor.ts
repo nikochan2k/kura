@@ -30,8 +30,6 @@ const ROOT_OBJECT: FileSystemObject = {
 export abstract class AbstractAccessor {
   private static INDEX_NOT_FOUND: any = null;
 
-  private fileNameIndexUpdateTimers: { [dirPath: string]: any } = {};
-
   protected contentsCache: ContentsCache;
 
   abstract readonly filesystem: FileSystem;
@@ -439,27 +437,13 @@ export abstract class AbstractAccessor {
   }
 
   async saveFileNameIndex(dirPath: string) {
-    this.clearFileNameIndexUpdateTimer(dirPath);
-
     const fileNameIndex = this.dirPathIndex[dirPath];
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
     const indexPath = this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
     await this.doWriteContent(indexPath, buffer);
-    return { indexPath, fileNameIndex, buffer };
-  }
-
-  saveFileNameIndexLater(dirPath: string) {
-    this.clearFileNameIndexUpdateTimer(dirPath);
-
-    this.fileNameIndexUpdateTimers[dirPath] = setTimeout(async () => {
-      const current = this.fileNameIndexUpdateTimers[dirPath];
-      if (current != null) {
-        delete this.fileNameIndexUpdateTimers[dirPath];
-        await this.saveFileNameIndex(dirPath);
-      }
-    }, this.options.indexOptions.writeDelayMillis);
+    return { indexPath, buffer };
   }
 
   toURL(fullPath: string): string {
@@ -591,12 +575,6 @@ export abstract class AbstractAccessor {
 
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
-    }
-
-    if (options.shared || indexOptions.writeDelayMillis < 0) {
-      indexOptions.writeDelayMillis = 0;
-    } else if (indexOptions.writeDelayMillis == null) {
-      indexOptions.writeDelayMillis = 1000;
     }
   }
 
@@ -805,14 +783,6 @@ export abstract class AbstractAccessor {
         record.obj.fullPath,
         "beforePut"
       );
-    }
-  }
-
-  private clearFileNameIndexUpdateTimer(dirPath: string) {
-    let fileNameIndexUpdateTimer = this.fileNameIndexUpdateTimers[dirPath];
-    if (fileNameIndexUpdateTimer != null) {
-      delete this.fileNameIndexUpdateTimers[dirPath];
-      clearTimeout(fileNameIndexUpdateTimer);
     }
   }
 

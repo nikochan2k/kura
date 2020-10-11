@@ -2,7 +2,6 @@ import { AbstractAccessor } from "../AbstractAccessor";
 import { toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
 import { InvalidModificationError, NotFoundError } from "../FileError";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
-import { FileNameIndex } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
 import { getName, getSize } from "../FileSystemUtil";
@@ -255,13 +254,6 @@ export class IdbAccessor extends AbstractAccessor {
       content = await toBase64(blob);
     }
     await this.doWriteContentToIdb(fullPath, content);
-  }
-
-  protected initialize(options: FileSystemOptions) {
-    if (options.shared == null) {
-      options.shared = false;
-    }
-    super.initialize(options);
   }
 
   protected async refreshObject(
