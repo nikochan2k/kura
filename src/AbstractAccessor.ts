@@ -493,6 +493,7 @@ export abstract class AbstractAccessor {
     const indexPath = this.createIndexPath(dirPath);
     this.debug("doSaveFileNameIndex", indexPath);
     await this.doWriteContent(indexPath, buffer);
+    return { indexPath, buffer };
   }
 
   protected async doWriteUint8Array(
@@ -813,18 +814,13 @@ export abstract class AbstractAccessor {
     }
   }
 
-  private createIndexDir(dirPath: string) {
-    let indexDir = INDEX_DIR + dirPath;
-    if (!indexDir.endsWith(DIR_SEPARATOR)) {
-      indexDir += DIR_SEPARATOR;
-    }
-    return indexDir;
+  createIndexDir(dirPath: string) {
+    return INDEX_DIR + dirPath;
   }
 
-  private createIndexPath(dirPath: string) {
+  createIndexPath(dirPath: string) {
     const indexDir = this.createIndexDir(dirPath);
-    const indexPath = indexDir + INDEX_FILE_NAME;
-    return indexPath;
+    return indexDir + DIR_SEPARATOR + INDEX_FILE_NAME;
   }
 
   private doSaveFileNameIndexLater(
