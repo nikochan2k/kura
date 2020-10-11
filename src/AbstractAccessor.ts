@@ -121,7 +121,7 @@ export abstract class AbstractAccessor {
     }
   }
 
-  async doLoadFileNameIndex(dirPath: string) {
+  async doGetFileNameIndex(dirPath: string) {
     const indexPath = this.createIndexPath(dirPath);
     const content = await this.doReadContent(indexPath);
     const text = await toText(content);
@@ -152,7 +152,7 @@ export abstract class AbstractAccessor {
       throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
     } else if (typeof fileNameIndex === "undefined") {
       try {
-        fileNameIndex = await this.doLoadFileNameIndex(dirPath);
+        fileNameIndex = await this.doGetFileNameIndex(dirPath);
       } catch (e) {
         if (!(e instanceof NotFoundError)) {
           throw e;
@@ -181,7 +181,8 @@ export abstract class AbstractAccessor {
           const record = this.createRecord(obj);
           fileNameIndex[obj.name] = record;
         }
-        await this.doSaveFileNameIndex(dirPath, fileNameIndex);
+        this.dirPathIndex[dirPath] = fileNameIndex;
+        await this.saveFileNameIndex(dirPath);
       }
       this.dirPathIndex[dirPath] = fileNameIndex;
     }
@@ -437,13 +438,27 @@ export abstract class AbstractAccessor {
     return text;
   }
 
-  async saveFileNameIndex(dirPath: string, immediately = false) {
+  async saveFileNameIndex(dirPath: string) {
+    this.clearFileNameIndexUpdateTimer(dirPath);
+
     const fileNameIndex = this.dirPathIndex[dirPath];
-    if (immediately || this.options.indexOptions.writeDelayMillis <= 0) {
-      await this.doSaveFileNameIndex(dirPath, fileNameIndex);
-    } else {
-      this.doSaveFileNameIndexLater(dirPath, fileNameIndex);
-    }
+    const text = objectToText(fileNameIndex);
+    const buffer = textToArrayBuffer(text);
+    const indexPath = this.createIndexPath(dirPath);
+    this.debug("saveFileNameIndex", indexPath);
+    await this.doWriteContent(indexPath, buffer);
+  }
+
+  saveFileNameIndexLater(dirPath: string) {
+    this.clearFileNameIndexUpdateTimer(dirPath);
+
+    this.fileNameIndexUpdateTimers[dirPath] = setTimeout(async () => {
+      const current = this.fileNameIndexUpdateTimers[dirPath];
+      if (current != null) {
+        delete this.fileNameIndexUpdateTimers[dirPath];
+        await this.saveFileNameIndex(dirPath);
+      }
+    }, this.options.indexOptions.writeDelayMillis);
   }
 
   toURL(fullPath: string): string {
@@ -480,20 +495,6 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
-  }
-
-  protected async doSaveFileNameIndex(
-    dirPath: string,
-    fileNameIndex: FileNameIndex
-  ) {
-    this.clearFileNameIndexUpdateTimer(dirPath);
-
-    const text = objectToText(fileNameIndex);
-    const buffer = textToArrayBuffer(text);
-    const indexPath = this.createIndexPath(dirPath);
-    this.debug("doSaveFileNameIndex", indexPath);
-    await this.doWriteContent(indexPath, buffer);
-    return { indexPath, buffer };
   }
 
   protected async doWriteUint8Array(
@@ -825,20 +826,5 @@ export abstract class AbstractAccessor {
   createIndexPath(dirPath: string) {
     const indexDir = this.createIndexDir(dirPath);
     return indexDir + INDEX_FILE_NAME;
-  }
-
-  private doSaveFileNameIndexLater(
-    dirPath: string,
-    fileNameIndex: FileNameIndex
-  ) {
-    this.clearFileNameIndexUpdateTimer(dirPath);
-
-    this.fileNameIndexUpdateTimers[dirPath] = setTimeout(async () => {
-      const current = this.fileNameIndexUpdateTimers[dirPath];
-      if (current != null) {
-        delete this.fileNameIndexUpdateTimers[dirPath];
-        await this.doSaveFileNameIndex(dirPath, fileNameIndex);
-      }
-    }, this.options.indexOptions.writeDelayMillis);
   }
 }

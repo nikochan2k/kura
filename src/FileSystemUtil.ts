@@ -177,7 +177,7 @@ export async function vacuumDirectory(
   accessor: AbstractAccessor,
   dirPath: string
 ) {
-  const fileNameIndex = await accessor.doLoadFileNameIndex(dirPath);
+  const fileNameIndex = await accessor.doGetFileNameIndex(dirPath);
   for (const [name, record] of Object.entries(fileNameIndex)) {
     const obj = record.obj;
     if (obj.size == null) {
