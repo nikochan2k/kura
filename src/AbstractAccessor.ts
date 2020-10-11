@@ -180,6 +180,11 @@ export abstract class AbstractAccessor {
     return fileNameIndex;
   }
 
+  async getFileNameIndexObject(dirPath: string) {
+    const indexPath = this.createIndexPath(dirPath);
+    return this.doGetObject(indexPath);
+  }
+
   async getObject(fullPath: string) {
     if (this.options.index) {
       const record = await this.getRecord(fullPath);
@@ -218,8 +223,8 @@ export abstract class AbstractAccessor {
   async getObjects(dirPath: string) {
     try {
       return this.options.index
-        ? await this.getObjectsFromIndex(dirPath)
-        : await this.getObjectsFromStorage(dirPath);
+        ? this.getObjectsFromIndex(dirPath)
+        : this.getObjectsFromStorage(dirPath);
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -439,10 +444,6 @@ export abstract class AbstractAccessor {
     fileNameIndex: FileNameIndex
   ) {
     this.clearFileNameIndexUpdateTimer(dirPath);
-    if(Object.keys(fileNameIndex).length === 0){
-      this.debug("No indexes !", dirPath)
-      return;
-    }
 
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
@@ -580,7 +581,7 @@ export abstract class AbstractAccessor {
     const fileNameIndex = await this.getFileNameIndex(dirPath);
     if (fileNameIndex) {
       const name = getName(fullPath);
-      if(purge) {
+      if (purge) {
         delete fileNameIndex[name];
       } else {
         const record = fileNameIndex[name];
@@ -588,7 +589,7 @@ export abstract class AbstractAccessor {
           record.deleted = Date.now();
           removed = true;
         }
-        }
+      }
     }
 
     if (removed) {
