@@ -447,7 +447,7 @@ export abstract class AbstractAccessor {
     const indexPath = this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
     await this.doWriteContent(indexPath, buffer);
-    return { indexPath, buffer };
+    return { indexPath, fileNameIndex, buffer };
   }
 
   saveFileNameIndexLater(dirPath: string) {
