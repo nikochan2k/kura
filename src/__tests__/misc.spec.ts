@@ -5,6 +5,7 @@ import {
   normalizePath,
   getExtension,
   getBaseName,
+  isIllegalFileName,
 } from "../FileSystemUtil";
 
 test("FileSystemUtil#getParentPath", () => {
@@ -86,4 +87,17 @@ test("FileSystemUtil#normalizePath", () => {
   expect(path).toBe("/");
   path = normalizePath("");
   expect(path).toBe("/");
+});
+
+test("FileSystemUtil#isIllegalFileName", () => {
+  let result = isIllegalFileName("fuga");
+  expect(result).toBe(false);
+  result = isIllegalFileName("<test>");
+  expect(result).toBe(true);
+  result = isIllegalFileName("\\test");
+  expect(result).toBe(true);
+  result = isIllegalFileName(":test");
+  expect(result).toBe(true);
+  result = isIllegalFileName("\ttest");
+  expect(result).toBe(true);
 });

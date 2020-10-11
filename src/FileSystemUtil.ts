@@ -169,7 +169,14 @@ export function getTextSize(text: string) {
   return encodeURIComponent(text).replace(/%../g, "x").length; // UTF-8
 }
 
-async function vacuumDirectory(accessor: AbstractAccessor, dirPath: string) {
+export function isIllegalFileName(name: string) {
+  return /[\x00-\x1f\x7f-\x9f\\/:*?"<>|]/.test(name);
+}
+
+export async function vacuumDirectory(
+  accessor: AbstractAccessor,
+  dirPath: string
+) {
   const fileNameIndex = await accessor.doLoadFileNameIndex(dirPath);
   for (const [name, record] of Object.entries(fileNameIndex)) {
     const obj = record.obj;

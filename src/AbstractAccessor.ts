@@ -17,7 +17,7 @@ import {
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import { getName, getParentPath } from "./FileSystemUtil";
+import { getName, getParentPath, isIllegalFileName } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
@@ -61,6 +61,14 @@ export abstract class AbstractAccessor {
   async delete(fullPath: string, isFile: boolean) {
     if (fullPath === DIR_SEPARATOR) {
       throw new InvalidModificationError(this.name, fullPath, "delete");
+    }
+    const name = getName(fullPath);
+    if (isIllegalFileName(name)) {
+      throw new NotReadableError(
+        this.name,
+        fullPath,
+        `illegal file name "${name}"`
+      );
     }
 
     try {
@@ -186,6 +194,15 @@ export abstract class AbstractAccessor {
   }
 
   async getObject(fullPath: string) {
+    const name = getName(fullPath);
+    if (isIllegalFileName(name)) {
+      throw new NotReadableError(
+        this.name,
+        fullPath,
+        `illegal file name "${name}"`
+      );
+    }
+
     if (this.options.index) {
       const record = await this.getRecord(fullPath);
       await this.beforeHead(record, true);
@@ -221,10 +238,22 @@ export abstract class AbstractAccessor {
   }
 
   async getObjects(dirPath: string) {
+    const name = getName(dirPath);
+    if (isIllegalFileName(name)) {
+      throw new NotReadableError(
+        this.name,
+        dirPath,
+        `illegal directory name "${name}"`
+      );
+    }
+
     try {
-      return this.options.index
-        ? this.getObjectsFromIndex(dirPath)
-        : this.getObjectsFromStorage(dirPath);
+      const objects = this.options.index
+        ? await this.getObjectsFromIndex(dirPath)
+        : await this.getObjectsFromStorage(dirPath);
+      return objects.filter((obj) => {
+        return !isIllegalFileName(obj.name);
+      });
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -253,6 +282,13 @@ export abstract class AbstractAccessor {
         this.name,
         obj.fullPath,
         `cannot write to root "${DIR_SEPARATOR}"`
+      );
+    }
+    if (isIllegalFileName(obj.name)) {
+      throw new InvalidModificationError(
+        this.name,
+        obj.fullPath,
+        `illegal file name "${obj.name}"`
       );
     }
     if (this.options.index && obj.fullPath.startsWith(INDEX_DIR)) {
@@ -335,6 +371,13 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+    if (isIllegalFileName(obj.name)) {
+      throw new NotReadableError(
+        this.name,
+        obj.fullPath,
+        `illegal file name "${obj.name}"`
+      );
+    }
     const fullPath = obj.fullPath;
     let record: Record;
     if (this.options.index) {
