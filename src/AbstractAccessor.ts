@@ -129,6 +129,24 @@ export abstract class AbstractAccessor {
     return textToObject(text) as FileNameIndex;
   }
 
+  async doDeleteRecursively(fullPath: string) {
+    const objects = await this.doGetObjects(fullPath);
+    for (const obj of objects) {
+      if (obj.fullPath === DIR_SEPARATOR) {
+        continue;
+      }
+
+      if (obj.size == null) {
+        await this.doDeleteRecursively(obj.fullPath);
+        continue;
+      }
+      await this.doDelete(obj.fullPath, true);
+    }
+    if (fullPath !== DIR_SEPARATOR) {
+      await this.doDelete(fullPath, false);
+    }
+  }
+
   async doWriteContent(
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
