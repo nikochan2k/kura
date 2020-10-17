@@ -5,9 +5,6 @@ import { testAll } from "./filesystem";
 
 const factory = new IdbLocalFileSystemAsync("web-file-system-test", {
   index: false,
-  indexOptions: {
-    writeDelayMillis: 0,
-  },
   contentsCache: false,
   verbose: true,
 });
