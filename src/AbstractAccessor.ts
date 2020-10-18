@@ -98,7 +98,13 @@ export abstract class AbstractAccessor {
       }
       let record = fileNameIndex[name];
       if (record) {
-        if (obj.lastModified !== record.obj.lastModified) {
+        if (record.deleted) {
+          try {
+            await this.doDelete(obj.fullPath, obj.size != null);
+          } catch (e) {
+            console.info(e);
+          }
+        } else if (obj.lastModified !== record.obj.lastModified) {
           record.obj = obj;
           updated = true;
         }
@@ -112,8 +118,8 @@ export abstract class AbstractAccessor {
       delete remainder[name];
     }
 
-    for (const name of Object.keys(remainder)) {
-      fileNameIndex[name].deleted = Date.now();
+    for (const record of Object.values(remainder)) {
+      record.deleted = Date.now();
       updated = true;
     }
 
