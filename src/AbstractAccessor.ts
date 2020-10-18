@@ -86,10 +86,16 @@ export abstract class AbstractAccessor {
     const remainder: FileNameIndex = { ...fileNameIndex };
     let updated = false;
     for (const obj of objects) {
+      if (obj.fullPath === INDEX_DIR) {
+        continue;
+      }
+      const name = obj.name;
+      if (name.startsWith(".")) {
+        continue;
+      }
       if (obj.size == null) {
         await this.correctIndex(obj.fullPath);
       }
-      const name = obj.name;
       let record = fileNameIndex[name];
       if (record) {
         if (obj.lastModified !== record.obj.lastModified) {
