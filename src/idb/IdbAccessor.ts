@@ -31,7 +31,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   async doDelete(fullPath: string, isFile: boolean) {
-    await new Promise<void>(async (resolve, reject) => {
+    await new Promise<void>(async (resolve) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) => {
         const req = ev.target as IDBRequest;

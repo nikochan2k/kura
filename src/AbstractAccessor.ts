@@ -17,7 +17,12 @@ import {
 import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import { getName, getParentPath, isIllegalFileName } from "./FileSystemUtil";
+import {
+  getName,
+  getParentPath,
+  isIllegalFileName,
+  onError,
+} from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
@@ -112,6 +117,9 @@ export abstract class AbstractAccessor {
       }
     } catch (e) {
       if (e instanceof NotFoundError) {
+        try {
+          await this.doDelete(fullPath, isFile);
+        } catch {}
         await this.removeFromIndex(fullPath, true);
         if (isFile && this.contentsCache) {
           this.contentsCache.remove(fullPath);
