@@ -144,7 +144,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
                 errorCallback(err);
               });
           } else {
-            onError(err, errorCallback);
+            this.params.accessor
+              .delete(fullPath, false)
+              .catch((e) => onError(e))
+              .finally(() => onError(err, errorCallback));
           }
         } else {
           onError(err, errorCallback);
@@ -207,7 +210,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
                 errorCallback(err);
               });
           } else {
-            onError(err, errorCallback);
+            this.params.accessor
+              .delete(fullPath, true)
+              .catch((e) => onError(e))
+              .finally(() => onError(err, errorCallback));
           }
         } else {
           onError(err, errorCallback);
