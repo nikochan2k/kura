@@ -108,7 +108,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     }
 
     this.params.accessor
-      .getObject(fullPath)
+      .getObject(fullPath, false)
       .then(async (obj) => {
         if (obj.size != null) {
           onError(
@@ -171,7 +171,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     }
 
     this.params.accessor
-      .getObject(fullPath)
+      .getObject(fullPath, true)
       .then(async (obj) => {
         if (obj.size == null) {
           onError(

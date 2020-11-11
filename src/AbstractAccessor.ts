@@ -54,7 +54,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (24)
+  // #region Public Methods (23)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -103,27 +103,15 @@ export abstract class AbstractAccessor {
         const record = await this.getRecord(fullPath);
         await this.beforeDelete(record);
         this.debug("delete", fullPath);
-        if (!this.options.indexOptions.logicalDelete) {
-          await this.doDelete(fullPath, isFile);
-        }
-        await this.removeFromIndex(fullPath);
+        await this.remove(fullPath, isFile);
         this.afterDelete(record);
       } else {
         this.debug("delete", fullPath);
-        await this.doDelete(fullPath, isFile);
-      }
-      if (isFile && this.contentsCache) {
-        this.contentsCache.remove(fullPath);
+        await this.remove(fullPath, isFile);
       }
     } catch (e) {
       if (e instanceof NotFoundError) {
-        try {
-          await this.doDelete(fullPath, isFile);
-        } catch {}
-        await this.removeFromIndex(fullPath, true);
-        if (isFile && this.contentsCache) {
-          this.contentsCache.remove(fullPath);
-        }
+        this.remove(fullPath, isFile);
         return;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -214,11 +202,10 @@ export abstract class AbstractAccessor {
           throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
         }
         if (dirPath === DIR_SEPARATOR) {
-          const now = Date.now();
           fileNameIndex = {
             "": {
               obj: ROOT_OBJECT,
-              modified: now,
+              modified: 0,
             },
           };
         } else {
@@ -241,7 +228,7 @@ export abstract class AbstractAccessor {
     return this.doGetObject(indexPath);
   }
 
-  public async getObject(fullPath: string) {
+  public async getObject(fullPath: string, isFile: boolean) {
     const name = getName(fullPath);
     if (isIllegalFileName(name)) {
       throw new NotReadableError(
@@ -251,32 +238,44 @@ export abstract class AbstractAccessor {
       );
     }
 
-    if (this.options.index) {
-      const record = await this.getRecord(fullPath);
-      await this.beforeHead(record, true);
-      this.afterHead(record);
-      return record.obj;
-    }
-
-    if (fullPath === DIR_SEPARATOR) {
-      return ROOT_OBJECT;
-    }
-
     try {
       this.debug("getObject", fullPath);
-      const obj = await this.doGetObject(fullPath);
+
+      let record: Record;
+      let obj: FileSystemObject;
+      if (this.options.index) {
+        record = await this.getRecord(fullPath);
+        obj = record.obj;
+      } else {
+        obj = await this.doGetObject(fullPath);
+        record = this.createRecord(obj);
+      }
+
+      if (isFile && obj.size == null) {
+        throw new NotReadableError(
+          this.name,
+          fullPath,
+          `${fullPath} is not a file`
+        );
+      }
+      if (!isFile && obj.size != null) {
+        throw new NotReadableError(
+          this.name,
+          fullPath,
+          `${fullPath} is not a directory`
+        );
+      }
+
+      await this.beforeHead(record, true); // Actually, after get.
+      this.afterHead(record);
+
       if (!this.options.index) {
         const record = this.createRecord(obj);
-        await this.beforeHead(record, true); // Actually, after get.
-        this.afterHead(record);
       }
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath, true);
-        if (this.contentsCache) {
-          this.contentsCache.remove(fullPath);
-        }
+        await this.remove(fullPath, isFile);
         throw e;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -426,26 +425,25 @@ export abstract class AbstractAccessor {
         `illegal file name "${obj.name}"`
       );
     }
-    const fullPath = obj.fullPath;
-    let record: Record;
-    if (this.options.index) {
-      record = await this.getRecord(fullPath);
-    } else {
-      record = this.createRecord(obj);
-    }
-    await this.beforeGet(record, true);
 
+    const fullPath = obj.fullPath;
     try {
       this.debug("readContent", fullPath);
+
+      let record: Record;
+      if (this.options.index) {
+        record = await this.getRecord(fullPath);
+      } else {
+        record = this.createRecord(obj);
+      }
+      await this.beforeGet(record, true);
+
       const content = await this.readContentInternal(obj, type);
       this.afterGet(record);
       return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.removeFromIndex(fullPath, true);
-        if (this.contentsCache) {
-          this.contentsCache.remove(fullPath);
-        }
+        await this.remove(fullPath, true);
         throw e;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -510,7 +508,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(parentPath);
   }
 
-  // #endregion Public Methods (24)
+  // #endregion Public Methods (23)
 
   // #region Public Abstract Methods (5)
 
@@ -524,7 +522,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Public Abstract Methods (5)
 
-  // #region Protected Methods (11)
+  // #region Protected Methods (12)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -652,31 +650,39 @@ export abstract class AbstractAccessor {
     return obj;
   }
 
-  protected async removeFromIndex(fullPath: string, purge = false) {
+  protected async remove(fullPath: string, isFile: boolean) {
+    if (!this.options.indexOptions?.logicalDelete) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        onError(e);
+      }
+    }
+    await this.removeFromIndex(fullPath, isFile);
+    if (isFile && this.contentsCache) {
+      this.contentsCache.remove(fullPath);
+    }
+  }
+
+  protected async removeFromIndex(fullPath: string, isFile: boolean) {
     if (!this.options.index) {
       return;
     }
 
-    let removed = false;
     const dirPath = getParentPath(fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    if (fileNameIndex) {
-      const name = getName(fullPath);
-      if (purge) {
-        delete fileNameIndex[name];
-      } else {
-        const record = fileNameIndex[name];
-        if (record && record.deleted == null) {
-          record.deleted = Date.now();
-          removed = true;
-        }
-      }
+    if (!fileNameIndex) {
+      return;
     }
 
-    if (removed) {
-      this.dirPathIndex[dirPath] = fileNameIndex;
-      await this.saveFileNameIndex(dirPath);
+    const name = getName(fullPath);
+    const record = fileNameIndex[name];
+    const now = Date.now();
+    if (record) {
+      record.deleted = now;
     }
+    this.dirPathIndex[dirPath] = fileNameIndex;
+    await this.saveFileNameIndex(dirPath);
   }
 
   protected async writeContent(
@@ -699,7 +705,7 @@ export abstract class AbstractAccessor {
     }
   }
 
-  // #endregion Protected Methods (11)
+  // #endregion Protected Methods (12)
 
   // #region Protected Abstract Methods (3)
 
