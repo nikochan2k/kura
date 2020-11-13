@@ -6,17 +6,30 @@ import { AbstractFileSystem } from "./AbstractFileSystem";
 import { AbstractAccessor } from "./AbstractAccessor";
 
 export class LocalFileSystemAsync {
+  // #region Constructors (1)
+
   constructor(public localFileSystem: LocalFileSystem) {}
 
-  get PERSISTENT() {
+  // #endregion Constructors (1)
+
+  // #region Public Accessors (2)
+
+  public get PERSISTENT() {
     return this.localFileSystem.PERSISTENT;
   }
 
-  get TEMPORARY() {
+  public get TEMPORARY() {
     return this.localFileSystem.TEMPORARY;
   }
 
-  requestFileSystemAsync(type: number, size: number): Promise<FileSystemAsync> {
+  // #endregion Public Accessors (2)
+
+  // #region Public Methods (2)
+
+  public requestFileSystemAsync(
+    type: number,
+    size: number
+  ): Promise<FileSystemAsync> {
     return new Promise<FileSystemAsync>((resolve, reject) => {
       this.localFileSystem.requestFileSystem(
         type,
@@ -32,7 +45,11 @@ export class LocalFileSystemAsync {
     });
   }
 
-  resolveLocalFileSystemAsyncURL(url: string): Promise<EntryAsync<Entry>> {
+  public resolveLocalFileSystemAsyncURL(
+    url: string
+  ): Promise<EntryAsync<Entry>> {
     throw new NotImplementedError("", url);
   }
+
+  // #endregion Public Methods (2)
 }

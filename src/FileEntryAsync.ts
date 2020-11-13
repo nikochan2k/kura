@@ -4,11 +4,17 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { FileWriterAsync } from "./FileWriterAsync";
 
 export class FileEntryAsync extends EntryAsync<FileEntry> {
+  // #region Constructors (1)
+
   constructor(fileSystemAsync: FileSystemAsync, fileEntry: FileEntry) {
     super(fileSystemAsync, fileEntry);
   }
 
-  createWriter(): Promise<FileWriterAsync> {
+  // #endregion Constructors (1)
+
+  // #region Public Methods (6)
+
+  public createWriter(): Promise<FileWriterAsync> {
     return new Promise<FileWriterAsync>((resolve, reject) => {
       this.entry.createWriter(
         (fileWriter) => {
@@ -21,7 +27,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  file(): Promise<File> {
+  public file(): Promise<File> {
     return new Promise((resolve, reject) => {
       this.entry.file(
         (file) => {
@@ -34,7 +40,9 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  readFile(type?: DataType): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+  public readFile(
+    type?: DataType
+  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     return new Promise<Blob | Uint8Array | ArrayBuffer | string>(
       (resolve, reject) => {
         this.entry.readFile(
@@ -50,7 +58,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     );
   }
 
-  readText(): Promise<string> {
+  public readText(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       this.entry.readText(
         (text) => {
@@ -63,7 +71,9 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  writeFile(content: Blob | Uint8Array | ArrayBuffer | string): Promise<void> {
+  public writeFile(
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeFile(
         content,
@@ -77,7 +87,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  writeText(text: string): Promise<void> {
+  public writeText(text: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeText(
         text,
@@ -90,4 +100,6 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
       );
     });
   }
+
+  // #endregion Public Methods (6)
 }

@@ -6,19 +6,33 @@ import { ContentsCacheOptions } from "./FileSystemOptions";
 import { getSize } from "./FileSystemUtil";
 
 export interface ContentCacheEntry {
+  // #region Properties (4)
+
   access: number;
   content: Blob | Uint8Array | ArrayBuffer | string;
   lastModified: number;
   size: number;
+
+  // #endregion Properties (4)
 }
 
 export class ContentsCache {
+  // #region Properties (2)
+
   private cache: { [fullPath: string]: ContentCacheEntry } = {};
   private options: ContentsCacheOptions;
+
+  // #endregion Properties (2)
+
+  // #region Constructors (1)
 
   constructor(accessor: AbstractAccessor) {
     this.options = accessor.options.contentsCacheOptions;
   }
+
+  // #endregion Constructors (1)
+
+  // #region Public Methods (3)
 
   public async get(fullPath: string) {
     const entry = this.cache[fullPath];
@@ -88,4 +102,6 @@ export class ContentsCache {
   public remove(fullPath: string) {
     delete this.cache[fullPath];
   }
+
+  // #endregion Public Methods (3)
 }

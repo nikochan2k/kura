@@ -20,19 +20,33 @@ import { onError } from "./FileSystemUtil";
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
   implements FileEntry {
-  fileWriter: AbstractFileWriter<T>;
-  isDirectory = false;
-  isFile = true;
+  // #region Properties (3)
+
+  public fileWriter: AbstractFileWriter<T>;
+  public isDirectory = false;
+  public isFile = true;
+
+  // #endregion Properties (3)
+
+  // #region Constructors (1)
 
   constructor(params: FileSystemParams<T>) {
     super(params);
   }
 
-  get size() {
+  // #endregion Constructors (1)
+
+  // #region Public Accessors (1)
+
+  public get size() {
     return this.params.size;
   }
 
-  copyTo(
+  // #endregion Public Accessors (1)
+
+  // #region Public Methods (9)
+
+  public copyTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
@@ -55,7 +69,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     }, errorCallback);
   }
 
-  createWriter(
+  public createWriter(
     successCallback: FileWriterCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
@@ -68,7 +82,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     }
   }
 
-  file(
+  public file(
     successCallback: FileCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
@@ -96,7 +110,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  moveTo(
+  public moveTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
@@ -116,7 +130,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     );
   }
 
-  readFile(
+  public readFile(
     successCallback: ContentCallback,
     errorCallback?: ErrorCallback,
     type?: DataType
@@ -131,7 +145,10 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  readText(successCallback: TextCallback, errorCallback?: ErrorCallback): void {
+  public readText(
+    successCallback: TextCallback,
+    errorCallback?: ErrorCallback
+  ): void {
     this.params.accessor
       .readText(this.params)
       .then((text) => {
@@ -142,7 +159,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  remove(
+  public remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
@@ -156,7 +173,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  writeFile(
+  public writeFile(
     content: Blob | Uint8Array | ArrayBuffer | string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
@@ -174,7 +191,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  writeText(
+  public writeText(
     text: string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
@@ -192,5 +209,11 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
+  // #endregion Public Methods (9)
+
+  // #region Protected Abstract Methods (1)
+
   protected abstract createFileWriter(file: File): AbstractFileWriter<T>;
+
+  // #endregion Protected Abstract Methods (1)
 }

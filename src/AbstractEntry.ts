@@ -16,24 +16,38 @@ import { InvalidModificationError } from "./FileError";
 
 export abstract class AbstractEntry<T extends AbstractAccessor>
   implements Entry {
-  abstract isDirectory: boolean;
-  abstract isFile: boolean;
+  // #region Properties (2)
+
+  public abstract isDirectory: boolean;
+  public abstract isFile: boolean;
+
+  // #endregion Properties (2)
+
+  // #region Constructors (1)
 
   constructor(public params: FileSystemParams<T>) {}
 
-  get filesystem() {
+  // #endregion Constructors (1)
+
+  // #region Public Accessors (3)
+
+  public get filesystem() {
     return this.params.accessor.filesystem;
   }
 
-  get fullPath() {
+  public get fullPath() {
     return this.params.fullPath;
   }
 
-  get name() {
+  public get name() {
     return this.params.name;
   }
 
-  getMetadata(
+  // #endregion Public Accessors (3)
+
+  // #region Public Methods (3)
+
+  public getMetadata(
     successCallback: MetadataCallback,
     errorCallback?: ErrorCallback
   ): void {
@@ -46,7 +60,7 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     });
   }
 
-  getParent(
+  public getParent(
     successCallback: DirectoryEntryCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
@@ -55,26 +69,34 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback(this.toDirectoryEntry(obj));
   }
 
-  toURL(): string {
+  public toURL(): string {
     return this.params.accessor.toURL(this.fullPath);
   }
 
-  abstract copyTo(
+  // #endregion Public Methods (3)
+
+  // #region Public Abstract Methods (3)
+
+  public abstract copyTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void;
-  abstract moveTo(
+  public abstract moveTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
     errorCallback?: ErrorCallback | undefined
   ): void;
-  abstract remove(
+  public abstract remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void;
+
+  // #endregion Public Abstract Methods (3)
+
+  // #region Protected Methods (2)
 
   protected canCopy(
     parent: DirectoryEntry,
@@ -105,5 +127,11 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     };
   }
 
+  // #endregion Protected Methods (2)
+
+  // #region Protected Abstract Methods (1)
+
   protected abstract toDirectoryEntry(obj: FileSystemObject): DirectoryEntry;
+
+  // #endregion Protected Abstract Methods (1)
 }

@@ -2,14 +2,24 @@ import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { NotFoundError } from "./FileError";
 
 export interface XHROptions {
-  timeout?: number;
+  // #region Properties (2)
+
   requestHeaders?: { [key: string]: string };
+  timeout?: number;
+
+  // #endregion Properties (2)
 }
 
 export class XHR {
+  // #region Properties (3)
+
+  private handled: boolean;
   private options: XHROptions;
   private url: string;
-  private handled: boolean;
+
+  // #endregion Properties (3)
+
+  // #region Constructors (1)
 
   constructor(
     private key?: string,
@@ -28,7 +38,11 @@ export class XHR {
     this.options = options;
   }
 
-  async get(
+  // #endregion Constructors (1)
+
+  // #region Public Methods (3)
+
+  public async get(
     url: string,
     responseType: XMLHttpRequestResponseType
   ): Promise<any> {
@@ -40,13 +54,25 @@ export class XHR {
     return await promise;
   }
 
-  async post(url: string, content: Blob | Uint8Array | string, type?: string) {
+  public async post(
+    url: string,
+    content: Blob | Uint8Array | string,
+    type?: string
+  ) {
     await this.xhr("POST", url, content, type);
   }
 
-  async put(url: string, content: Blob | Uint8Array | string, type?: string) {
+  public async put(
+    url: string,
+    content: Blob | Uint8Array | string,
+    type?: string
+  ) {
     await this.xhr("PUT", url, content, type);
   }
+
+  // #endregion Public Methods (3)
+
+  // #region Private Methods (3)
 
   private configure(xhr: XMLHttpRequest) {
     xhr.timeout = this.options.timeout;
@@ -116,4 +142,6 @@ export class XHR {
     xhr.send(content);
     await promise;
   }
+
+  // #endregion Private Methods (3)
 }

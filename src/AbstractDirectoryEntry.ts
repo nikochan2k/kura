@@ -27,14 +27,24 @@ import { onError, resolveToFullPath } from "./FileSystemUtil";
 export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
   implements DirectoryEntry {
-  isDirectory = true;
-  isFile = false;
+  // #region Properties (2)
+
+  public isDirectory = true;
+  public isFile = false;
+
+  // #endregion Properties (2)
+
+  // #region Constructors (1)
 
   constructor(params: FileSystemParams<T>) {
     super(params);
   }
 
-  copyTo(
+  // #endregion Constructors (1)
+
+  // #region Public Methods (9)
+
+  public copyTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
@@ -71,11 +81,11 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     );
   }
 
-  createReader(): DirectoryReader {
+  public createReader(): DirectoryReader {
     return new DefaultDirectoryReader(this);
   }
 
-  async delete() {
+  public async delete() {
     const accessor = this.params.accessor;
     if (await this.hasChild()) {
       throw new InvalidModificationError(
@@ -88,7 +98,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     await accessor.delete(this.fullPath, false);
   }
 
-  getDirectory(
+  public getDirectory(
     path: string,
     options?: Flags | undefined,
     successCallback?: DirectoryEntryCallback | undefined,
@@ -155,7 +165,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       });
   }
 
-  getFile(
+  public getFile(
     path: string,
     options?: Flags,
     successCallback?: FileEntryCallback,
@@ -221,7 +231,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       });
   }
 
-  list(successCallback: EntriesCallback, errorCallback?: ErrorCallback): void {
+  public list(
+    successCallback: EntriesCallback,
+    errorCallback?: ErrorCallback
+  ): void {
     this.params.accessor
       .getObjects(this.fullPath)
       .then((objects) => {
@@ -232,7 +245,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       });
   }
 
-  moveTo(
+  public moveTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
     successCallback?: EntryCallback | undefined,
@@ -269,7 +282,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     );
   }
 
-  remove(
+  public remove(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
@@ -301,7 +314,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       });
   }
 
-  removeRecursively(
+  public removeRecursively(
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
@@ -314,6 +327,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         onError(err, errorCallback);
       });
   }
+
+  // #endregion Public Methods (9)
+
+  // #region Protected Methods (3)
 
   protected createEntries(objects: FileSystemObject[]) {
     const entries: AbstractEntry<T>[] = [];
@@ -342,6 +359,12 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     return obj;
   }
 
+  // #endregion Protected Methods (3)
+
+  // #region Protected Abstract Methods (2)
+
   protected abstract createEntry(obj: FileSystemObject): AbstractEntry<T>;
   protected abstract toFileEntry(obj: FileSystemObject): FileEntry;
+
+  // #endregion Protected Abstract Methods (2)
 }

@@ -15,22 +15,36 @@ const indexedDB: IDBFactory =
   window.indexedDB || window.mozIndexedDB || window.msIndexedDB;
 
 export class IdbAccessor extends AbstractAccessor {
+  // #region Properties (4)
+
   private static SUPPORTS_ARRAY_BUFFER: boolean;
   private static SUPPORTS_BLOB: boolean;
 
-  db: IDBDatabase;
-  filesystem: IdbFileSystem;
+  public db: IDBDatabase;
+  public filesystem: IdbFileSystem;
+
+  // #endregion Properties (4)
+
+  // #region Constructors (1)
 
   constructor(private dbName: string, options: FileSystemOptions) {
     super(options);
     this.filesystem = new IdbFileSystem(this);
   }
 
-  get name() {
+  // #endregion Constructors (1)
+
+  // #region Public Accessors (1)
+
+  public get name() {
     return this.dbName;
   }
 
-  async doDelete(fullPath: string, isFile: boolean) {
+  // #endregion Public Accessors (1)
+
+  // #region Public Methods (8)
+
+  public async doDelete(fullPath: string, isFile: boolean) {
     await new Promise<void>(async (resolve) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) => {
@@ -65,7 +79,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetObject(fullPath: string) {
+  public doGetObject(fullPath: string) {
     return new Promise<FileSystemObject>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const range = IDBKeyRange.only(fullPath);
@@ -87,7 +101,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doGetObjects(fullPath: string) {
+  public doGetObjects(fullPath: string) {
     return new Promise<FileSystemObject[]>((resolve, reject) => {
       const tx = this.db.transaction([ENTRY_STORE], "readonly");
       const onerror = (ev: Event) => {
@@ -123,11 +137,11 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doMakeDirectory(obj: FileSystemObject) {
+  public doMakeDirectory(obj: FileSystemObject) {
     return this.doPutObject(obj);
   }
 
-  doPutObject(obj: FileSystemObject) {
+  public doPutObject(obj: FileSystemObject) {
     return new Promise<void>((resolve, reject) => {
       const entryTx = this.db.transaction([ENTRY_STORE], "readwrite");
       const onerror = (ev: Event) =>
@@ -142,7 +156,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  doReadContent(
+  public doReadContent(
     fullPath: string
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     return new Promise<any>((resolve, reject) => {
@@ -167,7 +181,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  async open(dbName: string) {
+  public async open(dbName: string) {
     if (
       IdbAccessor.SUPPORTS_BLOB == null ||
       IdbAccessor.SUPPORTS_ARRAY_BUFFER == null
@@ -205,12 +219,7 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  protected close() {
-    this.db.close();
-    delete this.db;
-  }
-
-  async saveFileNameIndex(dirPath: string) {
+  public async saveFileNameIndex(dirPath: string) {
     const result = await super.saveFileNameIndex(dirPath);
     const { indexPath, buffer } = result;
     await this.doPutObject({
@@ -220,6 +229,15 @@ export class IdbAccessor extends AbstractAccessor {
       size: getSize(buffer),
     });
     return result;
+  }
+
+  // #endregion Public Methods (8)
+
+  // #region Protected Methods (5)
+
+  protected close() {
+    this.db.close();
+    delete this.db;
   }
 
   protected async doWriteArrayBuffer(
@@ -276,6 +294,10 @@ export class IdbAccessor extends AbstractAccessor {
     }
     return obj;
   }
+
+  // #endregion Protected Methods (5)
+
+  // #region Private Methods (3)
 
   private doWriteContentToIdb(fullPath: string, content: any) {
     return new Promise<void>((resolve, reject) => {
@@ -356,4 +378,6 @@ export class IdbAccessor extends AbstractAccessor {
       };
     });
   }
+
+  // #endregion Private Methods (3)
 }

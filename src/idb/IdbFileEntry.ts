@@ -7,9 +7,15 @@ import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 import { IdbFileWriter } from "./IdbFileWriter";
 
 export class IdbFileEntry extends AbstractFileEntry<IdbAccessor> {
+  // #region Constructors (1)
+
   constructor(params: FileSystemParams<IdbAccessor>) {
     super(params);
   }
+
+  // #endregion Constructors (1)
+
+  // #region Protected Methods (2)
 
   protected createFileWriter(file: File): IdbFileWriter {
     return new IdbFileWriter(this, file);
@@ -21,4 +27,6 @@ export class IdbFileEntry extends AbstractFileEntry<IdbAccessor> {
       ...obj,
     });
   }
+
+  // #endregion Protected Methods (2)
 }

@@ -6,6 +6,8 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { createEntry } from "./FileSystemUtil";
 
 export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
+  // #region Constructors (1)
+
   constructor(
     fileSystemAsync: FileSystemAsync,
     directoryEntry: DirectoryEntry
@@ -13,14 +15,21 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
     super(fileSystemAsync, directoryEntry);
   }
 
-  createReader(): DirectoryReaderAsync {
+  // #endregion Constructors (1)
+
+  // #region Public Methods (5)
+
+  public createReader(): DirectoryReaderAsync {
     return new DirectoryReaderAsync(
       this.fileSystemAsync,
       this.entry.createReader()
     );
   }
 
-  getDirectory(path: string, options?: Flags): Promise<DirectoryEntryAsync> {
+  public getDirectory(
+    path: string,
+    options?: Flags
+  ): Promise<DirectoryEntryAsync> {
     return new Promise<DirectoryEntryAsync>((resolve, reject) => {
       this.entry.getDirectory(
         path,
@@ -35,7 +44,7 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
     });
   }
 
-  getFile(path: string, options?: Flags): Promise<FileEntryAsync> {
+  public getFile(path: string, options?: Flags): Promise<FileEntryAsync> {
     return new Promise<FileEntryAsync>((resolve, reject) => {
       this.entry.getFile(
         path,
@@ -50,7 +59,7 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
     });
   }
 
-  list(): Promise<EntryAsync<Entry>[]> {
+  public list(): Promise<EntryAsync<Entry>[]> {
     return new Promise<EntryAsync<Entry>[]>((resolve, reject) => {
       this.entry.list(
         (entries) => {
@@ -65,7 +74,7 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
     });
   }
 
-  removeRecursively(): Promise<void> {
+  public removeRecursively(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.removeRecursively(
         () => {
@@ -77,4 +86,6 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
       );
     });
   }
+
+  // #endregion Public Methods (5)
 }

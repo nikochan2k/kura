@@ -54,7 +54,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (23)
+  // #region Public Methods (24)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -97,26 +97,20 @@ export abstract class AbstractAccessor {
       );
     }
 
-    try {
-      await this.doGetObject(fullPath); // Check existance.
-      if (this.options.index) {
-        const record = await this.getRecord(fullPath);
-        await this.beforeDelete(record);
-        this.debug("delete", fullPath);
-        await this.remove(fullPath, isFile);
-        this.afterDelete(record);
-      } else {
-        this.debug("delete", fullPath);
-        await this.remove(fullPath, isFile);
-      }
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        this.remove(fullPath, isFile);
+    if (this.options.index) {
+      try {
+        var record = await this.getRecord(fullPath);
+      } catch (e) {
+        await this.forceDelete(fullPath, isFile);
         return;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
       }
-      throw new InvalidModificationError(this.name, fullPath, e);
+      await this.beforeDelete(record);
+      this.debug("delete", fullPath);
+      await this.forceDelete(fullPath, isFile);
+      this.afterDelete(record);
+    } else {
+      this.debug("delete", fullPath);
+      await this.forceDelete(fullPath, isFile);
     }
   }
 
@@ -135,24 +129,6 @@ export abstract class AbstractAccessor {
     }
     if (fullPath !== DIR_SEPARATOR) {
       await this.delete(fullPath, false);
-    }
-  }
-
-  public async doDeleteRecursively(fullPath: string) {
-    const objects = await this.doGetObjects(fullPath);
-    for (const obj of objects) {
-      if (obj.fullPath === DIR_SEPARATOR) {
-        continue;
-      }
-
-      if (obj.size == null) {
-        await this.doDeleteRecursively(obj.fullPath);
-        continue;
-      }
-      await this.doDelete(obj.fullPath, true);
-    }
-    if (fullPath !== DIR_SEPARATOR) {
-      await this.doDelete(fullPath, false);
     }
   }
 
@@ -178,6 +154,38 @@ export abstract class AbstractAccessor {
       await this.doWriteUint8Array(fullPath, content);
     } else {
       await this.doWriteArrayBuffer(fullPath, content);
+    }
+  }
+
+  public async forceDelete(fullPath: string, isFile: boolean) {
+    if (!this.options.indexOptions?.logicalDelete) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        onError(e);
+      }
+    }
+    await this.removeFromIndex(fullPath, isFile);
+    if (isFile && this.contentsCache) {
+      this.contentsCache.remove(fullPath);
+    }
+  }
+
+  public async forceDeleteRecursively(fullPath: string) {
+    const objects = await this.doGetObjects(fullPath);
+    for (const obj of objects) {
+      if (obj.fullPath === DIR_SEPARATOR) {
+        continue;
+      }
+
+      if (obj.size == null) {
+        await this.forceDeleteRecursively(obj.fullPath);
+        continue;
+      }
+      await this.forceDelete(obj.fullPath, true);
+    }
+    if (fullPath !== DIR_SEPARATOR) {
+      await this.forceDelete(fullPath, false);
     }
   }
 
@@ -275,7 +283,7 @@ export abstract class AbstractAccessor {
       return obj;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.remove(fullPath, isFile);
+        await this.forceDelete(fullPath, isFile);
         throw e;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -443,7 +451,7 @@ export abstract class AbstractAccessor {
       return content;
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.remove(fullPath, true);
+        await this.forceDelete(fullPath, true);
         throw e;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -508,7 +516,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(parentPath);
   }
 
-  // #endregion Public Methods (23)
+  // #endregion Public Methods (24)
 
   // #region Public Abstract Methods (5)
 
@@ -522,7 +530,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Public Abstract Methods (5)
 
-  // #region Protected Methods (12)
+  // #region Protected Methods (11)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -650,20 +658,6 @@ export abstract class AbstractAccessor {
     return obj;
   }
 
-  protected async remove(fullPath: string, isFile: boolean) {
-    if (!this.options.indexOptions?.logicalDelete) {
-      try {
-        await this.doDelete(fullPath, isFile);
-      } catch (e) {
-        onError(e);
-      }
-    }
-    await this.removeFromIndex(fullPath, isFile);
-    if (isFile && this.contentsCache) {
-      this.contentsCache.remove(fullPath);
-    }
-  }
-
   protected async removeFromIndex(fullPath: string, isFile: boolean) {
     if (!this.options.index) {
       return;
@@ -705,7 +699,7 @@ export abstract class AbstractAccessor {
     }
   }
 
-  // #endregion Protected Methods (12)
+  // #endregion Protected Methods (11)
 
   // #region Protected Abstract Methods (3)
 

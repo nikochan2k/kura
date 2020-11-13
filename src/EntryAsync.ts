@@ -6,25 +6,39 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { createEntry } from "./FileSystemUtil";
 
 export abstract class EntryAsync<T extends Entry> {
+  // #region Constructors (1)
+
   constructor(protected fileSystemAsync: FileSystemAsync, public entry: T) {}
 
-  get filesystem() {
+  // #endregion Constructors (1)
+
+  // #region Public Accessors (5)
+
+  public get filesystem() {
     return this.fileSystemAsync;
   }
-  get fullPath() {
+
+  public get fullPath() {
     return this.entry.fullPath;
   }
-  get isDirectory() {
+
+  public get isDirectory() {
     return this.entry.isDirectory;
   }
-  get isFile() {
+
+  public get isFile() {
     return this.entry.isFile;
   }
-  get name() {
+
+  public get name() {
     return this.entry.name;
   }
 
-  copyTo(
+  // #endregion Public Accessors (5)
+
+  // #region Public Methods (6)
+
+  public copyTo(
     parent: DirectoryEntryAsync,
     newName?: string
   ): Promise<FileEntryAsync | DirectoryEntryAsync> {
@@ -45,7 +59,7 @@ export abstract class EntryAsync<T extends Entry> {
     );
   }
 
-  getMetadata(): Promise<Metadata> {
+  public getMetadata(): Promise<Metadata> {
     return new Promise<Metadata>((resolve, reject) => {
       this.entry.getMetadata(
         (metadata) => {
@@ -58,7 +72,7 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  getParent(): Promise<DirectoryEntryAsync> {
+  public getParent(): Promise<DirectoryEntryAsync> {
     return new Promise<DirectoryEntryAsync>((resolve, reject) => {
       this.entry.getParent(
         (entry) => {
@@ -71,7 +85,7 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  moveTo(
+  public moveTo(
     parent: DirectoryEntryAsync,
     newName?: string
   ): Promise<FileEntryAsync | DirectoryEntryAsync> {
@@ -92,7 +106,7 @@ export abstract class EntryAsync<T extends Entry> {
     );
   }
 
-  remove(): Promise<void> {
+  public remove(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.remove(
         () => {
@@ -109,7 +123,9 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  toURL(): string {
+  public toURL(): string {
     return this.entry.toURL();
   }
+
+  // #endregion Public Methods (6)
 }

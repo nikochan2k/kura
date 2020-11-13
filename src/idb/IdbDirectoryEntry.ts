@@ -6,23 +6,33 @@ import { IdbAccessor } from "./IdbAccessor";
 import { IdbFileEntry } from "./IdbFileEntry";
 
 export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
+  // #region Constructors (1)
+
   constructor(params: FileSystemParams<IdbAccessor>) {
     super(params);
   }
 
-  toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
+  // #endregion Constructors (1)
+
+  // #region Public Methods (2)
+
+  public toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
       accessor: this.params.accessor,
       ...obj,
     });
   }
 
-  toFileEntry(obj: FileSystemObject): FileEntry {
+  public toFileEntry(obj: FileSystemObject): FileEntry {
     return new IdbFileEntry({
       accessor: this.params.accessor,
       ...obj,
     });
   }
+
+  // #endregion Public Methods (2)
+
+  // #region Protected Methods (1)
 
   protected createEntry(obj: FileSystemObject) {
     return obj.size != null
@@ -35,4 +45,6 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
           ...obj,
         });
   }
+
+  // #endregion Protected Methods (1)
 }

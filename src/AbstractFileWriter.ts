@@ -7,33 +7,47 @@ import { NotImplementedError } from "./FileError";
 
 export abstract class AbstractFileWriter<T extends AbstractAccessor>
   implements FileWriter {
-  DONE: number;
-  INIT: number;
-  WRITING: number;
-  error: Error;
-  onabort: (event: ProgressEvent<EventTarget>) => void;
-  onerror: (event: ProgressEvent<EventTarget>) => void;
-  onprogress: (event: ProgressEvent<EventTarget>) => void;
-  onwrite: (event: ProgressEvent<EventTarget>) => void;
-  onwriteend: (event: ProgressEvent<EventTarget>) => void;
-  onwritestart: (event: ProgressEvent<EventTarget>) => void;
-  position = 0;
-  readyState: number;
+  // #region Properties (12)
+
+  public DONE: number;
+  public INIT: number;
+  public WRITING: number;
+  public error: Error;
+  public onabort: (event: ProgressEvent<EventTarget>) => void;
+  public onerror: (event: ProgressEvent<EventTarget>) => void;
+  public onprogress: (event: ProgressEvent<EventTarget>) => void;
+  public onwrite: (event: ProgressEvent<EventTarget>) => void;
+  public onwriteend: (event: ProgressEvent<EventTarget>) => void;
+  public onwritestart: (event: ProgressEvent<EventTarget>) => void;
+  public position = 0;
+  public readyState: number;
+
+  // #endregion Properties (12)
+
+  // #region Constructors (1)
 
   constructor(protected fileEntry: AbstractFileEntry<T>, public file: File) {}
 
-  get length() {
+  // #endregion Constructors (1)
+
+  // #region Public Accessors (1)
+
+  public get length() {
     return this.fileEntry.size;
   }
 
-  abort(): void {
+  // #endregion Public Accessors (1)
+
+  // #region Public Methods (7)
+
+  public abort(): void {
     throw new NotImplementedError(
       this.fileEntry.filesystem.name,
       this.fileEntry.fullPath
     );
   }
 
-  addEventListener(
+  public addEventListener(
     type: string,
     listener: EventListenerOrEventListenerObject,
     options?: boolean | AddEventListenerOptions
@@ -44,14 +58,14 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     );
   }
 
-  dispatchEvent(event: Event): boolean {
+  public dispatchEvent(event: Event): boolean {
     throw new NotImplementedError(
       this.fileEntry.filesystem.name,
       this.fileEntry.fullPath
     );
   }
 
-  removeEventListener(
+  public removeEventListener(
     type: string,
     callback: EventListenerOrEventListenerObject,
     options?: boolean | EventListenerOptions
@@ -62,7 +76,7 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     );
   }
 
-  seek(offset: number): void {
+  public seek(offset: number): void {
     this.position = offset;
 
     if (this.length < this.position) {
@@ -72,7 +86,7 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     }
   }
 
-  truncate(size: number): void {
+  public truncate(size: number): void {
     const current = this.file;
     let file: File;
     if (current) {
@@ -95,7 +109,7 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     });
   }
 
-  write(data: Blob): void {
+  public write(data: Blob): void {
     const current = this.file;
     if (current) {
       const head = current.slice(0, this.position);
@@ -123,6 +137,10 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
       });
     }
   }
+
+  // #endregion Public Methods (7)
+
+  // #region Protected Methods (1)
 
   protected doWrite(blob: Blob, onsuccess: () => void) {
     const obj: FileSystemObject = {
@@ -162,4 +180,6 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
         }
       });
   }
+
+  // #endregion Protected Methods (1)
 }
