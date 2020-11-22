@@ -328,7 +328,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   private async initializeDB() {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const dbName = "blob-support";
       indexedDB.deleteDatabase(dbName).onsuccess = function () {
         const request = indexedDB.open(dbName, 1);
@@ -352,7 +352,7 @@ export class IdbAccessor extends AbstractAccessor {
         request.onerror = (ev: Event) => reject(ev);
       };
     });
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const dbName = "arraybuffer-support";
       indexedDB.deleteDatabase(dbName).onsuccess = function () {
         const request = indexedDB.open(dbName, 1);
