@@ -226,39 +226,46 @@ export abstract class AbstractAccessor {
     try {
       const objects = await this.doGetObjects(dirPath);
       const newObjects: FileSystemObject[] = [];
-      const logicalDelete = !!this.options.indexOptions?.logicalDelete;
-      if (this.options.index) {
-        const fileNameIndex = await this.getFileNameIndex(dirPath);
-        let updated = false;
-        for (const obj of objects) {
-          if (!(await this.beforeHead(obj))) {
+
+      const index = this.options.index;
+      if (index) {
+        var fileNameIndex = await this.getFileNameIndex(dirPath);
+        var updated = false;
+      }
+
+      for (const obj of objects) {
+        if (index) {
+          if (obj.fullPath.startsWith(INDEX_DIR)) {
             continue;
           }
-          this.afterHead(obj);
-          const name = obj.name;
-          const record = fileNameIndex[name];
-          if (logicalDelete && record && record.deleted) {
+
+          var name = obj.name;
+          var record = fileNameIndex[name];
+          if (record && record.deleted) {
             continue;
           }
+        }
+
+        if (!(await this.beforeHead(obj))) {
+          continue;
+        }
+        this.afterHead(obj);
+
+        if (index) {
           const newRecord = await this.validateRecord(obj, record);
           if (newRecord) {
             fileNameIndex[name] = newRecord;
             updated = true;
           }
-          newObjects.push(obj);
         }
-        if (updated) {
-          await this.saveFileNameIndex(dirPath);
-        }
-      } else {
-        for (const obj of objects) {
-          if (!(await this.beforeHead(obj))) {
-            continue;
-          }
-          this.afterHead(obj);
-          newObjects.push(obj);
-        }
+
+        newObjects.push(obj);
       }
+
+      if (updated) {
+        await this.saveFileNameIndex(dirPath);
+      }
+
       return newObjects;
     } catch (e) {
       if (e instanceof AbstractFileError) {
