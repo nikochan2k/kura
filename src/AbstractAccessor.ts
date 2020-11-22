@@ -74,6 +74,45 @@ export abstract class AbstractAccessor {
     return indexDir + INDEX_FILE_NAME;
   }
 
+  public async delete(fullPath: string, isFile: boolean) {
+    if (!this.options.indexOptions?.logicalDelete) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        onError(e);
+      }
+    }
+    if (isFile && this.contentsCache) {
+      this.contentsCache.remove(fullPath);
+    }
+  }
+
+  public async deleteRecursively(fullPath: string) {
+    try {
+      var objects = await this.doGetObjects(fullPath);
+    } catch (e) {
+      if (!(e instanceof NotFoundError)) {
+        onError(e);
+      }
+      return;
+    }
+
+    for (const obj of objects) {
+      if (obj.fullPath === DIR_SEPARATOR) {
+        continue;
+      }
+
+      if (obj.size == null) {
+        await this.deleteRecursively(obj.fullPath);
+        continue;
+      }
+      await this.delete(obj.fullPath, true);
+    }
+    if (fullPath !== DIR_SEPARATOR) {
+      await this.delete(fullPath, false);
+    }
+  }
+
   public async doGetFileNameIndex(dirPath: string) {
     const indexPath = this.createIndexPath(dirPath);
     const content = await this.doReadContent(indexPath);
@@ -420,7 +459,8 @@ export abstract class AbstractAccessor {
       );
     }
 
-    if (obj.size == null) {
+    const isFile = obj.size == null;
+    if (!isFile) {
       // Directory
       try {
         const objects = await this.getObjects(fullPath);
@@ -442,29 +482,25 @@ export abstract class AbstractAccessor {
     this.debug("remove", fullPath);
     await this.beforeDelete(obj);
 
-    const isFile = obj.size != null;
-    if (!this.options.indexOptions?.logicalDelete) {
-      try {
-        await this.doDelete(fullPath, isFile);
-      } catch (e) {
-        if (!(e instanceof NotFoundError)) {
-          onError(e);
-        }
-      }
-    }
-    if (index) {
+    if (this.options.index) {
       await this.deleteFromIndex(fullPath);
     }
-    if (isFile && this.contentsCache) {
-      this.contentsCache.remove(fullPath);
-    }
+    await this.delete(fullPath, isFile);
 
     this.afterDelete(obj);
   }
 
   public async removeRecursively(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
-    const children = await this.getObjects(fullPath);
+    try {
+      var children = await this.getObjects(fullPath);
+    } catch (e) {
+      if (!(e instanceof NotFoundError)) {
+        onError(e);
+      }
+      return;
+    }
+
     for (const child of children) {
       if (child.size == null) {
         await this.removeRecursively(child);
