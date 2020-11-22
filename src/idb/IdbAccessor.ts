@@ -46,7 +46,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   // #endregion Public Accessors (1)
 
-  // #region Public Methods (8)
+  // #region Public Methods (9)
 
   public async doDelete(fullPath: string, isFile: boolean) {
     await new Promise<void>(async (resolve) => {
@@ -185,6 +185,38 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  public async doWriteContent(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ) {
+    try {
+      const obj: FileSystemObject = {
+        fullPath: fullPath,
+        name: getName(fullPath),
+        lastModified: Date.now(),
+        size: getSize(content),
+      };
+      await this.doPutObject(obj);
+
+      if (typeof content === "string") {
+        await this.doWriteBase64(fullPath, content);
+      } else if (content instanceof Blob) {
+        await this.doWriteBlob(fullPath, content);
+      } else if (ArrayBuffer.isView(content)) {
+        await this.doWriteUint8Array(fullPath, content);
+      } else {
+        await this.doWriteArrayBuffer(fullPath, content);
+      }
+
+      return obj;
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
+  }
+
   public async open(dbName: string) {
     if (
       IdbAccessor.SUPPORTS_BLOB == null ||
@@ -235,9 +267,9 @@ export class IdbAccessor extends AbstractAccessor {
     return result;
   }
 
-  // #endregion Public Methods (8)
+  // #endregion Public Methods (9)
 
-  // #region Protected Methods (5)
+  // #region Protected Methods (4)
 
   protected close() {
     this.db.close();
@@ -278,39 +310,7 @@ export class IdbAccessor extends AbstractAccessor {
     await this.doWriteContentToIdb(fullPath, content);
   }
 
-  protected async doWriteContent(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ) {
-    try {
-      const obj: FileSystemObject = {
-        fullPath: fullPath,
-        name: getName(fullPath),
-        lastModified: Date.now(),
-        size: getSize(content),
-      };
-      await this.doPutObject(obj);
-
-      if (typeof content === "string") {
-        await this.doWriteBase64(fullPath, content);
-      } else if (content instanceof Blob) {
-        await this.doWriteBlob(fullPath, content);
-      } else if (ArrayBuffer.isView(content)) {
-        await this.doWriteUint8Array(fullPath, content);
-      } else {
-        await this.doWriteArrayBuffer(fullPath, content);
-      }
-
-      return obj;
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
-  }
-
-  // #endregion Protected Methods (5)
+  // #endregion Protected Methods (4)
 
   // #region Private Methods (3)
 
