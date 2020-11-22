@@ -95,7 +95,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       );
     }
 
-    await accessor.delete(this.fullPath, false);
+    await accessor.remove(this.params);
   }
 
   public getDirectory(
@@ -154,10 +154,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
                 errorCallback(err);
               });
           } else {
-            this.params.accessor
-              .delete(fullPath, false)
-              .catch((e) => onError(e))
-              .finally(() => onError(err, errorCallback));
+            errorCallback(err);
           }
         } else {
           onError(err, errorCallback);
@@ -220,10 +217,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
                 errorCallback(err);
               });
           } else {
-            this.params.accessor
-              .delete(fullPath, true)
-              .catch((e) => onError(e))
-              .finally(() => onError(err, errorCallback));
+            errorCallback(err);
           }
         } else {
           onError(err, errorCallback);
@@ -301,7 +295,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
         }
 
         this.params.accessor
-          .delete(this.fullPath, false)
+          .remove(this.params)
           .then(() => {
             successCallback();
           })
@@ -319,7 +313,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback | undefined
   ): void {
     this.params.accessor
-      .deleteRecursively(this.fullPath)
+      .removeRecursively(this.params)
       .then(() => {
         successCallback();
       })

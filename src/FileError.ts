@@ -7,22 +7,29 @@ export interface FileError extends DOMError {
 }
 
 export abstract class AbstractFileError implements FileError {
-  // #region Properties (5)
+  // #region Properties (6)
 
   public abstract code: number;
   public e: any;
   public fullPath: string;
   public key: string;
   public abstract name: string;
+  public stack: string;
 
-  // #endregion Properties (5)
+  // #endregion Properties (6)
 
   // #region Constructors (1)
 
   constructor(key: string, fullPath: string, e?: any) {
     this.key = key;
     this.fullPath = fullPath;
-    this.e = e;
+    if (e instanceof Error) {
+      this.e = e.name + ", " + e.message;
+      this.stack = e.stack;
+    } else {
+      this.e = e;
+      this.stack = new Error().stack;
+    }
   }
 
   // #endregion Constructors (1)

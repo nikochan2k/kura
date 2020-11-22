@@ -98,7 +98,7 @@ function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
   try {
     var bin = atob(base64);
   } catch (e) {
-    console.trace(e, base64);
+    console.warn(e, base64);
     return EMPTY_BLOB;
   }
   const length = bin.length;

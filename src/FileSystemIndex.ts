@@ -1,13 +1,12 @@
 import { FileSystemObject } from "./FileSystemObject";
 
 export interface Record {
-  // #region Properties (3)
+  // #region Properties (2)
 
   deleted?: number;
   modified: number;
-  obj: FileSystemObject;
 
-  // #endregion Properties (3)
+  // #endregion Properties (2)
 
   // #region Public Indexers (1)
 
@@ -35,16 +34,16 @@ export interface DirPathIndex {
 export interface Event {
   // #region Properties (10)
 
-  postDelete?: (record: Record) => void;
-  postGet?: (record: Record) => void;
-  postHead?: (record: Record) => void;
-  postPost?: (record: Record) => void;
-  postPut?: (record: Record) => void;
-  preDelete?: (record: Record) => Promise<boolean>;
-  preGet?: (record: Record) => Promise<boolean>;
-  preHead?: (record: Record) => Promise<boolean>;
-  prePost?: (record: Record) => Promise<boolean>;
-  prePut?: (record: Record) => Promise<boolean>;
+  postDelete?: (obj: FileSystemObject) => void;
+  postGet?: (obj: FileSystemObject) => void;
+  postHead?: (obj: FileSystemObject) => void;
+  postPost?: (obj: FileSystemObject) => void;
+  postPut?: (obj: FileSystemObject) => void;
+  preDelete?: (obj: FileSystemObject) => Promise<boolean>;
+  preGet?: (obj: FileSystemObject) => Promise<boolean>;
+  preHead?: (obj: FileSystemObject) => Promise<boolean>;
+  prePost?: (obj: FileSystemObject) => Promise<boolean>;
+  prePut?: (obj: FileSystemObject) => Promise<boolean>;
 
   // #endregion Properties (10)
 }

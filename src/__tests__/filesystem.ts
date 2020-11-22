@@ -124,6 +124,7 @@ export function testAll(
       expect(fileEntry.fullPath).toBe("/folder/in.txt");
       try {
         await dirEntry.getFile("out.txt");
+        fail();
       } catch (e) {
         expect(e).toBeInstanceOf(NotFoundError);
       }
@@ -246,6 +247,7 @@ export function testAll(
       await entry.remove();
       try {
         await fs.root.getFile("empty.txt");
+        fail();
       } catch (e) {
         expect(e).toBeInstanceOf(NotFoundError);
       }
@@ -283,7 +285,6 @@ export function testAll(
   test("remove recursively", async (done) => {
     try {
       await fs.root.removeRecursively();
-
       const reader = fs.root.createReader();
       const entries = await reader.readEntries();
       expect(entries.length).toBe(0);
