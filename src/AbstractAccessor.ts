@@ -74,40 +74,6 @@ export abstract class AbstractAccessor {
     return indexDir + INDEX_FILE_NAME;
   }
 
-  public async delete(fullPath: string, isFile: boolean) {
-    if (!this.options.indexOptions?.logicalDelete) {
-      try {
-        await this.doDelete(fullPath, isFile);
-      } catch (e) {
-        onError(e);
-      }
-    }
-    if (this.options.index) {
-      await this.deleteFromIndex(fullPath);
-    }
-    if (isFile && this.contentsCache) {
-      this.contentsCache.remove(fullPath);
-    }
-  }
-
-  public async deleteRecursively(fullPath: string) {
-    const objects = await this.doGetObjects(fullPath);
-    for (const obj of objects) {
-      if (obj.fullPath === DIR_SEPARATOR) {
-        continue;
-      }
-
-      if (obj.size == null) {
-        await this.deleteRecursively(obj.fullPath);
-        continue;
-      }
-      await this.delete(obj.fullPath, true);
-    }
-    if (fullPath !== DIR_SEPARATOR) {
-      await this.delete(fullPath, false);
-    }
-  }
-
   public async doGetFileNameIndex(dirPath: string) {
     const indexPath = this.createIndexPath(dirPath);
     const content = await this.doReadContent(indexPath);
@@ -437,17 +403,6 @@ export abstract class AbstractAccessor {
 
   public async remove(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
-    if (obj.size == null) {
-      // Directory
-      let objects = await this.getObjects(fullPath);
-      if (0 < objects.length) {
-        throw new InvalidModificationError(
-          this.name,
-          fullPath,
-          `directory is not empty ${objects.map((obj) => obj.fullPath)}`
-        );
-      }
-    }
     if (fullPath === DIR_SEPARATOR) {
       throw new InvalidModificationError(
         this.name,
@@ -455,7 +410,9 @@ export abstract class AbstractAccessor {
         "cannot remove root dir"
       );
     }
-    if (this.options.index && fullPath.startsWith(INDEX_DIR)) {
+
+    const index = this.options.index;
+    if (index && fullPath.startsWith(INDEX_DIR)) {
       throw new InvalidModificationError(
         this.name,
         fullPath,
@@ -463,9 +420,45 @@ export abstract class AbstractAccessor {
       );
     }
 
+    if (obj.size == null) {
+      // Directory
+      try {
+        const objects = await this.getObjects(fullPath);
+        if (0 < objects.length) {
+          throw new InvalidModificationError(
+            this.name,
+            fullPath,
+            `directory is not empty ${objects.map((obj) => obj.fullPath)}`
+          );
+        }
+      } catch (e) {
+        if (!(e instanceof NotFoundError)) {
+          onError(e);
+        }
+        return;
+      }
+    }
+
     this.debug("remove", fullPath);
     await this.beforeDelete(obj);
-    await this.delete(fullPath, obj.size != null);
+
+    const isFile = obj.size != null;
+    if (!this.options.indexOptions?.logicalDelete) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        if (!(e instanceof NotFoundError)) {
+          onError(e);
+        }
+      }
+    }
+    if (index) {
+      await this.deleteFromIndex(fullPath);
+    }
+    if (isFile && this.contentsCache) {
+      this.contentsCache.remove(fullPath);
+    }
+
     this.afterDelete(obj);
   }
 
