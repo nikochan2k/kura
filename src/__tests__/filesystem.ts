@@ -81,7 +81,7 @@ export function testAll(
           create: true,
           exclusive: true,
         });
-        fail();
+        fail(`"${fileEntry.fullPath}" has created`);
       } catch (e) {
         expect(e).toBeInstanceOf(PathExistsError);
       }
@@ -124,7 +124,7 @@ export function testAll(
       expect(fileEntry.fullPath).toBe("/folder/in.txt");
       try {
         await dirEntry.getFile("out.txt");
-        fail();
+        fail(`"/folder/out.txt" has existed`);
       } catch (e) {
         expect(e).toBeInstanceOf(NotFoundError);
       }
@@ -247,7 +247,7 @@ export function testAll(
       await entry.remove();
       try {
         await fs.root.getFile("empty.txt");
-        fail();
+        fail(`"${entry.fullPath}" has not been deleted`);
       } catch (e) {
         expect(e).toBeInstanceOf(NotFoundError);
       }
@@ -271,7 +271,7 @@ export function testAll(
       const entry = await fs.root.getDirectory("folder2");
       try {
         await entry.remove();
-        fail();
+        fail(`"${entry.fullPath}" has deleted`);
       } catch (e) {
         expect(e).toBeInstanceOf(InvalidModificationError);
       }
@@ -299,7 +299,7 @@ export function testAll(
     try {
       await fs.root.getDirectory("folder1");
       if (!ignoreDirectoryNotFound) {
-        fail();
+        fail(`"/folder1" has existed`);
       }
     } catch (e) {
       if (ignoreDirectoryNotFound) {
