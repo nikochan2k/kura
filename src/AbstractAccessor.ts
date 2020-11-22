@@ -87,32 +87,6 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async deleteRecursively(fullPath: string) {
-    try {
-      var objects = await this.doGetObjects(fullPath);
-    } catch (e) {
-      if (!(e instanceof NotFoundError)) {
-        onError(e);
-      }
-      return;
-    }
-
-    for (const obj of objects) {
-      if (obj.fullPath === DIR_SEPARATOR) {
-        continue;
-      }
-
-      if (obj.size == null) {
-        await this.deleteRecursively(obj.fullPath);
-        continue;
-      }
-      await this.delete(obj.fullPath, true);
-    }
-    if (fullPath !== DIR_SEPARATOR) {
-      await this.delete(fullPath, false);
-    }
-  }
-
   public async doGetFileNameIndex(dirPath: string) {
     const indexPath = this.createIndexPath(dirPath);
     const content = await this.doReadContent(indexPath);

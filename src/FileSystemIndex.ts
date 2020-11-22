@@ -1,12 +1,13 @@
 import { FileSystemObject } from "./FileSystemObject";
 
 export interface Record {
-  // #region Properties (2)
+  // #region Properties (3)
 
   deleted?: number;
   modified: number;
+  obj?: FileSystemObject;
 
-  // #endregion Properties (2)
+  // #endregion Properties (3)
 
   // #region Public Indexers (1)
 
