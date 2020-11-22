@@ -48,7 +48,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (21)
+  // #region Public Methods (22)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -95,6 +95,30 @@ export abstract class AbstractAccessor {
       throw new NotFoundError(this.name, dirPath, "doLoadFileNameIndex");
     }
     return textToObject(text) as FileNameIndex;
+  }
+
+  public async doWriteContent(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ) {
+    try {
+      if (typeof content === "string") {
+        await this.doWriteBase64(fullPath, content);
+      } else if (content instanceof Blob) {
+        await this.doWriteBlob(fullPath, content);
+      } else if (ArrayBuffer.isView(content)) {
+        await this.doWriteUint8Array(fullPath, content);
+      } else {
+        await this.doWriteArrayBuffer(fullPath, content);
+      }
+
+      return this.doGetObject(fullPath);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
   }
 
   public async getFileNameIndex(dirPath: string) {
@@ -500,7 +524,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (21)
+  // #endregion Public Methods (22)
 
   // #region Public Abstract Methods (5)
 
@@ -514,7 +538,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Public Abstract Methods (5)
 
-  // #region Protected Methods (9)
+  // #region Protected Methods (7)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -548,30 +572,6 @@ export abstract class AbstractAccessor {
     record.deleted = Date.now();
     this.dirPathIndex[dirPath] = fileNameIndex;
     await this.saveFileNameIndex(dirPath);
-  }
-
-  protected async doWriteContent(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ) {
-    try {
-      if (typeof content === "string") {
-        await this.doWriteBase64(fullPath, content);
-      } else if (content instanceof Blob) {
-        await this.doWriteBlob(fullPath, content);
-      } else if (ArrayBuffer.isView(content)) {
-        await this.doWriteUint8Array(fullPath, content);
-      } else {
-        await this.doWriteArrayBuffer(fullPath, content);
-      }
-
-      return this.doGetObject(fullPath);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
   }
 
   protected async doWriteUint8Array(
@@ -635,7 +635,7 @@ export abstract class AbstractAccessor {
     await this.doMakeDirectory(obj);
   }
 
-  // #endregion Protected Methods (9)
+  // #endregion Protected Methods (7)
 
   // #region Protected Abstract Methods (3)
 
