@@ -183,6 +183,7 @@ export abstract class AbstractAccessor {
   public async getObject(fullPath: string, isFile: boolean) {
     this.debug("getObject", fullPath);
 
+    const name = getName(fullPath);
     try {
       var obj = await this.doGetObject(fullPath);
     } catch (e) {
@@ -191,7 +192,7 @@ export abstract class AbstractAccessor {
           let { record, fileNameIndex } = await this.getRecord(fullPath);
           if (record && !record.deleted) {
             record.deleted = Date.now();
-            fileNameIndex[obj.name] = record;
+            fileNameIndex[name] = record;
             const dirPath = getParentPath(fullPath);
             await this.saveFileNameIndex(dirPath);
           }
