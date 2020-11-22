@@ -1,6 +1,10 @@
 import { AbstractAccessor } from "../AbstractAccessor";
 import { toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
-import { InvalidModificationError, NotFoundError } from "../FileError";
+import {
+  AbstractFileError,
+  InvalidModificationError,
+  NotFoundError,
+} from "../FileError";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
@@ -274,24 +278,36 @@ export class IdbAccessor extends AbstractAccessor {
     await this.doWriteContentToIdb(fullPath, content);
   }
 
-  protected async refreshObject(
+  protected async doWriteContent(
     fullPath: string,
     content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<FileSystemObject> {
-    const obj: FileSystemObject = {
-      fullPath: fullPath,
-      name: getName(fullPath),
-      lastModified: Date.now(),
-      size: getSize(content),
-    };
-    await this.doPutObject(obj);
-    if (this.options.index) {
-      await this.updateIndex(obj);
+  ) {
+    try {
+      const obj: FileSystemObject = {
+        fullPath: fullPath,
+        name: getName(fullPath),
+        lastModified: Date.now(),
+        size: getSize(content),
+      };
+      await this.doPutObject(obj);
+
+      if (typeof content === "string") {
+        await this.doWriteBase64(fullPath, content);
+      } else if (content instanceof Blob) {
+        await this.doWriteBlob(fullPath, content);
+      } else if (ArrayBuffer.isView(content)) {
+        await this.doWriteUint8Array(fullPath, content);
+      } else {
+        await this.doWriteArrayBuffer(fullPath, content);
+      }
+
+      return obj;
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
-    if (this.contentsCache) {
-      this.contentsCache.put(obj, content);
-    }
-    return obj;
   }
 
   // #endregion Protected Methods (5)

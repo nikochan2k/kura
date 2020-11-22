@@ -48,7 +48,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (23)
+  // #region Public Methods (21)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -95,21 +95,6 @@ export abstract class AbstractAccessor {
       throw new NotFoundError(this.name, dirPath, "doLoadFileNameIndex");
     }
     return textToObject(text) as FileNameIndex;
-  }
-
-  public async doWriteContent(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ) {
-    if (typeof content === "string") {
-      await this.doWriteBase64(fullPath, content);
-    } else if (content instanceof Blob) {
-      await this.doWriteBlob(fullPath, content);
-    } else if (ArrayBuffer.isView(content)) {
-      await this.doWriteUint8Array(fullPath, content);
-    } else {
-      await this.doWriteArrayBuffer(fullPath, content);
-    }
   }
 
   public async getFileNameIndex(dirPath: string) {
@@ -309,12 +294,16 @@ export abstract class AbstractAccessor {
     }
 
     try {
+      this.debug("putObject", fullPath);
       if (content == null) {
         // Directory
         await this.makeDirectory(obj);
       } else {
         // File
-        obj = await this.writeContent(fullPath, content);
+        obj = await this.doWriteContent(fullPath, content);
+        if (this.contentsCache) {
+          this.contentsCache.put(obj, content);
+        }
       }
       if (this.options.index) {
         await this.updateIndex(obj);
@@ -511,7 +500,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (23)
+  // #endregion Public Methods (21)
 
   // #region Public Abstract Methods (5)
 
@@ -559,6 +548,30 @@ export abstract class AbstractAccessor {
     record.deleted = Date.now();
     this.dirPathIndex[dirPath] = fileNameIndex;
     await this.saveFileNameIndex(dirPath);
+  }
+
+  protected async doWriteContent(
+    fullPath: string,
+    content: Blob | Uint8Array | ArrayBuffer | string
+  ) {
+    try {
+      if (typeof content === "string") {
+        await this.doWriteBase64(fullPath, content);
+      } else if (content instanceof Blob) {
+        await this.doWriteBlob(fullPath, content);
+      } else if (ArrayBuffer.isView(content)) {
+        await this.doWriteUint8Array(fullPath, content);
+      } else {
+        await this.doWriteArrayBuffer(fullPath, content);
+      }
+
+      return this.doGetObject(fullPath);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
   }
 
   protected async doWriteUint8Array(
@@ -620,37 +633,6 @@ export abstract class AbstractAccessor {
   protected async makeDirectory(obj: FileSystemObject) {
     this.debug("makeDirectory", obj);
     await this.doMakeDirectory(obj);
-  }
-
-  protected async refreshObject(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<FileSystemObject> {
-    const obj = await this.doGetObject(fullPath);
-    if (this.options.index) {
-      await this.updateIndex(obj);
-    }
-    return obj;
-  }
-
-  protected async writeContent(
-    fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<FileSystemObject> {
-    try {
-      this.debug("writeContent", fullPath);
-      await this.doWriteContent(fullPath, content);
-      const obj = await this.refreshObject(fullPath, content);
-      if (this.contentsCache) {
-        this.contentsCache.put(obj, content);
-      }
-      return obj;
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
   }
 
   // #endregion Protected Methods (9)
