@@ -422,7 +422,7 @@ export abstract class AbstractAccessor {
       );
     }
 
-    const isFile = obj.size == null;
+    const isFile = obj.size != null;
     if (!isFile) {
       // Directory
       try {
