@@ -26,6 +26,12 @@ import {
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
+const ROOT_OBJECT: FileSystemObject = {
+  fullPath: "/",
+  name: "",
+  lastModified: 0,
+};
+
 export abstract class AbstractAccessor {
   // #region Properties (5)
 
@@ -145,6 +151,7 @@ export abstract class AbstractAccessor {
           fileNameIndex = {
             "": {
               modified: 0,
+              obj: ROOT_OBJECT,
             },
           };
         } else {
@@ -153,6 +160,7 @@ export abstract class AbstractAccessor {
         for (const obj of objects) {
           fileNameIndex[obj.name] = {
             modified: obj.lastModified || Date.now(),
+            obj,
           };
         }
         this.dirPathIndex[dirPath] = fileNameIndex;
@@ -517,7 +525,7 @@ export abstract class AbstractAccessor {
     const fullPath = obj.fullPath;
     const dirPath = getParentPath(fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    const record: Record = { modified: obj.lastModified || Date.now() };
+    const record: Record = { modified: obj.lastModified || Date.now(), obj };
     const name = getName(fullPath);
     fileNameIndex[name] = record;
     this.dirPathIndex[dirPath] = fileNameIndex;
@@ -758,12 +766,12 @@ export abstract class AbstractAccessor {
         if (this.options.indexOptions?.logicalDelete) {
           throw new NotFoundError(this.name, obj.fullPath, "logicalDelete");
         } else {
-          record = { modified: obj.lastModified || Date.now() };
+          record = { modified: obj.lastModified || Date.now(), obj };
           updated = true;
         }
       }
     } else {
-      record = { modified: obj.lastModified || Date.now() };
+      record = { modified: obj.lastModified || Date.now(), obj };
       updated = true;
     }
 

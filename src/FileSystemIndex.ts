@@ -5,7 +5,7 @@ export interface Record {
 
   deleted?: number;
   modified: number;
-  obj?: FileSystemObject;
+  obj: FileSystemObject;
 
   // #endregion Properties (3)
 
