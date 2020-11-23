@@ -567,9 +567,13 @@ export abstract class AbstractAccessor {
     }
 
     const dirPath = getParentPath(fullPath);
-    const fileNameIndex = await this.getFileNameIndex(dirPath);
-    if (!fileNameIndex) {
-      return;
+    try {
+      var fileNameIndex = await this.getFileNameIndex(dirPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        return;
+      }
+      throw e;
     }
 
     const name = getName(fullPath);
