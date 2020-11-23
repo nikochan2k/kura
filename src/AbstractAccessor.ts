@@ -26,12 +26,6 @@ import {
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
-const ROOT_OBJECT: FileSystemObject = {
-  fullPath: "/",
-  name: "",
-  lastModified: 0,
-};
-
 export abstract class AbstractAccessor {
   // #region Properties (5)
 
@@ -54,7 +48,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (22)
+  // #region Public Methods (21)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -133,41 +127,49 @@ export abstract class AbstractAccessor {
       throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
     } else if (typeof fileNameIndex === "undefined") {
       try {
+        var objects = await this.doGetObjects(dirPath);
+      } catch (e) {
+        if (!(e instanceof NotFoundError)) {
+          throw e;
+        }
+        this.dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
+        throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
+      }
+
+      try {
         fileNameIndex = await this.doGetFileNameIndex(dirPath);
       } catch (e) {
         if (!(e instanceof NotFoundError)) {
           throw e;
         }
-        try {
-          var objects = await this.doGetObjects(dirPath);
-        } catch (e2) {
-          if (!(e2 instanceof NotFoundError)) {
-            throw e2;
+        fileNameIndex = {};
+      }
+
+      let updated = false;
+      for (const obj of objects) {
+        const name = obj.name;
+        const record = fileNameIndex[name];
+        if (record) {
+          if (record.deleted && !this.options.indexOptions?.logicalDelete) {
+            delete record.deleted;
+            updated = true;
           }
-          this.dirPathIndex[dirPath] = AbstractAccessor.INDEX_NOT_FOUND;
-          throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
+          continue;
         }
-        if (dirPath === DIR_SEPARATOR) {
-          fileNameIndex = {
-            "": {
-              modified: 0,
-              obj: ROOT_OBJECT,
-            },
-          };
-        } else {
-          fileNameIndex = {};
-        }
-        for (const obj of objects) {
-          fileNameIndex[obj.name] = {
-            modified: obj.lastModified || Date.now(),
-            obj,
-          };
-        }
+
+        updated = true;
+        fileNameIndex[name] = {
+          modified: obj.lastModified || Date.now(),
+          obj,
+        };
+      }
+
+      if (updated) {
         this.dirPathIndex[dirPath] = fileNameIndex;
         await this.saveFileNameIndex(dirPath);
       }
-      this.dirPathIndex[dirPath] = fileNameIndex;
     }
+
     return fileNameIndex;
   }
 
@@ -205,13 +207,22 @@ export abstract class AbstractAccessor {
     }
 
     if (this.options.index) {
-      const { record, fileNameIndex } = await this.getRecord(fullPath);
-      const newRecord = await this.validateRecord(obj, record);
-      if (newRecord) {
-        fileNameIndex[obj.name] = newRecord;
-        const dirPath = getParentPath(fullPath);
-        await this.saveFileNameIndex(dirPath);
+      let { record, fileNameIndex } = await this.getRecord(fullPath);
+      if (record) {
+        if (record.deleted) {
+          if (this.options.indexOptions?.logicalDelete) {
+            throw new NotFoundError(this.name, obj.fullPath, "logicalDelete");
+          } else {
+            record = { modified: obj.lastModified || Date.now(), obj };
+          }
+        }
+      } else {
+        record = { modified: obj.lastModified || Date.now(), obj };
       }
+
+      fileNameIndex[obj.name] = record;
+      const dirPath = getParentPath(fullPath);
+      await this.saveFileNameIndex(dirPath);
     }
 
     this.afterHead(obj);
@@ -220,14 +231,15 @@ export abstract class AbstractAccessor {
 
   public async getObjects(dirPath: string) {
     try {
-      const objects = await this.doGetObjects(dirPath);
-      const newObjects: FileSystemObject[] = [];
-
       const index = this.options.index;
+      let objects: FileSystemObject[];
       if (index) {
         var fileNameIndex = await this.getFileNameIndex(dirPath);
-        var updated = false;
+        objects = Object.values(fileNameIndex).map((record) => record.obj);
+      } else {
+        objects = await this.doGetObjects(dirPath);
       }
+      const newObjects: FileSystemObject[] = [];
 
       for (const obj of objects) {
         if (index) {
@@ -247,19 +259,7 @@ export abstract class AbstractAccessor {
         }
         this.afterHead(obj);
 
-        if (index) {
-          const newRecord = await this.validateRecord(obj, record);
-          if (newRecord) {
-            fileNameIndex[name] = newRecord;
-            updated = true;
-          }
-        }
-
         newObjects.push(obj);
-      }
-
-      if (updated) {
-        await this.saveFileNameIndex(dirPath);
       }
 
       return newObjects;
@@ -269,13 +269,6 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, dirPath, e);
     }
-  }
-
-  public async getRecord(fullPath: string) {
-    const dirPath = getParentPath(fullPath);
-    const name = getName(fullPath);
-    const fileÑameIndex = await this.getFileNameIndex(dirPath);
-    return { record: fileÑameIndex[name], fileNameIndex: fileÑameIndex };
   }
 
   public async putObject(
@@ -525,14 +518,13 @@ export abstract class AbstractAccessor {
     const fullPath = obj.fullPath;
     const dirPath = getParentPath(fullPath);
     const fileNameIndex = await this.getFileNameIndex(dirPath);
-    const record: Record = { modified: obj.lastModified || Date.now(), obj };
     const name = getName(fullPath);
-    fileNameIndex[name] = record;
+    fileNameIndex[name] = { modified: obj.lastModified || Date.now(), obj };
     this.dirPathIndex[dirPath] = fileNameIndex;
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (22)
+  // #endregion Public Methods (21)
 
   // #region Public Abstract Methods (5)
 
@@ -546,7 +538,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Public Abstract Methods (5)
 
-  // #region Protected Methods (7)
+  // #region Protected Methods (8)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -592,6 +584,17 @@ export abstract class AbstractAccessor {
   ): Promise<void> {
     const buffer = await toArrayBuffer(view);
     await this.doWriteArrayBuffer(fullPath, buffer);
+  }
+
+  protected async getRecord(fullPath: string) {
+    const dirPath = getParentPath(fullPath);
+    const name = getName(fullPath);
+    try {
+      const fileÑameIndex = await this.getFileNameIndex(dirPath);
+      return { record: fileÑameIndex[name], fileNameIndex: fileÑameIndex };
+    } catch (e) {
+      return { record: null, fileNameIndex: {} };
+    }
   }
 
   protected initialize(options: FileSystemOptions) {
@@ -647,7 +650,7 @@ export abstract class AbstractAccessor {
     await this.doMakeDirectory(obj);
   }
 
-  // #endregion Protected Methods (7)
+  // #endregion Protected Methods (8)
 
   // #region Protected Abstract Methods (3)
 
@@ -663,7 +666,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Protected Abstract Methods (3)
 
-  // #region Private Methods (11)
+  // #region Private Methods (10)
 
   private afterDelete(obj: FileSystemObject) {
     if (!this.options.event.postDelete) {
@@ -763,24 +766,5 @@ export abstract class AbstractAccessor {
     }
   }
 
-  private async validateRecord(obj: FileSystemObject, record: Record) {
-    let updated = false;
-    if (record) {
-      if (record.deleted) {
-        if (this.options.indexOptions?.logicalDelete) {
-          throw new NotFoundError(this.name, obj.fullPath, "logicalDelete");
-        } else {
-          record = { modified: obj.lastModified || Date.now(), obj };
-          updated = true;
-        }
-      }
-    } else {
-      record = { modified: obj.lastModified || Date.now(), obj };
-      updated = true;
-    }
-
-    return updated ? record : null;
-  }
-
-  // #endregion Private Methods (11)
+  // #endregion Private Methods (10)
 }
