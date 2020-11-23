@@ -13,8 +13,10 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import {
   DEFAULT_CONTENT_TYPE,
   DIR_SEPARATOR,
+  INDEX_DIR,
   LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
+import { FileSystemObject } from "./FileSystemObject";
 
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
 
@@ -170,7 +172,31 @@ export function getTextSize(text: string) {
 }
 
 export function isIllegalFileName(name: string) {
+  if (name.startsWith(".")) {
+    return true;
+  }
   return /[\x00-\x1f\x7f-\x9f\\/:*?"<>|]/.test(name);
+}
+
+export function isIllegalPath(fullPath: string) {
+  if (fullPath === DIR_SEPARATOR) {
+    return true;
+  }
+  if (fullPath.startsWith(INDEX_DIR)) {
+    return true;
+  }
+  return false;
+}
+
+export function isIllegalObject(obj: FileSystemObject) {
+  if (isIllegalPath(obj.fullPath)) {
+    return true;
+  }
+  if (isIllegalFileName(obj.name)) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function vacuumDirectory(

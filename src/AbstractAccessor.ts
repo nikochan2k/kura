@@ -14,13 +14,13 @@ import {
   INDEX_DIR,
   INDEX_FILE_NAME,
 } from "./FileSystemConstants";
-import { DirPathIndex, FileNameIndex, Record } from "./FileSystemIndex";
+import { DirPathIndex, FileNameIndex } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
 import {
   getName,
   getParentPath,
-  isIllegalFileName,
+  isIllegalObject,
   onError,
 } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
@@ -147,6 +147,10 @@ export abstract class AbstractAccessor {
 
       let updated = false;
       for (const obj of objects) {
+        if (isIllegalObject(obj)) {
+          continue;
+        }
+
         const name = obj.name;
         const record = fileNameIndex[name];
         if (record) {
@@ -242,11 +246,11 @@ export abstract class AbstractAccessor {
       const newObjects: FileSystemObject[] = [];
 
       for (const obj of objects) {
-        if (index) {
-          if (obj.fullPath.startsWith(INDEX_DIR)) {
-            continue;
-          }
+        if (isIllegalObject(obj)) {
+          continue;
+        }
 
+        if (index) {
           var name = obj.name;
           var record = fileNameIndex[name];
           if (record && record.deleted) {
@@ -275,30 +279,15 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     content?: Blob | Uint8Array | ArrayBuffer | string
   ): Promise<FileSystemObject> {
-    const name = obj.name;
-    const fullPath = obj.fullPath;
-    if (fullPath === DIR_SEPARATOR) {
-      throw new InvalidModificationError(
-        this.name,
-        fullPath,
-        "cannot write to root dir"
-      );
-    }
-    if (isIllegalFileName(name)) {
+    if (isIllegalObject(obj)) {
       throw new InvalidModificationError(
         this.name,
         obj.fullPath,
-        `illegal file name "${name}"`
-      );
-    }
-    if (this.options.index && fullPath.startsWith(INDEX_DIR)) {
-      throw new InvalidModificationError(
-        this.name,
-        fullPath,
-        "cannot write to index dir"
+        `illegal object "${obj}"`
       );
     }
 
+    const fullPath = obj.fullPath;
     let create = false;
     try {
       obj = await this.doGetObject(fullPath);
@@ -361,11 +350,11 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
-    if (isIllegalFileName(obj.name)) {
-      throw new NotReadableError(
+    if (isIllegalObject(obj)) {
+      throw new InvalidModificationError(
         this.name,
         obj.fullPath,
-        `illegal file name "${obj.name}"`
+        `illegal object "${obj}"`
       );
     }
 
