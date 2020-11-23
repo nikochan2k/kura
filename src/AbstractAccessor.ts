@@ -280,10 +280,11 @@ export abstract class AbstractAccessor {
     content?: Blob | Uint8Array | ArrayBuffer | string
   ): Promise<FileSystemObject> {
     if (isIllegalObject(obj)) {
+      const fullPath = obj.fullPath;
       throw new InvalidModificationError(
         this.name,
-        obj.fullPath,
-        `illegal object "${obj}"`
+        fullPath,
+        `illegal object ${fullPath}`
       );
     }
 
@@ -351,10 +352,11 @@ export abstract class AbstractAccessor {
     type?: DataType
   ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
     if (isIllegalObject(obj)) {
+      const fullPath = obj.fullPath;
       throw new InvalidModificationError(
         this.name,
-        obj.fullPath,
-        `illegal object "${obj}"`
+        fullPath,
+        `illegal object ${fullPath}`
       );
     }
 
@@ -445,7 +447,7 @@ export abstract class AbstractAccessor {
           throw new InvalidModificationError(
             this.name,
             fullPath,
-            `directory is not empty ${objects.map((obj) => obj.fullPath)}`
+            `directory is not empty - ${objects.map((obj) => obj.fullPath)}`
           );
         }
       } catch (e) {

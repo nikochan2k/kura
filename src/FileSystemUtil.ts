@@ -172,9 +172,6 @@ export function getTextSize(text: string) {
 }
 
 export function isIllegalFileName(name: string) {
-  if (name.startsWith(".")) {
-    return true;
-  }
   return /[\x00-\x1f\x7f-\x9f\\/:*?"<>|]/.test(name);
 }
 
