@@ -211,22 +211,27 @@ export abstract class AbstractAccessor {
     }
 
     if (this.options.index) {
+      let updated = false;
       let { record, fileNameIndex } = await this.getRecord(fullPath);
       if (record) {
         if (record.deleted) {
           if (this.options.indexOptions?.logicalDelete) {
             throw new NotFoundError(this.name, obj.fullPath, "logicalDelete");
           } else {
+            updated = true;
             record = { modified: obj.lastModified || Date.now(), obj };
           }
         }
       } else {
+        updated = true;
         record = { modified: obj.lastModified || Date.now(), obj };
       }
 
-      fileNameIndex[obj.name] = record;
-      const dirPath = getParentPath(fullPath);
-      await this.saveFileNameIndex(dirPath);
+      if (updated) {
+        fileNameIndex[obj.name] = record;
+        const dirPath = getParentPath(fullPath);
+        await this.saveFileNameIndex(dirPath);
+      }
     }
 
     this.afterHead(obj);
