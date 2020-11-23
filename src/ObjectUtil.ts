@@ -2,12 +2,15 @@ export function objectToText(obj: any) {
   return JSON.stringify(obj);
 }
 
-export function textToObject(text: string) {
+export function textToObject<T>(text: string) {
   try {
-    const obj = JSON.parse(text);
-    return obj;
+    return JSON.parse(text) as T;
   } catch (e) {
     console.warn("ObjectUtil#textToObject", text, e);
-    return {};
+    return {} as T;
   }
+}
+
+export function deepCopy<T>(obj: T) {
+  return JSON.parse(JSON.stringify(obj)) as T;
 }
