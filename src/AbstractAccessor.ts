@@ -18,7 +18,6 @@ import { DirPathIndex, FileNameIndex } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
 import {
-  createFileSystemObject,
   getName,
   getParentPath,
   isIllegalObject,
@@ -279,10 +278,6 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, dirPath, e);
     }
-  }
-
-  public hasDirectory() {
-    return true;
   }
 
   public async putObject(
