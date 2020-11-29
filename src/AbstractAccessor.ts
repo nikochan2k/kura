@@ -186,10 +186,6 @@ export abstract class AbstractAccessor {
   public async getObject(fullPath: string, isFile: boolean) {
     this.debug("getObject", fullPath);
 
-    if (!isFile && !this.hasDirectory()) {
-      return createFileSystemObject(fullPath, isFile);
-    }
-
     const name = getName(fullPath);
     try {
       var obj = await this.doGetObject(fullPath);
