@@ -1,5 +1,5 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { DIR_SEPARATOR } from "./FileSystemConstants";
+import { InvalidModificationError } from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
@@ -11,8 +11,11 @@ import {
 } from "./filesystem";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
-import { getParentPath, onError } from "./FileSystemUtil";
-import { InvalidModificationError } from "./FileError";
+import {
+  createFileSystemObject,
+  getParentPath,
+  onError,
+} from "./FileSystemUtil";
 
 export abstract class AbstractEntry<T extends AbstractAccessor>
   implements Entry {
@@ -65,7 +68,7 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback | undefined
   ): void {
     const parentPath = getParentPath(this.fullPath);
-    const obj = this.createObject(parentPath, false);
+    const obj = createFileSystemObject(parentPath, false);
     successCallback(this.toDirectoryEntry(obj));
   }
 
@@ -116,15 +119,6 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
       return false;
     }
     return true;
-  }
-
-  protected createObject(path: string, isFile: boolean): FileSystemObject {
-    return {
-      name: path.split(DIR_SEPARATOR).pop(),
-      fullPath: path,
-      lastModified: isFile ? Date.now() : undefined,
-      size: isFile ? 0 : undefined,
-    };
   }
 
   // #endregion Protected Methods (2)

@@ -22,7 +22,11 @@ import {
 import { EMPTY_BLOB, INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
-import { onError, resolveToFullPath } from "./FileSystemUtil";
+import {
+  createFileSystemObject,
+  onError,
+  resolveToFullPath,
+} from "./FileSystemUtil";
 
 export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
@@ -344,7 +348,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
 
   protected async registerObject(fullPath: string, isFile: boolean) {
     const accessor = this.params.accessor;
-    const obj = this.createObject(fullPath, isFile);
+    const obj = createFileSystemObject(fullPath, isFile);
     if (isFile) {
       await accessor.putObject(obj, EMPTY_BLOB);
     } else {

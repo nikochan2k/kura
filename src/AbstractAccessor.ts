@@ -18,6 +18,7 @@ import { DirPathIndex, FileNameIndex } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
 import {
+  createFileSystemObject,
   getName,
   getParentPath,
   isIllegalObject,
@@ -48,7 +49,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (21)
+  // #region Public Methods (22)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -185,6 +186,10 @@ export abstract class AbstractAccessor {
   public async getObject(fullPath: string, isFile: boolean) {
     this.debug("getObject", fullPath);
 
+    if (!isFile && !this.hasDirectory()) {
+      return createFileSystemObject(fullPath, isFile);
+    }
+
     const name = getName(fullPath);
     try {
       var obj = await this.doGetObject(fullPath);
@@ -278,6 +283,10 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, dirPath, e);
     }
+  }
+
+  public hasDirectory() {
+    return true;
   }
 
   public async putObject(
@@ -520,7 +529,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (21)
+  // #endregion Public Methods (22)
 
   // #region Public Abstract Methods (5)
 

@@ -25,6 +25,21 @@ export function getParentPath(fullPath: string) {
   return parentPath === "" ? DIR_SEPARATOR : parentPath;
 }
 
+export function createFileSystemObject(
+  fullPath: string,
+  isFile: boolean
+): FileSystemObject {
+  const obj: FileSystemObject = {
+    fullPath,
+    name: getName(fullPath),
+  };
+  if (isFile) {
+    obj.lastModified = Date.now();
+    obj.size = 0;
+  }
+  return obj;
+}
+
 export function getName(fullPath: string) {
   if (!fullPath || fullPath === DIR_SEPARATOR) {
     return "";
