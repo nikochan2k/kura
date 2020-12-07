@@ -1,5 +1,4 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { NotFoundError } from "./FileError";
 import { INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { ContentsCacheOptions } from "./FileSystemOptions";

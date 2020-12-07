@@ -366,31 +366,13 @@ export abstract class AbstractAccessor {
     }
 
     const fullPath = obj.fullPath;
-    try {
-      this.debug("readContent", fullPath);
-      if (!(await this.beforeGet(obj))) {
-        throw new NotFoundError(this.name, obj.fullPath, "beforeGet");
-      }
-      const content = await this.readContentInternal(obj, type);
-      this.afterGet(obj);
-      return content;
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        if (this.options.index) {
-          let { record, fileNameIndex } = await this.getRecord(fullPath);
-          if (record && !record.deleted) {
-            record.deleted = Date.now();
-            fileNameIndex[obj.name] = record;
-            const dirPath = getParentPath(fullPath);
-            await this.saveFileNameIndex(dirPath);
-          }
-        }
-        throw e;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, fullPath, e);
+    this.debug("readContent", fullPath);
+    if (!(await this.beforeGet(obj))) {
+      throw new NotFoundError(this.name, obj.fullPath, "beforeGet");
     }
+    const content = await this.readContentInternal(obj, type);
+    this.afterGet(obj);
+    return content;
   }
 
   public async readContentInternal(
