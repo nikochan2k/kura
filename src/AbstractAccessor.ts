@@ -27,8 +27,6 @@ import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
-  // #region Properties (5)
-
   private static INDEX_NOT_FOUND: any = null;
 
   protected contentsCache: ContentsCache;
@@ -38,17 +36,9 @@ export abstract class AbstractAccessor {
 
   public dirPathIndex: DirPathIndex = {};
 
-  // #endregion Properties (5)
-
-  // #region Constructors (1)
-
   constructor(public readonly options: FileSystemOptions) {
     this.initialize(options);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (22)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -84,6 +74,26 @@ export abstract class AbstractAccessor {
     }
     if (isFile && this.contentsCache) {
       this.contentsCache.remove(fullPath);
+    }
+  }
+
+  public async doDeleteRecursively(fullPath: string) {
+    try {
+      var children = await this.doGetObjects(fullPath);
+    } catch (e) {
+      if (!(e instanceof NotFoundError)) {
+        onError(e);
+      }
+      return;
+    }
+
+    for (const child of children) {
+      if (child.size == null) {
+        await this.doDeleteRecursively(child.fullPath);
+        await this.doDelete(child.fullPath, false);
+      } else {
+        await this.doDelete(child.fullPath, true);
+      }
     }
   }
 
@@ -502,10 +512,6 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (22)
-
-  // #region Public Abstract Methods (5)
-
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   public abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   public abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
@@ -513,10 +519,6 @@ export abstract class AbstractAccessor {
   public abstract doReadContent(
     fullPath: string
   ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
-
-  // #endregion Public Abstract Methods (5)
-
-  // #region Protected Methods (8)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -628,10 +630,6 @@ export abstract class AbstractAccessor {
     await this.doMakeDirectory(obj);
   }
 
-  // #endregion Protected Methods (8)
-
-  // #region Protected Abstract Methods (3)
-
   protected abstract doWriteArrayBuffer(
     fullPath: string,
     buffer: ArrayBuffer
@@ -641,10 +639,6 @@ export abstract class AbstractAccessor {
     base64: string
   ): Promise<void>;
   protected abstract doWriteBlob(fullPath: string, blob: Blob): Promise<void>;
-
-  // #endregion Protected Abstract Methods (3)
-
-  // #region Private Methods (10)
 
   private afterDelete(obj: FileSystemObject) {
     if (!this.options.event.postDelete) {
@@ -743,6 +737,4 @@ export abstract class AbstractAccessor {
       );
     }
   }
-
-  // #endregion Private Methods (10)
 }
