@@ -104,7 +104,11 @@ export abstract class AbstractAccessor {
     if (!text) {
       throw new NotFoundError(this.name, dirPath, "doLoadFileNameIndex");
     }
-    return textToObject(text) as FileNameIndex;
+    const fileNameIndex = textToObject(text) as FileNameIndex;
+    if (!fileNameIndex) {
+      return {} as FileNameIndex;
+    }
+    return fileNameIndex;
   }
 
   public async doWriteContent(
