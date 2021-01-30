@@ -10,7 +10,7 @@ const DIR_OPEN_BOUND = String.fromCharCode(DIR_SEPARATOR.charCodeAt(0) + 1);
 export function countSlash(path: string) {
   let result = 0;
   for (let i = 0, end = path.length; i < end; i++) {
-    if (path[i] === "/") {
+    if (path[i] === DIR_SEPARATOR) {
       result++;
     }
   }

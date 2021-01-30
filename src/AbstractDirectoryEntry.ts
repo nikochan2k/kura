@@ -19,7 +19,7 @@ import {
   Flags,
   VoidCallback,
 } from "./filesystem";
-import { EMPTY_BLOB, INDEX_DIR } from "./FileSystemConstants";
+import { DIR_SEPARATOR, EMPTY_BLOB, INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import {
@@ -109,7 +109,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     errorCallback?: ErrorCallback | undefined
   ): void {
     const fullPath = resolveToFullPath(this.fullPath, path);
-    if (fullPath === "/") {
+    if (fullPath === DIR_SEPARATOR) {
       successCallback(this.filesystem.root);
       return;
     }

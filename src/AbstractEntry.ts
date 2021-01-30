@@ -9,6 +9,7 @@ import {
   MetadataCallback,
   VoidCallback,
 } from "./filesystem";
+import { DIR_SEPARATOR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import {
@@ -106,7 +107,7 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     newName?: string | undefined,
     errorCallback?: ErrorCallback | undefined
   ) {
-    const fullPath = parent.fullPath + "/" + (newName || this.name);
+    const fullPath = parent.fullPath + DIR_SEPARATOR + (newName || this.name);
     if (this.fullPath === fullPath) {
       onError(
         new InvalidModificationError(
