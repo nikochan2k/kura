@@ -5,6 +5,7 @@ export interface FileSystemObject {
   lastModified?: number;
   name: string;
   size?: number;
+  url?: number;
 
   // #endregion Properties (4)
 }
