@@ -502,10 +502,6 @@ export abstract class AbstractAccessor {
     return { indexPath, buffer };
   }
 
-  public toURL(fullPath: string): string {
-    throw new NotImplementedError(this.filesystem.name, fullPath, "toURL");
-  }
-
   public async updateIndex(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
     const dirPath = getParentPath(fullPath);

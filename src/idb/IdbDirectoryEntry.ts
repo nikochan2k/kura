@@ -1,4 +1,5 @@
 import { AbstractDirectoryEntry } from "../AbstractDirectoryEntry";
+import { NotImplementedError } from "../FileError";
 import { DirectoryEntry, DirectoryReader, FileEntry } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
@@ -14,7 +15,7 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (2)
+  // #region Public Methods (3)
 
   public toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
@@ -30,7 +31,15 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
     });
   }
 
-  // #endregion Public Methods (2)
+  public toURL(): string {
+    throw new NotImplementedError(
+      this.filesystem.name,
+      this.params.fullPath,
+      "toURL"
+    );
+  }
+
+  // #endregion Public Methods (3)
 
   // #region Protected Methods (1)
 

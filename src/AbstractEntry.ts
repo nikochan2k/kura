@@ -74,7 +74,7 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
   }
 
   public toURL(): string {
-    return this.params.accessor.toURL(this.fullPath);
+    return this.params.url;
   }
 
   // #endregion Public Methods (3)
