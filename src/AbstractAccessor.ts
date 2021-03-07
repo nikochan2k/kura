@@ -5,7 +5,6 @@ import {
   InvalidModificationError,
   NoModificationAllowedError,
   NotFoundError,
-  NotImplementedError,
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
@@ -27,6 +26,8 @@ import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
+  // #region Properties (5)
+
   private static INDEX_NOT_FOUND: any = null;
 
   protected contentsCache: ContentsCache;
@@ -36,9 +37,17 @@ export abstract class AbstractAccessor {
 
   public dirPathIndex: DirPathIndex = {};
 
+  // #endregion Properties (5)
+
+  // #region Constructors (1)
+
   constructor(public readonly options: FileSystemOptions) {
     this.initialize(options);
   }
+
+  // #endregion Constructors (1)
+
+  // #region Public Methods (21)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -199,25 +208,10 @@ export abstract class AbstractAccessor {
   public async getObject(fullPath: string, isFile: boolean) {
     this.debug("getObject", fullPath);
 
-    const name = getName(fullPath);
     try {
       var obj = await this.doGetObject(fullPath);
     } catch (e) {
-      if (e instanceof NotFoundError) {
-        if (this.options.index) {
-          let { record, fileNameIndex } = await this.getRecord(fullPath);
-          if (record && !record.deleted) {
-            record.deleted = Date.now();
-            fileNameIndex[name] = record;
-            const dirPath = getParentPath(fullPath);
-            await this.saveFileNameIndex(dirPath);
-          }
-        }
-        throw e;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, fullPath, e);
+      await this.handleReadError(e, fullPath);
     }
 
     if (!(await this.beforeHead(obj))) {
@@ -398,7 +392,11 @@ export abstract class AbstractAccessor {
       var content = await this.contentsCache.get(fullPath);
     }
     if (!content) {
-      content = await this.doReadContent(fullPath);
+      try {
+        content = await this.doReadContent(fullPath);
+      } catch (e) {
+        await this.handleReadError(e, fullPath, obj.name);
+      }
       var read = true;
     }
     if (type === "blob") {
@@ -512,6 +510,10 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
+  // #endregion Public Methods (21)
+
+  // #region Public Abstract Methods (5)
+
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   public abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   public abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
@@ -519,6 +521,10 @@ export abstract class AbstractAccessor {
   public abstract doReadContent(
     fullPath: string
   ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
+
+  // #endregion Public Abstract Methods (5)
+
+  // #region Protected Methods (8)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -630,6 +636,10 @@ export abstract class AbstractAccessor {
     await this.doMakeDirectory(obj);
   }
 
+  // #endregion Protected Methods (8)
+
+  // #region Protected Abstract Methods (3)
+
   protected abstract doWriteArrayBuffer(
     fullPath: string,
     buffer: ArrayBuffer
@@ -639,6 +649,10 @@ export abstract class AbstractAccessor {
     base64: string
   ): Promise<void>;
   protected abstract doWriteBlob(fullPath: string, blob: Blob): Promise<void>;
+
+  // #endregion Protected Abstract Methods (3)
+
+  // #region Private Methods (11)
 
   private afterDelete(obj: FileSystemObject) {
     if (!this.options.event.postDelete) {
@@ -737,4 +751,27 @@ export abstract class AbstractAccessor {
       );
     }
   }
+
+  private async handleReadError(e: any, fullPath: string, name?: string) {
+    if (e instanceof NotFoundError) {
+      if (this.options.index) {
+        let { record, fileNameIndex } = await this.getRecord(fullPath);
+        if (record && !record.deleted) {
+          if (name == null) {
+            name = getName(fullPath);
+          }
+          delete fileNameIndex[name];
+          const dirPath = getParentPath(fullPath);
+          await this.saveFileNameIndex(dirPath);
+        }
+      }
+      throw e;
+    } else if (e instanceof AbstractFileError) {
+      throw e;
+    } else {
+      throw new NotReadableError(this.name, fullPath, e);
+    }
+  }
+
+  // #endregion Private Methods (11)
 }
