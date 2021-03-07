@@ -1,5 +1,5 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { InvalidModificationError } from "./FileError";
+import { InvalidModificationError, NotImplementedError } from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
@@ -74,6 +74,13 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
   }
 
   public toURL(): string {
+    if (this.params.url == null) {
+      throw new NotImplementedError(
+        this.filesystem.name,
+        this.params.fullPath,
+        "toURL"
+      );
+    }
     return this.params.url;
   }
 

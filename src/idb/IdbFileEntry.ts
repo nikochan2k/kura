@@ -1,5 +1,4 @@
 import { AbstractFileEntry } from "../AbstractFileEntry";
-import { NotImplementedError } from "../FileError";
 import { DirectoryEntry } from "../filesystem";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemParams } from "../FileSystemParams";
@@ -15,18 +14,6 @@ export class IdbFileEntry extends AbstractFileEntry<IdbAccessor> {
   }
 
   // #endregion Constructors (1)
-
-  // #region Public Methods (1)
-
-  public toURL(): string {
-    throw new NotImplementedError(
-      this.filesystem.name,
-      this.params.fullPath,
-      "toURL"
-    );
-  }
-
-  // #endregion Public Methods (1)
 
   // #region Protected Methods (2)
 
