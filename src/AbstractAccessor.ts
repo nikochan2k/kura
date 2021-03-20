@@ -591,7 +591,7 @@ export abstract class AbstractAccessor {
     }
     this.initializeContentsCacheOptions(options);
 
-    console.info(options);
+    this.debug("AbstractAccessor#initialize", JSON.stringify(options));
   }
 
   protected initializeContentsCacheOptions(options: FileSystemOptions) {
