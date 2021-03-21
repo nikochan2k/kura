@@ -3,6 +3,7 @@ import { Event } from "./FileSystemIndex";
 export interface IndexOptions {
   // #region Properties (1)
 
+  noCache?: boolean;
   logicalDelete?: boolean;
 
   // #endregion Properties (1)

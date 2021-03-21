@@ -145,10 +145,29 @@ export abstract class AbstractAccessor {
   }
 
   public async getFileNameIndex(dirPath: string) {
-    let fileNameIndex = this.dirPathIndex[dirPath];
+    let fileNameIndex: FileNameIndex;
+
+    const noCache = this.options.indexOptions.noCache;
+    if (!noCache) {
+      fileNameIndex = this.dirPathIndex[dirPath];
+    }
+
+    if (typeof fileNameIndex === "undefined") {
+      try {
+        fileNameIndex = await this.doGetFileNameIndex(dirPath);
+        this.dirPathIndex[dirPath] = fileNameIndex;
+      } catch (e) {
+        if (!(e instanceof NotFoundError)) {
+          throw e;
+        }
+      }
+    }
+
     if (fileNameIndex === AbstractAccessor.INDEX_NOT_FOUND) {
       throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
-    } else if (typeof fileNameIndex === "undefined") {
+    }
+
+    if (typeof fileNameIndex === "undefined") {
       try {
         var objects = await this.doGetObjects(dirPath);
       } catch (e) {
@@ -159,14 +178,7 @@ export abstract class AbstractAccessor {
         throw new NotFoundError(this.name, dirPath, "getFileNameIndex");
       }
 
-      try {
-        fileNameIndex = await this.doGetFileNameIndex(dirPath);
-      } catch (e) {
-        if (!(e instanceof NotFoundError)) {
-          throw e;
-        }
-        fileNameIndex = {};
-      }
+      fileNameIndex = {};
 
       let updated = false;
       for (const obj of objects) {
@@ -624,8 +636,11 @@ export abstract class AbstractAccessor {
     if (options.indexOptions == null) {
       options.indexOptions = {};
     }
-    const indexOptions = options.indexOptions;
 
+    const indexOptions = options.indexOptions;
+    if (indexOptions.noCache == null) {
+      indexOptions.noCache = false;
+    }
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
     }
