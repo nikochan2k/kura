@@ -47,7 +47,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (21)
+  // #region Public Methods (22)
 
   public async clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -65,13 +65,21 @@ export abstract class AbstractAccessor {
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
     }
+
     const fullPath = indexDir.substr(0, indexDir.length - 1);
     try {
-      await this.doMakeDirectory({
-        fullPath,
-        name: getName(fullPath),
-      });
-    } catch {}
+      await this.doGetObject(fullPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.doMakeDirectory({
+          fullPath,
+          name: getName(fullPath),
+        });
+      } else {
+        throw e;
+      }
+    }
+
     return indexDir;
   }
 
@@ -307,6 +315,10 @@ export abstract class AbstractAccessor {
     }
   }
 
+  public async purge() {
+    await this.doDeleteRecursively(DIR_SEPARATOR);
+  }
+
   public async putObject(
     obj: FileSystemObject,
     content?: Blob | Uint8Array | ArrayBuffer | string
@@ -529,7 +541,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (21)
+  // #endregion Public Methods (22)
 
   // #region Public Abstract Methods (5)
 

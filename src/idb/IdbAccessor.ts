@@ -46,7 +46,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   // #endregion Public Accessors (1)
 
-  // #region Public Methods (9)
+  // #region Public Methods (10)
 
   public async doDelete(fullPath: string, isFile: boolean) {
     await new Promise<void>(async (resolve) => {
@@ -255,6 +255,10 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
+  public async purge() {
+    await this.drop();
+  }
+
   public async saveFileNameIndex(dirPath: string) {
     const result = await super.saveFileNameIndex(dirPath);
     const { indexPath, buffer } = result;
@@ -267,7 +271,7 @@ export class IdbAccessor extends AbstractAccessor {
     return result;
   }
 
-  // #endregion Public Methods (9)
+  // #endregion Public Methods (10)
 
   // #region Protected Methods (4)
 
