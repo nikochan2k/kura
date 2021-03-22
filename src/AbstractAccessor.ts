@@ -60,16 +60,23 @@ export abstract class AbstractAccessor {
     delete this.dirPathIndex[dirPath];
   }
 
-  public createIndexDir(dirPath: string) {
+  public async createIndexDir(dirPath: string) {
     let indexDir = INDEX_DIR + dirPath;
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
     }
+    const fullPath = indexDir.substr(0, indexDir.length - 1);
+    try {
+      await this.doMakeDirectory({
+        fullPath,
+        name: getName(fullPath),
+      });
+    } catch {}
     return indexDir;
   }
 
-  public createIndexPath(dirPath: string) {
-    const indexDir = this.createIndexDir(dirPath);
+  public async createIndexPath(dirPath: string) {
+    const indexDir = await this.createIndexDir(dirPath);
     return indexDir + INDEX_FILE_NAME;
   }
 
@@ -107,7 +114,7 @@ export abstract class AbstractAccessor {
   }
 
   public async doGetFileNameIndex(dirPath: string) {
-    const indexPath = this.createIndexPath(dirPath);
+    const indexPath = await this.createIndexPath(dirPath);
     const content = await this.doReadContent(indexPath);
     const text = await toText(content);
     if (!text) {
@@ -213,7 +220,7 @@ export abstract class AbstractAccessor {
   }
 
   public async getFileNameIndexObject(dirPath: string) {
-    const indexPath = this.createIndexPath(dirPath);
+    const indexPath = await this.createIndexPath(dirPath);
     return this.doGetObject(indexPath);
   }
 
@@ -506,7 +513,7 @@ export abstract class AbstractAccessor {
     const fileNameIndex = this.dirPathIndex[dirPath];
     const text = objectToText(fileNameIndex);
     const buffer = textToArrayBuffer(text);
-    const indexPath = this.createIndexPath(dirPath);
+    const indexPath = await this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
     await this.doWriteContent(indexPath, buffer);
     return { indexPath, buffer };
