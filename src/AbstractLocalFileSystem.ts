@@ -6,6 +6,7 @@ import {
   FileSystemCallback,
   LocalFileSystem,
 } from "./filesystem";
+import { INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemOptions } from "./FileSystemOptions";
 import { onError } from "./FileSystemUtil";
 
@@ -45,7 +46,17 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
   ): void {
     this.createAccessor()
       .then((accessor) => {
-        successCallback(accessor.filesystem);
+        if (accessor.options.index) {
+          accessor
+            .doMakeDirectory({
+              fullPath: INDEX_DIR,
+              name: INDEX_DIR.substr(1),
+            })
+            .catch(() => {})
+            .finally(() => successCallback(accessor.filesystem));
+        } else {
+          successCallback(accessor.filesystem);
+        }
       })
       .catch((err) => {
         onError(err, errorCallback);

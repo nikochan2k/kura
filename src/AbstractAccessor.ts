@@ -644,11 +644,6 @@ export abstract class AbstractAccessor {
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
     }
-
-    this.doMakeDirectory({
-      fullPath: INDEX_DIR,
-      name: INDEX_DIR.substr(1),
-    }).catch(() => {});
   }
 
   protected async makeDirectory(obj: FileSystemObject) {
