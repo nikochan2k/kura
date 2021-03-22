@@ -257,6 +257,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   public async purge() {
     await this.drop();
+    await this.open(this.dbName);
   }
 
   public async saveFileNameIndex(dirPath: string) {
