@@ -119,6 +119,9 @@ export abstract class AbstractAccessor {
         await this.doDelete(child.fullPath, true);
       }
     }
+    if (fullPath !== DIR_SEPARATOR) {
+      await this.doDelete(fullPath, false);
+    }
   }
 
   public async doGetFileNameIndex(dirPath: string) {
