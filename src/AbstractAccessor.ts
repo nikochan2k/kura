@@ -114,7 +114,6 @@ export abstract class AbstractAccessor {
     for (const child of children) {
       if (child.size == null) {
         await this.doDeleteRecursively(child.fullPath);
-        await this.doDelete(child.fullPath, false);
       } else {
         await this.doDelete(child.fullPath, true);
       }
@@ -516,8 +515,9 @@ export abstract class AbstractAccessor {
     for (const child of children) {
       if (child.size == null) {
         await this.removeRecursively(child);
+      } else {
+        await this.remove(child);
       }
-      await this.remove(child);
     }
     if (fullPath !== DIR_SEPARATOR) {
       await this.remove(obj);
