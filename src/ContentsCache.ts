@@ -102,5 +102,9 @@ export class ContentsCache {
     delete this.cache[fullPath];
   }
 
+  public clear() {
+    this.cache = {};
+  }
+
   // #endregion Public Methods (3)
 }
