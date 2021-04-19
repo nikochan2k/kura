@@ -277,7 +277,9 @@ export abstract class AbstractAccessor {
 
   public async purge() {
     await this.doDeleteRecursively(DIR_SEPARATOR);
-    this.contentsCache.clear();
+    if (this.contentsCache) {
+      this.contentsCache.clear();
+    }
   }
 
   public async putObject(
