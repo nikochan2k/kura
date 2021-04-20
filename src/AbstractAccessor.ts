@@ -121,18 +121,18 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async doGetFileNameIndex(dirPath: string) {
-    const indexPath = await this.createIndexPath(dirPath);
-    const content = await this.doReadContent(indexPath);
-    const text = await toText(content);
-    if (!text) {
-      throw new NotFoundError(this.name, dirPath, "doLoadFileNameIndex");
+  public async doGetFileNameIndex(dirPath: string): Promise<FileNameIndex> {
+    try {
+      const indexPath = await this.createIndexPath(dirPath);
+      const content = await this.doReadContent(indexPath);
+      const text = await toText(content);
+      return textToObject(text) || {};
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        return {};
+      }
+      throw e;
     }
-    const fileNameIndex = textToObject(text) as FileNameIndex;
-    if (!fileNameIndex) {
-      return {} as FileNameIndex;
-    }
-    return fileNameIndex;
   }
 
   public async doWriteContent(
@@ -159,8 +159,13 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public getFileNameIndex(dirPath: string) {
-    return this.dirPathIndex[dirPath] || {};
+  public async getFileNameIndex(dirPath: string) {
+    let fileNameIndex = this.dirPathIndex[dirPath];
+    if (typeof fileNameIndex === "undefined") {
+      fileNameIndex = await this.doGetFileNameIndex(dirPath);
+      this.dirPathIndex[dirPath] = fileNameIndex;
+    }
+    return fileNameIndex;
   }
 
   public async getFileNameIndexObject(dirPath: string) {
@@ -183,7 +188,7 @@ export abstract class AbstractAccessor {
 
     if (this.options.index) {
       let updated = false;
-      let { record, fileNameIndex } = this.getRecord(fullPath);
+      let { record, fileNameIndex } = await this.getRecord(fullPath);
       if (record) {
         if (record.deleted) {
           if (this.options.indexOptions?.logicalDelete) {
@@ -215,7 +220,7 @@ export abstract class AbstractAccessor {
       let objects = await this.doGetObjects(dirPath);
 
       if (index) {
-        const fileNameIndex = this.getFileNameIndex(dirPath);
+        const fileNameIndex = await this.getFileNameIndex(dirPath);
 
         let updated = false;
         const newObjects: FileSystemObject[] = [];
@@ -498,7 +503,7 @@ export abstract class AbstractAccessor {
   public async updateIndex(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
     const dirPath = getParentPath(fullPath);
-    const fileNameIndex = this.getFileNameIndex(dirPath);
+    const fileNameIndex = await this.getFileNameIndex(dirPath);
     const name = getName(fullPath);
     fileNameIndex[name] = { modified: obj.lastModified || Date.now(), obj };
     this.dirPathIndex[dirPath] = fileNameIndex;
@@ -540,7 +545,7 @@ export abstract class AbstractAccessor {
     }
 
     const dirPath = getParentPath(fullPath);
-    const fileNameIndex = this.getFileNameIndex(dirPath);
+    const fileNameIndex = await this.getFileNameIndex(dirPath);
     const name = getName(fullPath);
     const record = fileNameIndex[name];
     if (!record) {
@@ -559,11 +564,11 @@ export abstract class AbstractAccessor {
     await this.doWriteArrayBuffer(fullPath, buffer);
   }
 
-  protected getRecord(fullPath: string) {
+  protected async getRecord(fullPath: string) {
     const dirPath = getParentPath(fullPath);
     const name = getName(fullPath);
     try {
-      const fileÑameIndex = this.getFileNameIndex(dirPath);
+      const fileÑameIndex = await this.getFileNameIndex(dirPath);
       return { record: fileÑameIndex[name], fileNameIndex: fileÑameIndex };
     } catch (e) {
       return { record: null, fileNameIndex: {} };
@@ -745,7 +750,7 @@ export abstract class AbstractAccessor {
   private async handleReadError(e: any, fullPath: string, name?: string) {
     if (e instanceof NotFoundError) {
       if (this.options.index) {
-        let { record, fileNameIndex } = this.getRecord(fullPath);
+        let { record, fileNameIndex } = await this.getRecord(fullPath);
         if (record && !record.deleted) {
           if (name == null) {
             name = getName(fullPath);
