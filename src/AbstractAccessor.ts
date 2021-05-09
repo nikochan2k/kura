@@ -241,10 +241,6 @@ export abstract class AbstractAccessor {
                 record.obj = obj;
                 updated = true;
               }
-            } else if (record.modified !== obj.lastModified) {
-              record.modified = obj.lastModified || Date.now();
-              record.obj = obj;
-              updated = true;
             }
           } else {
             fileNameIndex[name] = {
