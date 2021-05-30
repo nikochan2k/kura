@@ -2,7 +2,7 @@ import { AbstractAccessor } from "./AbstractAccessor";
 import { INDEX_DIR } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { ContentsCacheOptions } from "./FileSystemOptions";
-import { getSize } from "./FileSystemUtil";
+import { getMemorySize } from "./FileSystemUtil";
 
 export interface ContentCacheEntry {
   // #region Properties (4)
@@ -31,7 +31,11 @@ export class ContentsCache {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (3)
+  // #region Public Methods (4)
+
+  public clear() {
+    this.cache = {};
+  }
 
   public async get(fullPath: string) {
     const entry = this.cache[fullPath];
@@ -53,7 +57,7 @@ export class ContentsCache {
     }
 
     delete this.cache[fullPath];
-    const size = getSize(content);
+    const size = getMemorySize(content);
     if (size === 0 || this.options.limitSize < size) {
       return;
     }
@@ -102,9 +106,5 @@ export class ContentsCache {
     delete this.cache[fullPath];
   }
 
-  public clear() {
-    this.cache = {};
-  }
-
-  // #endregion Public Methods (3)
+  // #endregion Public Methods (4)
 }

@@ -166,6 +166,24 @@ export function createEmptyFile(name: string) {
   });
 }
 
+export function getMemorySize(
+  content: Blob | Uint8Array | ArrayBuffer | string
+) {
+  if (!content) {
+    return 0;
+  }
+
+  let size: number;
+  if (typeof content === "string") {
+    size = content.length * 2; // UTF-16
+  } else if (content instanceof Blob) {
+    size = content.size;
+  } else {
+    size = content.byteLength;
+  }
+  return size;
+}
+
 export function getSize(content: Blob | Uint8Array | ArrayBuffer | string) {
   if (!content) {
     return 0;
@@ -173,7 +191,16 @@ export function getSize(content: Blob | Uint8Array | ArrayBuffer | string) {
 
   let size: number;
   if (typeof content === "string") {
-    size = Math.floor(content.replace(/=/g, "").length * 0.75); // Base64
+    const length = content.length;
+    let paddingCount = 0;
+    for (let i = length - 1; 0 <= i; i--) {
+      const c = content.charAt(i);
+      if (c !== "=") {
+        break;
+      }
+      paddingCount++;
+    }
+    size = length - paddingCount;
   } else if (content instanceof Blob) {
     size = content.size;
   } else {
