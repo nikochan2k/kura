@@ -26,7 +26,7 @@ async function blobToText(blob: Blob): Promise<string> {
 }
 
 export async function toText(
-  content: Blob | Uint8Array | ArrayBuffer | string
+  content: Blob | BufferSource | string
 ): Promise<string> {
   if (!content) {
     return "";
@@ -37,10 +37,8 @@ export async function toText(
     text = await base64ToText(content);
   } else if (content instanceof Blob) {
     text = await blobToText(content);
-  } else if (ArrayBuffer.isView(content)) {
-    text = textDecoder.decode(content);
   } else {
-    text = textDecoder.decode(new Uint8Array(content));
+    text = textDecoder.decode(content);
   }
   return text;
 }

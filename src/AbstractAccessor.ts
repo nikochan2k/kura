@@ -137,7 +137,7 @@ export abstract class AbstractAccessor {
 
   public async doWriteContent(
     fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
+    content: Blob | BufferSource | string
   ) {
     try {
       if (typeof content === "string") {
@@ -147,7 +147,7 @@ export abstract class AbstractAccessor {
       } else if (content instanceof Blob) {
         await this.doWriteBlob(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
-        await this.doWriteUint8Array(fullPath, content);
+        await this.doWriteArrayBufferView(fullPath, content);
       } else {
         await this.doWriteArrayBuffer(fullPath, content);
       }
@@ -287,7 +287,7 @@ export abstract class AbstractAccessor {
 
   public async putObject(
     obj: FileSystemObject,
-    content?: Buffer | Blob | Uint8Array | ArrayBuffer | string
+    content?: Blob | BufferSource | string
   ): Promise<FileSystemObject> {
     if (isIllegalObject(obj)) {
       const fullPath = obj.fullPath;
@@ -360,7 +360,7 @@ export abstract class AbstractAccessor {
   public async readContent(
     obj: FileSystemObject,
     type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+  ): Promise<Blob | BufferSource | string> {
     if (isIllegalObject(obj)) {
       const fullPath = obj.fullPath;
       throw new InvalidModificationError(
@@ -383,7 +383,7 @@ export abstract class AbstractAccessor {
   public async readContentInternal(
     obj: FileSystemObject,
     type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+  ): Promise<Blob | BufferSource | string> {
     const fullPath = obj.fullPath;
     if (this.contentsCache) {
       var content = await this.contentsCache.get(fullPath);
@@ -520,7 +520,7 @@ export abstract class AbstractAccessor {
   public abstract doMakeDirectory(obj: FileSystemObject): Promise<void>;
   public abstract doReadContent(
     fullPath: string
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
+  ): Promise<Blob | BufferSource | string>;
 
   // #endregion Public Abstract Methods (5)
 
@@ -556,9 +556,9 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  protected async doWriteUint8Array(
+  protected async doWriteArrayBufferView(
     fullPath: string,
-    view: Uint8Array
+    view: ArrayBufferView
   ): Promise<void> {
     const buffer = await toArrayBuffer(view);
     await this.doWriteArrayBuffer(fullPath, buffer);

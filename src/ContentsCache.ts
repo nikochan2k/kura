@@ -8,7 +8,7 @@ export interface ContentCacheEntry {
   // #region Properties (4)
 
   access: number;
-  content: Blob | Uint8Array | ArrayBuffer | string;
+  content: Blob | BufferSource | string;
   lastModified: number;
   size: number;
 
@@ -47,10 +47,7 @@ export class ContentsCache {
     return entry.content;
   }
 
-  public put(
-    obj: FileSystemObject,
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ) {
+  public put(obj: FileSystemObject, content: Blob | BufferSource | string) {
     const fullPath = obj.fullPath;
     if (fullPath.startsWith(INDEX_DIR)) {
       return;

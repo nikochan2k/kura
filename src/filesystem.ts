@@ -313,7 +313,7 @@ export interface FileEntry extends Entry {
   ): void;
 
   writeFile(
-    content: Blob | Uint8Array | ArrayBuffer | string,
+    content: Blob | BufferSource | string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void;
@@ -399,7 +399,7 @@ export interface FileCallback {
  * This interface is the callback used to obtain a Content.
  */
 export interface ContentCallback {
-  (content: Blob | Uint8Array | ArrayBuffer | string): void;
+  (content: Blob | BufferSource | string): void;
 }
 
 /**

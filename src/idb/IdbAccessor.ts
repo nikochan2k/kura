@@ -162,7 +162,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   public doReadContent(
     fullPath: string
-  ): Promise<Blob | Buffer | Uint8Array | ArrayBuffer | string> {
+  ): Promise<Blob | BufferSource | string> {
     return new Promise<any>((resolve, reject) => {
       const onerror = (ev: Event) => {
         const req = ev.target as IDBRequest;
@@ -187,7 +187,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   public async doWriteContent(
     fullPath: string,
-    content: Blob | Buffer | Uint8Array | ArrayBuffer | string
+    content: Blob | BufferSource | string
   ) {
     try {
       const obj: FileSystemObject = {
@@ -205,7 +205,7 @@ export class IdbAccessor extends AbstractAccessor {
       } else if (content instanceof Buffer) {
         await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
-        await this.doWriteUint8Array(fullPath, content);
+        await this.doWriteArrayBufferView(fullPath, content);
       } else {
         await this.doWriteArrayBuffer(fullPath, content);
       }
@@ -287,7 +287,7 @@ export class IdbAccessor extends AbstractAccessor {
     fullPath: string,
     arrayBuffer: ArrayBuffer
   ): Promise<void> {
-    let content: Blob | Uint8Array | ArrayBuffer | string;
+    let content: Blob | BufferSource | string;
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = arrayBuffer;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
@@ -306,7 +306,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   protected async doWriteBlob(fullPath: string, blob: Blob): Promise<void> {
-    let content: Blob | Uint8Array | ArrayBuffer | string;
+    let content: Blob | BufferSource | string;
     if (IdbAccessor.SUPPORTS_BLOB) {
       content = blob;
     } else if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {

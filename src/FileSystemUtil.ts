@@ -166,9 +166,7 @@ export function createEmptyFile(name: string) {
   });
 }
 
-export function getMemorySize(
-  content: Blob | Uint8Array | ArrayBuffer | string
-) {
+export function getMemorySize(content: Blob | BufferSource | string) {
   if (!content) {
     return 0;
   }
@@ -184,7 +182,7 @@ export function getMemorySize(
   return size;
 }
 
-export function getSize(content: Blob | Uint8Array | ArrayBuffer | string) {
+export function getSize(content: Blob | BufferSource | string) {
   if (!content) {
     return 0;
   }

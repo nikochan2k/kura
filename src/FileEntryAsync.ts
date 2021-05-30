@@ -40,22 +40,18 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  public readFile(
-    type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
-    return new Promise<Blob | Uint8Array | ArrayBuffer | string>(
-      (resolve, reject) => {
-        this.entry.readFile(
-          (content) => {
-            resolve(content);
-          },
-          (err) => {
-            reject(err);
-          },
-          type
-        );
-      }
-    );
+  public readFile(type?: DataType): Promise<Blob | BufferSource | string> {
+    return new Promise<Blob | BufferSource | string>((resolve, reject) => {
+      this.entry.readFile(
+        (content) => {
+          resolve(content);
+        },
+        (err) => {
+          reject(err);
+        },
+        type
+      );
+    });
   }
 
   public readText(): Promise<string> {
@@ -71,9 +67,7 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     });
   }
 
-  public writeFile(
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<void> {
+  public writeFile(content: Blob | BufferSource | string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeFile(
         content,
