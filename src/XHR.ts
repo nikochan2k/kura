@@ -56,7 +56,7 @@ export class XHR {
 
   public async post(
     url: string,
-    content: Blob | Uint8Array | string,
+    content: Blob | BufferSource | string,
     type?: string
   ) {
     await this.xhr("POST", url, content, type);
@@ -64,7 +64,7 @@ export class XHR {
 
   public async put(
     url: string,
-    content: Blob | Uint8Array | string,
+    content: Blob | BufferSource | string,
     type?: string
   ) {
     await this.xhr("PUT", url, content, type);
@@ -122,7 +122,7 @@ export class XHR {
   private async xhr(
     method: string,
     url: string,
-    content: Blob | Uint8Array | string,
+    content: Blob | BufferSource | string,
     type?: string
   ): Promise<void> {
     const { xhr, promise } = this.createXMLHttpRequest();
