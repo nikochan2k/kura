@@ -19,7 +19,11 @@ import {
   Flags,
   VoidCallback,
 } from "./filesystem";
-import { DIR_SEPARATOR, EMPTY_BLOB, INDEX_DIR } from "./FileSystemConstants";
+import {
+  DEFAULT_BLOB_PROPS,
+  DIR_SEPARATOR,
+  INDEX_DIR,
+} from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
 import {
@@ -30,7 +34,8 @@ import {
 
 export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
-  implements DirectoryEntry {
+  implements DirectoryEntry
+{
   // #region Properties (2)
 
   public isDirectory = true;
@@ -350,7 +355,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     const accessor = this.params.accessor;
     const obj = createFileSystemObject(fullPath, isFile);
     if (isFile) {
-      await accessor.putObject(obj, EMPTY_BLOB);
+      await accessor.putObject(obj, new Blob([], DEFAULT_BLOB_PROPS));
     } else {
       await accessor.putObject(obj);
     }

@@ -162,7 +162,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   public doReadContent(
     fullPath: string
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+  ): Promise<Blob | Buffer | Uint8Array | ArrayBuffer | string> {
     return new Promise<any>((resolve, reject) => {
       const onerror = (ev: Event) => {
         const req = ev.target as IDBRequest;
@@ -187,7 +187,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   public async doWriteContent(
     fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
+    content: Blob | Buffer | Uint8Array | ArrayBuffer | string
   ) {
     try {
       const obj: FileSystemObject = {
@@ -202,6 +202,8 @@ export class IdbAccessor extends AbstractAccessor {
         await this.doWriteBase64(fullPath, content);
       } else if (content instanceof Blob) {
         await this.doWriteBlob(fullPath, content);
+      } else if (content instanceof Buffer) {
+        await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
         await this.doWriteUint8Array(fullPath, content);
       } else {
@@ -274,7 +276,7 @@ export class IdbAccessor extends AbstractAccessor {
 
   // #endregion Public Methods (10)
 
-  // #region Protected Methods (4)
+  // #region Protected Methods (5)
 
   protected close() {
     this.db.close();
@@ -283,15 +285,15 @@ export class IdbAccessor extends AbstractAccessor {
 
   protected async doWriteArrayBuffer(
     fullPath: string,
-    buffer: ArrayBuffer
+    arrayBuffer: ArrayBuffer
   ): Promise<void> {
     let content: Blob | Uint8Array | ArrayBuffer | string;
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
-      content = buffer;
+      content = arrayBuffer;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = toBlob(buffer);
+      content = toBlob(arrayBuffer);
     } else {
-      content = await toBase64(buffer);
+      content = await toBase64(arrayBuffer);
     }
     await this.doWriteContentToIdb(fullPath, content);
   }
@@ -315,7 +317,18 @@ export class IdbAccessor extends AbstractAccessor {
     await this.doWriteContentToIdb(fullPath, content);
   }
 
-  // #endregion Protected Methods (4)
+  protected async doWriteBuffer(
+    fullPath: string,
+    buffer: Buffer
+  ): Promise<void> {
+    const arrayBuffer = buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength
+    );
+    await this.doWriteArrayBuffer(fullPath, arrayBuffer);
+  }
+
+  // #endregion Protected Methods (5)
 
   // #region Private Methods (3)
 

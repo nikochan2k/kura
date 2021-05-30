@@ -278,7 +278,7 @@ export interface DirectoryReader {
   ): void;
 }
 
-export type DataType = "blob" | "arraybuffer" | "base64";
+export type DataType = "blob" | "buffer" | "arraybuffer" | "base64";
 
 /**
  * This interface represents a file on a file system.

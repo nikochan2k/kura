@@ -1,4 +1,4 @@
-import { toArrayBuffer, toBase64, toBlob } from "./BinaryConverter";
+import { toArrayBuffer, toBase64, toBlob, toBuffer } from "./BinaryConverter";
 import { ContentsCache } from "./ContentsCache";
 import {
   AbstractFileError,
@@ -26,7 +26,7 @@ import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
-  // #region Properties (5)
+  // #region Properties (4)
 
   protected contentsCache: ContentsCache;
 
@@ -35,7 +35,7 @@ export abstract class AbstractAccessor {
 
   public dirPathIndex: DirPathIndex = {};
 
-  // #endregion Properties (5)
+  // #endregion Properties (4)
 
   // #region Constructors (1)
 
@@ -142,6 +142,8 @@ export abstract class AbstractAccessor {
     try {
       if (typeof content === "string") {
         await this.doWriteBase64(fullPath, content);
+      } else if (content instanceof Buffer) {
+        await this.doWriteBuffer(fullPath, content);
       } else if (content instanceof Blob) {
         await this.doWriteBlob(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
@@ -285,7 +287,7 @@ export abstract class AbstractAccessor {
 
   public async putObject(
     obj: FileSystemObject,
-    content?: Blob | Uint8Array | ArrayBuffer | string
+    content?: Buffer | Blob | Uint8Array | ArrayBuffer | string
   ): Promise<FileSystemObject> {
     if (isIllegalObject(obj)) {
       const fullPath = obj.fullPath;
@@ -396,6 +398,8 @@ export abstract class AbstractAccessor {
     }
     if (type === "blob") {
       content = toBlob(content);
+    } else if (type === "buffer") {
+      content = await toBuffer(content);
     } else if (type === "arraybuffer") {
       content = await toArrayBuffer(content);
     } else if (type === "base64") {
@@ -629,7 +633,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Protected Methods (8)
 
-  // #region Protected Abstract Methods (3)
+  // #region Protected Abstract Methods (4)
 
   protected abstract doWriteArrayBuffer(
     fullPath: string,
@@ -640,8 +644,12 @@ export abstract class AbstractAccessor {
     base64: string
   ): Promise<void>;
   protected abstract doWriteBlob(fullPath: string, blob: Blob): Promise<void>;
+  protected abstract doWriteBuffer(
+    fullPath: string,
+    buffer: Buffer
+  ): Promise<void>;
 
-  // #endregion Protected Abstract Methods (3)
+  // #endregion Protected Abstract Methods (4)
 
   // #region Private Methods (11)
 
