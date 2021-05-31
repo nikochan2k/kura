@@ -29,7 +29,7 @@ import {
   onError,
 } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
-import { textToArrayBuffer, toText } from "./TextConverter";
+import { textToUint8Array, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
   // #region Properties (4)
@@ -359,7 +359,7 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     text: string
   ): Promise<FileSystemObject> {
-    const buffer = textToArrayBuffer(text);
+    const buffer = textToUint8Array(text);
     return this.putObject(obj, buffer);
   }
 
@@ -499,11 +499,11 @@ export abstract class AbstractAccessor {
   public async saveFileNameIndex(dirPath: string) {
     const fileNameIndex = this.dirPathIndex[dirPath];
     const text = objectToText(fileNameIndex);
-    const buffer = textToArrayBuffer(text);
+    const view = textToUint8Array(text);
     const indexPath = await this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
-    await this.doWriteContent(indexPath, buffer);
-    return { indexPath, buffer };
+    await this.doWriteContent(indexPath, view);
+    return { indexPath, buffer: view };
   }
 
   public async updateIndex(obj: FileSystemObject) {

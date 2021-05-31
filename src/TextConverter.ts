@@ -37,8 +37,12 @@ export async function toText(
     text = await base64ToText(content);
   } else if (isBlob(content)) {
     text = await blobToText(content);
-  } else {
+  } else if (Buffer.isBuffer(content)) {
+    text = textDecoder.decode(new Uint8Array(content));
+  } else if (ArrayBuffer.isView(content)) {
     text = textDecoder.decode(content);
+  } else {
+    text = textDecoder.decode(new Uint8Array(content));
   }
   return text;
 }
@@ -61,9 +65,9 @@ export function textToBlob(text: string, type = DEFAULT_CONTENT_TYPE): Blob {
   return new Blob([text], { type });
 }
 
-export function textToArrayBuffer(text: string): ArrayBuffer {
+export function textToUint8Array(text: string): Uint8Array {
   if (!text) {
-    return new ArrayBuffer(0);
+    return new Uint8Array(new ArrayBuffer(0));
   }
 
   const view = textEncoder.encode(text);
