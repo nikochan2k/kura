@@ -3,8 +3,8 @@ import { FileSystemObject } from "./FileSystemObject";
 
 export class Transferer {
   constructor(
-    private fromAccessor: AbstractAccessor,
-    private toAccessor: AbstractAccessor
+    protected fromAccessor: AbstractAccessor,
+    protected toAccessor: AbstractAccessor
   ) {}
 
   public async transfer(fromObj: FileSystemObject, toObj: FileSystemObject) {
