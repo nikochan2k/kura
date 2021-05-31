@@ -17,12 +17,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   public createWriter(): Promise<FileWriterAsync> {
     return new Promise<FileWriterAsync>((resolve, reject) => {
       this.entry.createWriter(
-        (fileWriter) => {
-          resolve(new FileWriterAsync(fileWriter));
-        },
-        (err) => {
-          reject(err);
-        }
+        (fileWriter) => resolve(new FileWriterAsync(fileWriter)),
+        (err) => reject(err)
       );
     });
   }
@@ -30,12 +26,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   public file(): Promise<File> {
     return new Promise((resolve, reject) => {
       this.entry.file(
-        (file) => {
-          resolve(file);
-        },
-        (err) => {
-          reject(err);
-        }
+        (file) => resolve(file),
+        (err) => reject(err)
       );
     });
   }
@@ -43,12 +35,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   public readFile(type?: DataType): Promise<Blob | BufferSource | string> {
     return new Promise<Blob | BufferSource | string>((resolve, reject) => {
       this.entry.readFile(
-        (content) => {
-          resolve(content);
-        },
-        (err) => {
-          reject(err);
-        },
+        (content) => resolve(content),
+        (err) => reject(err),
         type
       );
     });
@@ -57,12 +45,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   public readText(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       this.entry.readText(
-        (text) => {
-          resolve(text);
-        },
-        (err) => {
-          reject(err);
-        }
+        (text) => resolve(text),
+        (err) => reject(err)
       );
     });
   }
@@ -71,12 +55,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeFile(
         content,
-        () => {
-          resolve();
-        },
-        (err) => {
-          reject(err);
-        }
+        () => resolve(),
+        (err) => reject(err)
       );
     });
   }
@@ -85,12 +65,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeText(
         text,
-        () => {
-          resolve();
-        },
-        (err) => {
-          reject(err);
-        }
+        () => resolve(),
+        (err) => reject(err)
       );
     });
   }

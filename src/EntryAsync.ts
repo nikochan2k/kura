@@ -51,9 +51,7 @@ export abstract class EntryAsync<T extends Entry> {
             const entryAsync = createEntry(this.fileSystemAsync, entry);
             resolve(entryAsync);
           },
-          (err) => {
-            reject(err);
-          }
+          (err) => reject(err)
         );
       }
     );
@@ -62,12 +60,8 @@ export abstract class EntryAsync<T extends Entry> {
   public getMetadata(): Promise<Metadata> {
     return new Promise<Metadata>((resolve, reject) => {
       this.entry.getMetadata(
-        (metadata) => {
-          resolve(metadata);
-        },
-        (err) => {
-          reject(err);
-        }
+        (metadata) => resolve(metadata),
+        (err) => reject(err)
       );
     });
   }
@@ -75,9 +69,8 @@ export abstract class EntryAsync<T extends Entry> {
   public getParent(): Promise<DirectoryEntryAsync> {
     return new Promise<DirectoryEntryAsync>((resolve, reject) => {
       this.entry.getParent(
-        (entry) => {
-          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
-        },
+        (entry) =>
+          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry)),
         (err) => {
           reject(err);
         }
@@ -109,9 +102,7 @@ export abstract class EntryAsync<T extends Entry> {
   public remove(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.remove(
-        () => {
-          resolve();
-        },
+        () => resolve(),
         (err) => {
           if (err instanceof NotFoundError) {
             resolve();
@@ -123,8 +114,13 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  public toURL(): string {
-    return this.entry.toURL();
+  public toURL(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      this.entry.toURL(
+        (url) => resolve(url),
+        (err) => reject(err)
+      );
+    });
   }
 
   // #endregion Public Methods (6)

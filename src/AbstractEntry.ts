@@ -1,5 +1,5 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { InvalidModificationError, NotImplementedError } from "./FileError";
+import { InvalidModificationError, NotReadableError } from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
@@ -7,6 +7,7 @@ import {
   EntryCallback,
   ErrorCallback,
   MetadataCallback,
+  URLCallback,
   VoidCallback,
 } from "./filesystem";
 import { DIR_SEPARATOR } from "./FileSystemConstants";
@@ -74,8 +75,15 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback(this.toDirectoryEntry(obj));
   }
 
-  public toURL(): string {
-    return this.params.url;
+  public toURL(urlCallback: URLCallback, errorCallback?: ErrorCallback): void {
+    this.params.accessor
+      .getURL(this.fullPath)
+      .then((url) => urlCallback(url))
+      .catch((e) => {
+        if (errorCallback) {
+          new NotReadableError(this.name, this.fullPath, e);
+        }
+      });
   }
 
   // #endregion Public Methods (3)

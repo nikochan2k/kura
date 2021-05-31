@@ -167,7 +167,7 @@ export interface Entry {
   /**
    * Returns a URL that can be used to identify this entry. Unlike the URN defined in [FILE-API-ED], it has no specific expiration; as it describes a location on disk, it should be valid at least as long as that location exists.
    */
-  toURL(): string;
+  toURL(urlCallback: URLCallback, errorCallback?: ErrorCallback): void;
 
   /**
    * Deletes a file or directory. It is an error to attempt to delete a directory that is not empty. It is an error to attempt to delete the root directory of a filesystem.
@@ -379,6 +379,13 @@ export interface EntriesCallback {
  */
 export interface MetadataCallback {
   (metadata: Metadata): void;
+}
+
+/**
+ * This interface is the callback used to look up URL.
+ */
+export interface URLCallback {
+  (url: string): void;
 }
 
 /**

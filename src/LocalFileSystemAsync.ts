@@ -38,9 +38,7 @@ export class LocalFileSystemAsync {
           const afs = filesystem as AbstractFileSystem<AbstractAccessor>;
           resolve(new FileSystemAsync(afs));
         },
-        (err) => {
-          reject(err);
-        }
+        (err) => reject(err)
       );
     });
   }

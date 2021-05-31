@@ -286,6 +286,10 @@ export abstract class AbstractAccessor {
     }
   }
 
+  public async getURL(fullPath: string): Promise<string> {
+    return null;
+  }
+
   public async purge() {
     await this.doDeleteRecursively(DIR_SEPARATOR);
     if (this.contentsCache) {
