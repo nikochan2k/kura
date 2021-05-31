@@ -25,11 +25,13 @@ import { FileSystemOptions } from "./FileSystemOptions";
 import {
   getName,
   getParentPath,
+  hasBuffer,
   isIllegalObject,
   onError,
 } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToUint8Array, toText } from "./TextConverter";
+import { XHR } from "./XHR";
 
 export abstract class AbstractAccessor {
   // #region Properties (4)
@@ -51,7 +53,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (22)
+  // #region Public Methods (23)
 
   public clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -506,6 +508,12 @@ export abstract class AbstractAccessor {
     return { indexPath, buffer: view };
   }
 
+  public async transfer(fromUrl: string, toUrl: string) {
+    const xhr = new XHR();
+    const content = await xhr.get(fromUrl, hasBuffer ? "arraybuffer" : "blob");
+    await xhr.put(toUrl, content);
+  }
+
   public async updateIndex(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
     const dirPath = getParentPath(fullPath);
@@ -516,7 +524,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (22)
+  // #endregion Public Methods (23)
 
   // #region Public Abstract Methods (5)
 

@@ -19,7 +19,8 @@ import {
 } from "./FileSystemUtil";
 
 export abstract class AbstractEntry<T extends AbstractAccessor>
-  implements Entry {
+  implements Entry
+{
   // #region Properties (2)
 
   public abstract isDirectory: boolean;
@@ -74,13 +75,6 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
   }
 
   public toURL(): string {
-    if (this.params.url == null) {
-      throw new NotImplementedError(
-        this.filesystem.name,
-        this.params.fullPath,
-        "toURL"
-      );
-    }
     return this.params.url;
   }
 

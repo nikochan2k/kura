@@ -1,6 +1,6 @@
-import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
-import { NotFoundError } from "./FileError";
 import { isBlob } from "./BinaryConverter";
+import { NotFoundError } from "./FileError";
+import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 
 export interface XHROptions {
   // #region Properties (2)
@@ -22,11 +22,7 @@ export class XHR {
 
   // #region Constructors (1)
 
-  constructor(
-    private key?: string,
-    private fullPath?: string,
-    options?: XHROptions
-  ) {
+  constructor(options?: XHROptions) {
     if (options == null) {
       options = {};
     }
@@ -110,7 +106,7 @@ export class XHR {
         if ((200 <= xhr.status && xhr.status < 300) || xhr.status === 304) {
           resolve(xhr.response);
         } else if (xhr.status === 404) {
-          reject(new NotFoundError(this.key, this.fullPath));
+          reject(new NotFoundError("", this.url));
         } else {
           reject(new Error(`${this.url}: ${xhr.status} (${xhr.statusText})`));
         }
