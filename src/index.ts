@@ -26,6 +26,7 @@ export * from "./FileWriterAsync";
 export * from "./LocalFileSystemAsync";
 export * from "./ObjectUtil";
 export * from "./TextConverter";
+export * from "./Transferer";
 export * from "./XHR";
 export * from "./default";
 export * from "./embedded";
