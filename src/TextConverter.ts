@@ -1,4 +1,4 @@
-import { toArrayBuffer, toBase64 } from "./BinaryConverter";
+import { isBlob, toArrayBuffer, toBase64 } from "./BinaryConverter";
 import {
   DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
@@ -35,7 +35,7 @@ export async function toText(
   let text: string;
   if (typeof content === "string") {
     text = await base64ToText(content);
-  } else if (content instanceof Blob) {
+  } else if (isBlob(content)) {
     text = await blobToText(content);
   } else {
     text = textDecoder.decode(content);

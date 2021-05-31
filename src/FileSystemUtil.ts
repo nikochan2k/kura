@@ -1,5 +1,6 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractFileSystem } from "./AbstractFileSystem";
+import { isBlob } from "./BinaryConverter";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
 import {
@@ -174,7 +175,7 @@ export function getMemorySize(content: Blob | BufferSource | string) {
   let size: number;
   if (typeof content === "string") {
     size = content.length * 2; // UTF-16
-  } else if (content instanceof Blob) {
+  } else if (isBlob(content)) {
     size = content.size;
   } else {
     size = content.byteLength;
@@ -199,7 +200,7 @@ export function getSize(content: Blob | BufferSource | string) {
       paddingCount++;
     }
     size = length - paddingCount;
-  } else if (content instanceof Blob) {
+  } else if (isBlob(content)) {
     size = content.size;
   } else {
     size = content.byteLength;

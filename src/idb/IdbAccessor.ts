@@ -1,5 +1,5 @@
 import { AbstractAccessor } from "../AbstractAccessor";
-import { toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
+import { isBlob, toArrayBuffer, toBase64, toBlob } from "../BinaryConverter";
 import {
   AbstractFileError,
   InvalidModificationError,
@@ -200,9 +200,9 @@ export class IdbAccessor extends AbstractAccessor {
 
       if (typeof content === "string") {
         await this.doWriteBase64(fullPath, content);
-      } else if (content instanceof Blob) {
+      } else if (isBlob(content)) {
         await this.doWriteBlob(fullPath, content);
-      } else if (content instanceof Buffer) {
+      } else if (Buffer.isBuffer(content)) {
         await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
         await this.doWriteArrayBufferView(fullPath, content);

@@ -1,4 +1,10 @@
-import { toArrayBuffer, toBase64, toBlob, toBuffer } from "./BinaryConverter";
+import {
+  isBlob,
+  toArrayBuffer,
+  toBase64,
+  toBlob,
+  toBuffer,
+} from "./BinaryConverter";
 import { ContentsCache } from "./ContentsCache";
 import {
   AbstractFileError,
@@ -142,10 +148,10 @@ export abstract class AbstractAccessor {
     try {
       if (typeof content === "string") {
         await this.doWriteBase64(fullPath, content);
-      } else if (content instanceof Buffer) {
-        await this.doWriteBuffer(fullPath, content);
-      } else if (content instanceof Blob) {
+      } else if (isBlob(content)) {
         await this.doWriteBlob(fullPath, content);
+      } else if (Buffer.isBuffer(content)) {
+        await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
         await this.doWriteArrayBufferView(fullPath, content);
       } else {

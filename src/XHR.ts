@@ -1,5 +1,6 @@
 import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { NotFoundError } from "./FileError";
+import { isBlob } from "./BinaryConverter";
 
 export interface XHROptions {
   // #region Properties (2)
@@ -131,7 +132,7 @@ export class XHR {
     xhr.open(method, url);
     this.configure(xhr);
     if (!type) {
-      if (content instanceof Blob) {
+      if (isBlob(content)) {
         type = content.type;
       }
       if (!type) {
