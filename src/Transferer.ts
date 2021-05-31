@@ -8,7 +8,7 @@ export class Transferer {
     toAccessor: AbstractAccessor,
     toObj: FileSystemObject
   ) {
-    const content = await fromAccessor.doReadContent(fromObj.fullPath);
+    const content = await fromAccessor.readContentInternal(fromObj);
     await toAccessor.doWriteContent(toObj.fullPath, content);
   }
 }
