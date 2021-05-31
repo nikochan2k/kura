@@ -508,10 +508,28 @@ export abstract class AbstractAccessor {
     return { indexPath, buffer: view };
   }
 
-  public async transfer(fromUrl: string, toUrl: string) {
-    const xhr = new XHR();
-    const content = await xhr.get(fromUrl, hasBuffer ? "arraybuffer" : "blob");
-    await xhr.put(toUrl, content);
+  public async transfer(
+    fromAccessor: AbstractAccessor,
+    fromObj: FileSystemObject,
+    toObj: FileSystemObject
+  ) {
+    const fromUrl = fromObj.url;
+    const toUrl = toObj.url;
+    let xhr: XHR;
+    if (fromUrl || toUrl) {
+      xhr = new XHR();
+    }
+    let content: string | BufferSource | Blob;
+    if (fromUrl) {
+      content = await xhr.get(fromUrl, hasBuffer ? "arraybuffer" : "blob");
+    } else {
+      content = await fromAccessor.doReadContent(fromObj.fullPath);
+    }
+    if (toUrl) {
+      await xhr.put(toUrl, content);
+    } else {
+      await this.doWriteContent(toObj.fullPath, content);
+    }
   }
 
   public async updateIndex(obj: FileSystemObject) {
