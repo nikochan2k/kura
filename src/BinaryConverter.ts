@@ -83,13 +83,19 @@ function base64ToArrayBuffer(base64: string) {
   return arrayBuffer;
 }
 
-function arrayBufferViewToArrayBuffer(view: ArrayBufferView) {
-  if (isUint8Array(view)) {
-    return view.buffer;
+function uint8ArrayToArrayBuffer(view: Uint8Array) {
+  const viewLength = view.length;
+  const buffer = view.buffer;
+  if (viewLength === buffer.byteLength) {
+    return buffer;
   }
 
-  const array = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
-  return array.buffer;
+  const newBuffer = new ArrayBuffer(viewLength);
+  const newView = new Uint8Array(newBuffer);
+  for (let i = 0; i < viewLength; i++) {
+    newView[i] = view[i];
+  }
+  return newBuffer;
 }
 
 export async function toBuffer(
@@ -136,7 +142,7 @@ export async function toArrayBuffer(
       content.byteOffset + content.byteLength
     );
   } else if (ArrayBuffer.isView(content)) {
-    buffer = arrayBufferViewToArrayBuffer(content);
+    buffer = uint8ArrayToArrayBuffer(content as Uint8Array);
   } else {
     buffer = content;
   }
@@ -188,13 +194,16 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return base64;
 }
 
-function arrayBufferViewToBase64(view: ArrayBufferView): string {
+function uint8ArrayToBase64(view: Uint8Array): string {
   if (view.byteLength === 0) {
     return "";
   }
 
-  const buffer = Buffer.from(view.buffer, view.byteOffset, view.byteLength);
-  return buffer.toString("base64");
+  let binary = "";
+  for (var i = 0, end = view.byteLength; i < end; i++) {
+    binary += String.fromCharCode(view[i]);
+  }
+  return btoa(binary);
 }
 
 function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
@@ -221,7 +230,7 @@ export async function toBase64(
   } else if (isBuffer(content)) {
     base64 = content.toString("base64");
   } else if (ArrayBuffer.isView(content)) {
-    base64 = arrayBufferViewToBase64(content);
+    base64 = uint8ArrayToBase64(content as Uint8Array);
   } else {
     base64 = arrayBufferToBase64(content);
   }
