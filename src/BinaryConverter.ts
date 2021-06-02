@@ -199,16 +199,17 @@ function uint8ArrayToBase64(view: Uint8Array): string {
     return "";
   }
 
-  let binary = "";
-  for (var i = 0, end = view.byteLength; i < end; i++) {
-    binary += String.fromCharCode(view[i]);
-  }
-  return btoa(binary);
+  const buffer = Buffer.from(view.buffer, view.byteOffset, view.byteLength);
+  return buffer.toString("base64");
 }
 
 function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
-  const view = new Uint8Array(arrayBuffer);
-  return uint8ArrayToBase64(view);
+  if (arrayBuffer.byteLength === 0) {
+    return "";
+  }
+
+  const buffer = Buffer.from(arrayBuffer);
+  return buffer.toString("base64");
 }
 
 export async function toBase64(
