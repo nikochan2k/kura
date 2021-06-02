@@ -1,5 +1,6 @@
 import {
   isBlob,
+  isBuffer,
   toArrayBuffer,
   toBase64,
   toBlob,
@@ -25,13 +26,11 @@ import { FileSystemOptions } from "./FileSystemOptions";
 import {
   getName,
   getParentPath,
-  hasBuffer,
   isIllegalObject,
   onError,
 } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToUint8Array, toText } from "./TextConverter";
-import { XHR } from "./XHR";
 
 export abstract class AbstractAccessor {
   // #region Properties (4)
@@ -152,7 +151,7 @@ export abstract class AbstractAccessor {
         await this.doWriteBase64(fullPath, content);
       } else if (isBlob(content)) {
         await this.doWriteBlob(fullPath, content);
-      } else if (Buffer.isBuffer(content)) {
+      } else if (isBuffer(content)) {
         await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
         await this.doWriteArrayBufferView(fullPath, content);

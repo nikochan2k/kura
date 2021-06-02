@@ -1,4 +1,4 @@
-import { isBlob, toArrayBuffer, toBase64 } from "./BinaryConverter";
+import { isBlob, isBuffer, toArrayBuffer, toBase64 } from "./BinaryConverter";
 import {
   DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
@@ -37,7 +37,7 @@ export async function toText(
     text = await base64ToText(content);
   } else if (isBlob(content)) {
     text = await blobToText(content);
-  } else if (Buffer.isBuffer(content)) {
+  } else if (isBuffer(content)) {
     text = textDecoder.decode(new Uint8Array(content));
   } else if (ArrayBuffer.isView(content)) {
     text = textDecoder.decode(content);

@@ -3,6 +3,7 @@ import {
   DEFAULT_CONTENT_TYPE,
 } from "./FileSystemConstants";
 import { dataUrlToBase64 } from "./FileSystemUtil";
+import { isReactNative } from "./Util";
 
 const { toString } = Object.prototype;
 
@@ -14,6 +15,13 @@ export function isUint8Array(value: unknown): value is Uint8Array {
   return (
     value instanceof Uint8Array ||
     toString.call(value) === "[object Uint8Array]"
+  );
+}
+
+export function isBuffer(value: any): value is Buffer {
+  return (
+    typeof value?.constructor?.isBuffer === "function" &&
+    value.constructor.isBuffer(value)
   );
 }
 
@@ -54,7 +62,7 @@ async function blobToArrayBuffer(blob: Blob) {
   }
 
   let buffer: ArrayBuffer;
-  if (navigator && navigator.product === "ReactNative") {
+  if (isReactNative) {
     buffer = await blobToArrayBufferUsingReadAsDataUrl(blob);
   } else {
     buffer = await blobToArrayBufferUsingReadAsArrayBuffer(blob);
@@ -96,7 +104,7 @@ export async function toBuffer(
     buffer = base64ToBuffer(content);
   } else if (isBlob(content)) {
     buffer = await blobToBuffer(content);
-  } else if (Buffer.isBuffer(content)) {
+  } else if (isBuffer(content)) {
     buffer = content;
   } else if (ArrayBuffer.isView(content)) {
     buffer = Buffer.from(
@@ -122,7 +130,7 @@ export async function toArrayBuffer(
     buffer = base64ToArrayBuffer(content);
   } else if (isBlob(content)) {
     buffer = await blobToArrayBuffer(content);
-  } else if (Buffer.isBuffer(content)) {
+  } else if (isBuffer(content)) {
     buffer = content.buffer.slice(
       content.byteOffset,
       content.byteOffset + content.byteLength
@@ -210,7 +218,7 @@ export async function toBase64(
     base64 = content;
   } else if (isBlob(content)) {
     base64 = await blobToBase64(content);
-  } else if (Buffer.isBuffer(content)) {
+  } else if (isBuffer(content)) {
     base64 = content.toString("base64");
   } else if (ArrayBuffer.isView(content)) {
     base64 = arrayBufferViewToBase64(content);

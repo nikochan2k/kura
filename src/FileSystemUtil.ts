@@ -21,10 +21,6 @@ import { FileSystemObject } from "./FileSystemObject";
 
 const LAST_PATH_PART = /\/([^\/]+)\/?$/;
 
-export const hasBuffer =
-  typeof process === "object" ||
-  (navigator && navigator.product === "ReactNative");
-
 export function getParentPath(fullPath: string) {
   const parentPath = fullPath.replace(LAST_PATH_PART, "");
   return parentPath === "" ? DIR_SEPARATOR : parentPath;
