@@ -207,12 +207,8 @@ function uint8ArrayToBase64(view: Uint8Array): string {
 }
 
 function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
-  if (arrayBuffer.byteLength === 0) {
-    return "";
-  }
-
-  const buffer = Buffer.from(arrayBuffer);
-  return buffer.toString("base64");
+  const view = new Uint8Array(arrayBuffer);
+  return uint8ArrayToBase64(view);
 }
 
 export async function toBase64(
