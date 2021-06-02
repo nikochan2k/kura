@@ -29,6 +29,7 @@ export * from "./ObjectUtil";
 export * from "./TextConverter";
 export * from "./Transferer";
 export * from "./XHR";
+export * from "./Util";
 export * from "./default";
 export * from "./embedded";
 export * from "./idb";
