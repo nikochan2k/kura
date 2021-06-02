@@ -1,3 +1,6 @@
+import { decode, encode } from "base-64";
+import * as TextEncodingShim from "text-encoding-shim";
+
 const globalVar =
   typeof window !== "undefined"
     ? window
@@ -5,6 +8,15 @@ const globalVar =
     ? global
     : Function("return this;")();
 
-if (!globalVar.TextDecoder || !globalVar.TextEncoder) {
-  require("fast-text-encoding");
+if (!globalVar.atob) {
+  globalVar.atob = decode;
+}
+if (!globalVar.btoa) {
+  globalVar.btoa = encode;
+}
+if (!globalVar.TextDecoder) {
+  globalVar.TextDecoder = TextEncodingShim.TextDecoder;
+}
+if (!globalVar.TextEncoder) {
+  globalVar.TextEncoder = TextEncodingShim.TextEncoder;
 }
