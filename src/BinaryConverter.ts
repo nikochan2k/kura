@@ -1,7 +1,6 @@
 import {
+  DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
-  EMPTY_ARRAY_BUFFER,
-  EMPTY_BLOB,
 } from "./FileSystemConstants";
 import { dataUrlToBase64 } from "./FileSystemUtil";
 
@@ -25,7 +24,7 @@ export function isBuffer(value: any): value is Buffer {
 
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   if (blob.size === 0) {
-    return EMPTY_ARRAY_BUFFER;
+    return new ArrayBuffer(0);
   }
   const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
     const reader = new FileReader();
@@ -43,7 +42,7 @@ async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
   const base64 = await blobToBase64(blob);
   if (!base64) {
-    return EMPTY_ARRAY_BUFFER;
+    return new ArrayBuffer(0);
   }
 
   const buffer = new ArrayBuffer(blob.size);
@@ -55,7 +54,7 @@ async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
 
 async function blobToArrayBuffer(blob: Blob) {
   if (blob.size === 0) {
-    return EMPTY_ARRAY_BUFFER;
+    return new ArrayBuffer(0);
   }
 
   let buffer: ArrayBuffer;
@@ -96,7 +95,7 @@ export async function toArrayBuffer(
   content: Blob | BufferSource | string
 ): Promise<ArrayBuffer> {
   if (!content) {
-    return EMPTY_ARRAY_BUFFER;
+    return new ArrayBuffer(0);
   }
 
   let buffer: ArrayBuffer;
@@ -117,7 +116,7 @@ function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
     var bin = atob(base64);
   } catch (e) {
     console.warn(e, base64);
-    return EMPTY_BLOB;
+    return new Blob([], DEFAULT_BLOB_PROPS);
   }
   const length = bin.length;
   const buffer = new ArrayBuffer(bin.length);
@@ -131,7 +130,7 @@ function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
 
 export function toBlob(content: Blob | BufferSource | string): Blob {
   if (!content) {
-    return EMPTY_BLOB;
+    return new Blob([], DEFAULT_BLOB_PROPS);
   }
 
   let blob: Blob;

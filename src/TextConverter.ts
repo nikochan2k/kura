@@ -1,8 +1,7 @@
 import { toArrayBuffer, toBase64 } from "./BinaryConverter";
 import {
+  DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
-  EMPTY_ARRAY_BUFFER,
-  EMPTY_BLOB,
 } from "./FileSystemConstants";
 
 const textEncoder = new TextEncoder();
@@ -58,15 +57,15 @@ export async function base64ToText(base64: string): Promise<string> {
 
 export function textToBlob(text: string, type = DEFAULT_CONTENT_TYPE): Blob {
   if (!text) {
-    return EMPTY_BLOB;
+    return new Blob([], DEFAULT_BLOB_PROPS);
   }
 
   return new Blob([text], { type });
 }
 
-export function textToArrayBuffer(text: string): ArrayBuffer {
+export function textToArrayBuffer(text: string): Uint8Array {
   if (!text) {
-    return EMPTY_ARRAY_BUFFER;
+    return new Uint8Array(new ArrayBuffer(0));
   }
 
   const view = textEncoder.encode(text);
