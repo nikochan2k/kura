@@ -50,7 +50,7 @@
     "preset": "ts-jest"
   },
   "devDependencies": {
-    "@types/base-64": "^1.0.0",
+    "@types/base64-arraybuffer": "^0.2.0",
     "@types/jest": "^26.0.23",
     "@types/node": "^15.0.2",
     "fake-indexeddb": "3.1.2",
@@ -61,7 +61,7 @@
     "typescript": "^4.3.2"
   },
   "dependencies": {
-    "base-64": "^1.0.0",
+    "base64-arraybuffer": "^0.2.0",
     "text-encoding-shim": "^1.0.5",
     "tslib": "^2.2.0"
   }

@@ -1,3 +1,4 @@
+import { decode, encode } from "base64-arraybuffer";
 import {
   DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
@@ -45,11 +46,7 @@ async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
     return new ArrayBuffer(0);
   }
 
-  const buffer = new ArrayBuffer(blob.size);
-  const view = new Uint8Array(buffer);
-  const content = atob(base64);
-  view.set(Array.from(content).map((c) => c.charCodeAt(0)));
-  return buffer;
+  return base64ToArrayBuffer(base64);
 }
 
 async function blobToArrayBuffer(blob: Blob) {
@@ -67,13 +64,7 @@ async function blobToArrayBuffer(blob: Blob) {
 }
 
 function base64ToArrayBuffer(base64: string) {
-  const bin = atob(base64);
-  const len = bin.length;
-  const view = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    view[i] = bin.charCodeAt(i);
-  }
-  return view.buffer;
+  return decode(base64);
 }
 
 function uint8ArrayToArrayBuffer(view: Uint8Array) {
@@ -113,19 +104,12 @@ export async function toArrayBuffer(
 
 function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
   try {
-    var bin = atob(base64);
+    const buffer = base64ToArrayBuffer(base64);
+    return new Blob([buffer], { type });
   } catch (e) {
     console.warn(e, base64);
     return new Blob([], DEFAULT_BLOB_PROPS);
   }
-  const length = bin.length;
-  const buffer = new ArrayBuffer(bin.length);
-  const view = new Uint8Array(buffer);
-  for (var i = 0; i < length; i++) {
-    view[i] = bin.charCodeAt(i);
-  }
-  const blob = new Blob([view], { type: type });
-  return blob;
 }
 
 export function toBlob(content: Blob | BufferSource | string): Blob {
@@ -164,20 +148,12 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 function uint8ArrayToBase64(view: Uint8Array): string {
-  if (view.byteLength === 0) {
-    return "";
-  }
-
-  let binary = "";
-  for (var i = 0, end = view.byteLength; i < end; i++) {
-    binary += String.fromCharCode(view[i]);
-  }
-  return btoa(binary);
+  const buffer = uint8ArrayToArrayBuffer(view);
+  return arrayBufferToBase64(buffer);
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const view = new Uint8Array(buffer);
-  return uint8ArrayToBase64(view);
+  return encode(buffer);
 }
 
 export async function toBase64(
