@@ -1,4 +1,11 @@
-import { toArrayBuffer, toBase64, toBlob } from "./BinaryConverter";
+import {
+  isBlob,
+  isBuffer,
+  toArrayBuffer,
+  toBase64,
+  toBlob,
+  toBuffer,
+} from "./BinaryConverter";
 import { ContentsCache } from "./ContentsCache";
 import {
   AbstractFileError,
@@ -23,7 +30,7 @@ import {
   onError,
 } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
-import { textToArrayBuffer, toText } from "./TextConverter";
+import { textToUint8Array, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
   // #region Properties (4)
@@ -142,8 +149,10 @@ export abstract class AbstractAccessor {
     try {
       if (typeof content === "string") {
         await this.doWriteBase64(fullPath, content);
-      } else if (content instanceof Blob) {
+      } else if (isBlob(content)) {
         await this.doWriteBlob(fullPath, content);
+      } else if (isBuffer(content)) {
+        await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
         await this.doWriteUint8Array(fullPath, content as Uint8Array);
       } else {
@@ -355,8 +364,8 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     text: string
   ): Promise<FileSystemObject> {
-    const buffer = textToArrayBuffer(text);
-    return this.putObject(obj, buffer);
+    const u8 = textToUint8Array(text);
+    return this.putObject(obj, u8);
   }
 
   public async readContent(
@@ -400,6 +409,8 @@ export abstract class AbstractAccessor {
     }
     if (type === "blob") {
       content = toBlob(content);
+    } else if (type === "buffer") {
+      content = await toBuffer(content);
     } else if (type === "arraybuffer") {
       content = await toArrayBuffer(content);
     } else if (type === "base64") {
@@ -493,11 +504,11 @@ export abstract class AbstractAccessor {
   public async saveFileNameIndex(dirPath: string) {
     const fileNameIndex = this.dirPathIndex[dirPath];
     const text = objectToText(fileNameIndex);
-    const buffer = textToArrayBuffer(text);
+    const u8 = textToUint8Array(text);
     const indexPath = await this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
-    await this.doWriteContent(indexPath, buffer);
-    return { indexPath, buffer };
+    await this.doWriteContent(indexPath, u8);
+    return { indexPath, buffer: u8 };
   }
 
   public async updateIndex(obj: FileSystemObject) {
@@ -633,7 +644,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Protected Methods (8)
 
-  // #region Protected Abstract Methods (3)
+  // #region Protected Abstract Methods (4)
 
   protected abstract doWriteArrayBuffer(
     fullPath: string,
@@ -644,8 +655,12 @@ export abstract class AbstractAccessor {
     base64: string
   ): Promise<void>;
   protected abstract doWriteBlob(fullPath: string, blob: Blob): Promise<void>;
+  protected abstract doWriteBuffer(
+    fullPath: string,
+    buffer: Buffer
+  ): Promise<void>;
 
-  // #endregion Protected Abstract Methods (3)
+  // #endregion Protected Abstract Methods (4)
 
   // #region Private Methods (11)
 
