@@ -10,3 +10,5 @@ export const isReactNative =
   typeof navigator !== "undefined" && navigator.product === "ReactNative";
 
 export const hasBuffer = typeof Buffer === "function";
+
+export const hasBlob = typeof Blob === "function";
