@@ -48,7 +48,11 @@ async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
     return new ArrayBuffer(0);
   }
 
-  return base64ToArrayBuffer(base64);
+  const buffer = new ArrayBuffer(blob.size);
+  const view = new Uint8Array(buffer);
+  const content = atob(base64);
+  view.set(Array.from(content).map((c) => c.charCodeAt(0)));
+  return buffer;
 }
 
 async function blobToBuffer(blob: Blob) {
