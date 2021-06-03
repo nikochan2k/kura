@@ -27,7 +27,7 @@ async function blobToText(blob: Blob): Promise<string> {
 }
 
 export async function toText(
-  content: Blob | Uint8Array | ArrayBuffer | string
+  content: Blob | BufferSource | string
 ): Promise<string> {
   if (!content) {
     return "";

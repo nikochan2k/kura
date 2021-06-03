@@ -166,9 +166,7 @@ export function createEmptyFile(name: string) {
   });
 }
 
-export function getMemorySize(
-  content: Blob | Uint8Array | ArrayBuffer | string
-) {
+export function getMemorySize(content: Blob | BufferSource | string) {
   if (!content) {
     return 0;
   }

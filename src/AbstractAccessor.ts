@@ -137,7 +137,7 @@ export abstract class AbstractAccessor {
 
   public async doWriteContent(
     fullPath: string,
-    content: Blob | Uint8Array | ArrayBuffer | string
+    content: Blob | BufferSource | string
   ) {
     try {
       if (typeof content === "string") {
@@ -145,7 +145,7 @@ export abstract class AbstractAccessor {
       } else if (content instanceof Blob) {
         await this.doWriteBlob(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
-        await this.doWriteUint8Array(fullPath, content);
+        await this.doWriteUint8Array(fullPath, content as Uint8Array);
       } else {
         await this.doWriteArrayBuffer(fullPath, content);
       }
@@ -289,7 +289,7 @@ export abstract class AbstractAccessor {
 
   public async putObject(
     obj: FileSystemObject,
-    content?: Blob | Uint8Array | ArrayBuffer | string
+    content?: Blob | BufferSource | string
   ): Promise<FileSystemObject> {
     if (isIllegalObject(obj)) {
       const fullPath = obj.fullPath;
@@ -362,7 +362,7 @@ export abstract class AbstractAccessor {
   public async readContent(
     obj: FileSystemObject,
     type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+  ): Promise<Blob | BufferSource | string> {
     if (isIllegalObject(obj)) {
       const fullPath = obj.fullPath;
       throw new InvalidModificationError(
@@ -385,7 +385,7 @@ export abstract class AbstractAccessor {
   public async readContentInternal(
     obj: FileSystemObject,
     type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
+  ): Promise<Blob | BufferSource | string> {
     const fullPath = obj.fullPath;
     if (this.contentsCache) {
       var content = await this.contentsCache.get(fullPath);

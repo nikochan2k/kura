@@ -93,7 +93,7 @@ function uint8ArrayToArrayBuffer(view: Uint8Array) {
 }
 
 export async function toArrayBuffer(
-  content: Blob | Uint8Array | ArrayBuffer | string
+  content: Blob | BufferSource | string
 ): Promise<ArrayBuffer> {
   if (!content) {
     return EMPTY_ARRAY_BUFFER;
@@ -105,7 +105,7 @@ export async function toArrayBuffer(
   } else if (content instanceof Blob) {
     buffer = await blobToArrayBuffer(content);
   } else if (ArrayBuffer.isView(content)) {
-    buffer = uint8ArrayToArrayBuffer(content);
+    buffer = uint8ArrayToArrayBuffer(content as Uint8Array);
   } else {
     buffer = content;
   }
@@ -129,9 +129,7 @@ function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
   return blob;
 }
 
-export function toBlob(
-  content: Blob | Uint8Array | ArrayBuffer | string
-): Blob {
+export function toBlob(content: Blob | BufferSource | string): Blob {
   if (!content) {
     return EMPTY_BLOB;
   }
@@ -184,7 +182,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 export async function toBase64(
-  content: Blob | Uint8Array | ArrayBuffer | string
+  content: Blob | BufferSource | string
 ): Promise<string> {
   if (!content) {
     return "";
@@ -196,7 +194,7 @@ export async function toBase64(
   } else if (content instanceof Blob) {
     base64 = await blobToBase64(content);
   } else if (ArrayBuffer.isView(content)) {
-    base64 = uint8ArrayToBase64(content);
+    base64 = uint8ArrayToBase64(content as Uint8Array);
   } else {
     base64 = arrayBufferToBase64(content);
   }
