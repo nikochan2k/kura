@@ -1,5 +1,5 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { InvalidModificationError, NotImplementedError } from "./FileError";
+import { InvalidModificationError, NotReadableError } from "./FileError";
 import {
   DirectoryEntry,
   DirectoryEntryCallback,
@@ -7,6 +7,7 @@ import {
   EntryCallback,
   ErrorCallback,
   MetadataCallback,
+  URLCallback,
   VoidCallback,
 } from "./filesystem";
 import { DIR_SEPARATOR } from "./FileSystemConstants";
@@ -19,7 +20,8 @@ import {
 } from "./FileSystemUtil";
 
 export abstract class AbstractEntry<T extends AbstractAccessor>
-  implements Entry {
+  implements Entry
+{
   // #region Properties (2)
 
   public abstract isDirectory: boolean;
@@ -73,15 +75,15 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback(this.toDirectoryEntry(obj));
   }
 
-  public toURL(): string {
-    if (this.params.url == null) {
-      throw new NotImplementedError(
-        this.filesystem.name,
-        this.params.fullPath,
-        "toURL"
-      );
-    }
-    return this.params.url;
+  public toURL(urlCallback: URLCallback, errorCallback?: ErrorCallback): void {
+    this.params.accessor
+      .getURL(this.fullPath)
+      .then((url) => urlCallback(url))
+      .catch((e) => {
+        if (errorCallback) {
+          new NotReadableError(this.name, this.fullPath, e);
+        }
+      });
   }
 
   // #endregion Public Methods (3)

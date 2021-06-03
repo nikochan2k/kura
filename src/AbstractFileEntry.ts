@@ -19,7 +19,8 @@ import { onError } from "./FileSystemUtil";
 
 export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
-  implements FileEntry {
+  implements FileEntry
+{
   // #region Properties (3)
 
   public fileWriter: AbstractFileWriter<T>;
@@ -174,7 +175,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
   }
 
   public writeFile(
-    content: Blob | Uint8Array | ArrayBuffer | string,
+    content: Blob | BufferSource | string,
     successCallback?: VoidCallback,
     errorCallback?: ErrorCallback
   ): void {

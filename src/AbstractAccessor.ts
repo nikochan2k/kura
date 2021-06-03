@@ -26,7 +26,7 @@ import { objectToText, textToObject } from "./ObjectUtil";
 import { textToArrayBuffer, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
-  // #region Properties (5)
+  // #region Properties (4)
 
   protected contentsCache: ContentsCache;
 
@@ -35,7 +35,7 @@ export abstract class AbstractAccessor {
 
   public dirPathIndex: DirPathIndex = {};
 
-  // #endregion Properties (5)
+  // #endregion Properties (4)
 
   // #region Constructors (1)
 
@@ -45,7 +45,7 @@ export abstract class AbstractAccessor {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (22)
+  // #region Public Methods (23)
 
   public clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
@@ -274,6 +274,10 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, dirPath, e);
     }
+  }
+
+  public async getURL(fullPath: string): Promise<string> {
+    return null;
   }
 
   public async purge() {
@@ -506,7 +510,7 @@ export abstract class AbstractAccessor {
     await this.saveFileNameIndex(dirPath);
   }
 
-  // #endregion Public Methods (22)
+  // #endregion Public Methods (23)
 
   // #region Public Abstract Methods (5)
 

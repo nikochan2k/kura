@@ -18,14 +18,11 @@ export class DirectoryReaderAsync {
   public readEntries(): Promise<EntryAsync<Entry>[]> {
     return new Promise<EntryAsync<Entry>[]>((resolve, reject) => {
       this.directoryReader.readEntries(
-        (entries) => {
+        (entries) =>
           resolve(
             entries.map((entry) => createEntry(this.fileSystemAsync, entry))
-          );
-        },
-        (err) => {
-          reject(err);
-        }
+          ),
+        (err) => reject(err)
       );
     });
   }

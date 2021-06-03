@@ -34,12 +34,9 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
       this.entry.getDirectory(
         path,
         options,
-        (entry) => {
-          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry));
-        },
-        (err) => {
-          reject(err);
-        }
+        (entry) =>
+          resolve(new DirectoryEntryAsync(this.fileSystemAsync, entry)),
+        (err) => reject(err)
       );
     });
   }
@@ -49,12 +46,8 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
       this.entry.getFile(
         path,
         options,
-        (entry) => {
-          resolve(new FileEntryAsync(this.fileSystemAsync, entry));
-        },
-        (err) => {
-          reject(err);
-        }
+        (entry) => resolve(new FileEntryAsync(this.fileSystemAsync, entry)),
+        (err) => reject(err)
       );
     });
   }
@@ -62,14 +55,11 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
   public list(): Promise<EntryAsync<Entry>[]> {
     return new Promise<EntryAsync<Entry>[]>((resolve, reject) => {
       this.entry.list(
-        (entries) => {
+        (entries) =>
           resolve(
             entries.map((entry) => createEntry(this.fileSystemAsync, entry))
-          );
-        },
-        (err) => {
-          reject(err);
-        }
+          ),
+        (err) => reject(err)
       );
     });
   }
@@ -77,12 +67,8 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
   public removeRecursively(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.removeRecursively(
-        () => {
-          resolve();
-        },
-        (err) => {
-          reject(err);
-        }
+        () => resolve(),
+        (err) => reject(err)
       );
     });
   }

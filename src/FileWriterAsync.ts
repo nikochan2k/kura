@@ -32,24 +32,16 @@ export class FileWriterAsync {
 
   public truncate(size: number): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      this.fileWriter.onwriteend = () => {
-        resolve();
-      };
-      this.fileWriter.onerror = (err) => {
-        reject(err);
-      };
+      this.fileWriter.onwriteend = () => resolve();
+      this.fileWriter.onerror = (err) => reject(err);
       this.fileWriter.truncate(size);
     });
   }
 
   public write(data: Blob): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      this.fileWriter.onwriteend = () => {
-        resolve();
-      };
-      this.fileWriter.onerror = (err) => {
-        reject(err);
-      };
+      this.fileWriter.onwriteend = () => resolve();
+      this.fileWriter.onerror = (err) => reject(err);
       this.fileWriter.write(data);
     });
   }

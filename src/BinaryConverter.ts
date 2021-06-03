@@ -5,6 +5,24 @@ import {
 } from "./FileSystemConstants";
 import { dataUrlToBase64 } from "./FileSystemUtil";
 
+export function isBlob(value: unknown): value is Blob {
+  return value instanceof Blob || toString.call(value) === "[object Blob]";
+}
+
+export function isUint8Array(value: unknown): value is Uint8Array {
+  return (
+    value instanceof Uint8Array ||
+    toString.call(value) === "[object Uint8Array]"
+  );
+}
+
+export function isBuffer(value: any): value is Buffer {
+  return (
+    typeof value?.constructor?.isBuffer === "function" &&
+    value.constructor.isBuffer(value)
+  );
+}
+
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   if (blob.size === 0) {
     return EMPTY_ARRAY_BUFFER;

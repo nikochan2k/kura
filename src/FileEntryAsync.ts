@@ -17,12 +17,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   public createWriter(): Promise<FileWriterAsync> {
     return new Promise<FileWriterAsync>((resolve, reject) => {
       this.entry.createWriter(
-        (fileWriter) => {
-          resolve(new FileWriterAsync(fileWriter));
-        },
-        (err) => {
-          reject(err);
-        }
+        (fileWriter) => resolve(new FileWriterAsync(fileWriter)),
+        (err) => reject(err)
       );
     });
   }
@@ -30,59 +26,37 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
   public file(): Promise<File> {
     return new Promise((resolve, reject) => {
       this.entry.file(
-        (file) => {
-          resolve(file);
-        },
-        (err) => {
-          reject(err);
-        }
+        (file) => resolve(file),
+        (err) => reject(err)
       );
     });
   }
 
-  public readFile(
-    type?: DataType
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string> {
-    return new Promise<Blob | Uint8Array | ArrayBuffer | string>(
-      (resolve, reject) => {
-        this.entry.readFile(
-          (content) => {
-            resolve(content);
-          },
-          (err) => {
-            reject(err);
-          },
-          type
-        );
-      }
-    );
+  public readFile(type?: DataType): Promise<Blob | BufferSource | string> {
+    return new Promise<Blob | BufferSource | string>((resolve, reject) => {
+      this.entry.readFile(
+        (content) => resolve(content),
+        (err) => reject(err),
+        type
+      );
+    });
   }
 
   public readText(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       this.entry.readText(
-        (text) => {
-          resolve(text);
-        },
-        (err) => {
-          reject(err);
-        }
+        (text) => resolve(text),
+        (err) => reject(err)
       );
     });
   }
 
-  public writeFile(
-    content: Blob | Uint8Array | ArrayBuffer | string
-  ): Promise<void> {
+  public writeFile(content: Blob | BufferSource | string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeFile(
         content,
-        () => {
-          resolve();
-        },
-        (err) => {
-          reject(err);
-        }
+        () => resolve(),
+        (err) => reject(err)
       );
     });
   }
@@ -91,12 +65,8 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
     return new Promise<void>((resolve, reject) => {
       this.entry.writeText(
         text,
-        () => {
-          resolve();
-        },
-        (err) => {
-          reject(err);
-        }
+        () => resolve(),
+        (err) => reject(err)
       );
     });
   }

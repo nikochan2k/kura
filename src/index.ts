@@ -19,6 +19,7 @@ export * from "./FileSystemAsync";
 export * from "./FileSystemConstants";
 export * from "./FileSystemIndex";
 export * from "./FileSystemObject";
+export * from "./FileSystemOptions";
 export * from "./FileSystemParams";
 export * from "./FileSystemUtil";
 export * from "./filewriter";
