@@ -1,3 +1,4 @@
+import { encode, decode } from "base64-arraybuffer";
 import {
   DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
@@ -15,13 +16,6 @@ export function isUint8Array(value: unknown): value is Uint8Array {
   return (
     value instanceof Uint8Array ||
     toString.call(value) === "[object Uint8Array]"
-  );
-}
-
-export function isBuffer(value: any): value is Buffer {
-  return (
-    typeof value?.constructor?.isBuffer === "function" &&
-    value.constructor.isBuffer(value)
   );
 }
 
@@ -48,16 +42,7 @@ async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
     return new ArrayBuffer(0);
   }
 
-  const buffer = new ArrayBuffer(blob.size);
-  const view = new Uint8Array(buffer);
-  const content = atob(base64);
-  view.set(Array.from(content).map((c) => c.charCodeAt(0)));
-  return buffer;
-}
-
-async function blobToBuffer(blob: Blob) {
-  const arrayBuffer = await blobToArrayBuffer(blob);
-  return Buffer.from(arrayBuffer);
+  return base64ToArrayBuffer(base64);
 }
 
 async function blobToArrayBuffer(blob: Blob) {
@@ -74,17 +59,8 @@ async function blobToArrayBuffer(blob: Blob) {
   return buffer;
 }
 
-function base64ToBuffer(base64: string) {
-  return Buffer.from(base64, "base64");
-}
-
 function base64ToArrayBuffer(base64: string) {
-  const buffer = base64ToBuffer(base64);
-  const arrayBuffer = buffer.buffer.slice(
-    buffer.byteOffset,
-    buffer.byteOffset + buffer.byteLength
-  );
-  return arrayBuffer;
+  return decode(base64);
 }
 
 function uint8ArrayToArrayBuffer(view: Uint8Array) {
@@ -102,32 +78,6 @@ function uint8ArrayToArrayBuffer(view: Uint8Array) {
   return newBuffer;
 }
 
-export async function toBuffer(
-  content: Blob | BufferSource | string
-): Promise<Buffer> {
-  if (!content) {
-    return Buffer.from([]);
-  }
-
-  let buffer: Buffer;
-  if (typeof content === "string") {
-    buffer = base64ToBuffer(content);
-  } else if (isBlob(content)) {
-    buffer = await blobToBuffer(content);
-  } else if (isBuffer(content)) {
-    buffer = content;
-  } else if (ArrayBuffer.isView(content)) {
-    buffer = Buffer.from(
-      content.buffer,
-      content.byteOffset,
-      content.byteLength
-    );
-  } else {
-    buffer = Buffer.from(content);
-  }
-  return buffer;
-}
-
 export async function toArrayBuffer(
   content: Blob | BufferSource | string
 ): Promise<ArrayBuffer> {
@@ -140,11 +90,6 @@ export async function toArrayBuffer(
     buffer = base64ToArrayBuffer(content);
   } else if (isBlob(content)) {
     buffer = await blobToArrayBuffer(content);
-  } else if (isBuffer(content)) {
-    buffer = content.buffer.slice(
-      content.byteOffset,
-      content.byteOffset + content.byteLength
-    );
   } else if (ArrayBuffer.isView(content)) {
     buffer = uint8ArrayToArrayBuffer(content as Uint8Array);
   } else {
@@ -155,7 +100,7 @@ export async function toArrayBuffer(
 
 function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
   try {
-    const buffer = base64ToBuffer(base64);
+    const buffer = base64ToArrayBuffer(base64);
     return new Blob([buffer]);
   } catch (e) {
     console.warn(e, base64);
@@ -198,21 +143,13 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return base64;
 }
 
-function uint8ArrayToBase64(view: Uint8Array): string {
-  if (view.byteLength === 0) {
-    return "";
-  }
-
-  let binary = "";
-  for (var i = 0, end = view.byteLength; i < end; i++) {
-    binary += String.fromCharCode(view[i]);
-  }
-  return btoa(binary);
+function uint8ArrayToBase64(view: Uint8Array) {
+  const buffer = uint8ArrayToArrayBuffer(view);
+  return arrayBufferToBase64(buffer);
 }
 
 function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
-  const view = new Uint8Array(arrayBuffer);
-  return uint8ArrayToBase64(view);
+  return encode(arrayBuffer);
 }
 
 export async function toBase64(
@@ -227,8 +164,6 @@ export async function toBase64(
     base64 = content;
   } else if (isBlob(content)) {
     base64 = await blobToBase64(content);
-  } else if (isBuffer(content)) {
-    base64 = content.toString("base64");
   } else if (ArrayBuffer.isView(content)) {
     base64 = uint8ArrayToBase64(content as Uint8Array);
   } else {

@@ -1,11 +1,4 @@
-import {
-  isBlob,
-  isBuffer,
-  toArrayBuffer,
-  toBase64,
-  toBlob,
-  toBuffer,
-} from "./BinaryConverter";
+import { isBlob, toArrayBuffer, toBase64, toBlob } from "./BinaryConverter";
 import { ContentsCache } from "./ContentsCache";
 import {
   AbstractFileError,
@@ -151,8 +144,6 @@ export abstract class AbstractAccessor {
         await this.doWriteBase64(fullPath, content);
       } else if (isBlob(content)) {
         await this.doWriteBlob(fullPath, content);
-      } else if (isBuffer(content)) {
-        await this.doWriteBuffer(fullPath, content);
       } else if (ArrayBuffer.isView(content)) {
         await this.doWriteArrayBufferView(fullPath, content);
       } else {
@@ -409,8 +400,6 @@ export abstract class AbstractAccessor {
     }
     if (type === "blob") {
       content = toBlob(content);
-    } else if (type === "buffer") {
-      content = await toBuffer(content);
     } else if (type === "arraybuffer") {
       content = await toArrayBuffer(content);
     } else if (type === "base64") {
