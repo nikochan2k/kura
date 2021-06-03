@@ -531,7 +531,7 @@ export abstract class AbstractAccessor {
   public abstract doMakeDirectory(obj: FileSystemObject): Promise<void>;
   public abstract doReadContent(
     fullPath: string
-  ): Promise<Blob | Uint8Array | ArrayBuffer | string>;
+  ): Promise<Blob | BufferSource | string>;
 
   // #endregion Public Abstract Methods (5)
 
