@@ -15,6 +15,8 @@ import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
 import { getName, getSize } from "../FileSystemUtil";
+import { objectToText } from "../ObjectUtil";
+import { textToUint8Array } from "../TextConverter";
 import { IdbFileSystem } from "./IdbFileSystem";
 import { countSlash, getRange } from "./IdbUtil";
 
@@ -269,15 +271,23 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public async saveFileNameIndex(dirPath: string) {
-    const result = await super.saveFileNameIndex(dirPath);
-    const { indexPath, buffer } = result;
+    const fileNameIndex = this.dirPathIndex[dirPath];
+    if (!fileNameIndex || Object.keys(fileNameIndex).length === 0) {
+      return;
+    }
+
+    const indexPath = await this.createIndexPath(dirPath);
+    this.debug("saveFileNameIndex", indexPath);
+    const text = objectToText(fileNameIndex);
+    const u8 = textToUint8Array(text);
+    await this.doWriteContent(indexPath, u8);
+
     await this.doPutObject({
       fullPath: indexPath,
       name: INDEX_FILE_NAME,
       lastModified: Date.now(),
-      size: getSize(buffer),
+      size: getSize(u8),
     });
-    return result;
   }
 
   // #endregion Public Methods (10)
