@@ -502,13 +502,9 @@ export abstract class AbstractAccessor {
   }
 
   public async saveFileNameIndex(dirPath: string) {
-    const fileNameIndex = this.dirPathIndex[dirPath];
-    if (!fileNameIndex || Object.keys(fileNameIndex).length === 0) {
-      return;
-    }
-
     const indexPath = await this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
+    const fileNameIndex = this.dirPathIndex[dirPath];
     const text = objectToText(fileNameIndex);
     const u8 = textToUint8Array(text);
     await this.doWriteContent(indexPath, u8);
