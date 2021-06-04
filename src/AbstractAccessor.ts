@@ -158,8 +158,6 @@ export abstract class AbstractAccessor {
       } else {
         await this.doWriteArrayBuffer(fullPath, content);
       }
-
-      return this.doGetObject(fullPath);
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -336,7 +334,12 @@ export abstract class AbstractAccessor {
         await this.makeDirectory(obj);
       } else {
         // File
-        obj = await this.doWriteContent(fullPath, content);
+        await this.doWriteContent(fullPath, content);
+        try {
+          obj = await this.doGetObject(fullPath);
+        } catch (e) {
+          console.warn("putObject", fullPath, e);
+        }
         if (this.contentsCache) {
           this.contentsCache.put(obj, content);
         }

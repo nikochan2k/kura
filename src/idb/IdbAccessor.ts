@@ -217,8 +217,6 @@ export class IdbAccessor extends AbstractAccessor {
       } else {
         await this.doWriteArrayBuffer(fullPath, content);
       }
-
-      return obj;
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
