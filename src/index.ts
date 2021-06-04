@@ -28,7 +28,6 @@ export * from "./LocalFileSystemAsync";
 export * from "./ObjectUtil";
 export * from "./TextConverter";
 export * from "./XHR";
-export * from "./Util";
 export * from "./default";
 export * from "./embedded";
 export * from "./idb";
