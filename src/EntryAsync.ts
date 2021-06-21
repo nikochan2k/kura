@@ -114,11 +114,12 @@ export abstract class EntryAsync<T extends Entry> {
     });
   }
 
-  public toURL(): Promise<string> {
+  public toURL(method?: "GET" | "POST" | "PUT" | "DELETE"): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       this.entry.toURL(
         (url) => resolve(url),
-        (err) => reject(err)
+        (err) => reject(err),
+        method
       );
     });
   }

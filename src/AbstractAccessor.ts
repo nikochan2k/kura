@@ -283,7 +283,10 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async getURL(fullPath: string): Promise<string> {
+  public async getURL(
+    fullPath: string,
+    method?: "GET" | "POST" | "PUT" | "DELETE"
+  ): Promise<string> {
     return null;
   }
 

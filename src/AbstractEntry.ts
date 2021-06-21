@@ -75,9 +75,13 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback(this.toDirectoryEntry(obj));
   }
 
-  public toURL(urlCallback: URLCallback, errorCallback?: ErrorCallback): void {
+  public toURL(
+    urlCallback: URLCallback,
+    errorCallback?: ErrorCallback,
+    method?: "GET" | "POST" | "PUT" | "DELETE"
+  ): void {
     this.params.accessor
-      .getURL(this.fullPath)
+      .getURL(this.fullPath, method)
       .then((url) => urlCallback(url))
       .catch((e) => {
         if (errorCallback) {

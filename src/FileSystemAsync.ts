@@ -1,10 +1,9 @@
 import { AbstractAccessor } from "./AbstractAccessor";
 import { AbstractFileSystem } from "./AbstractFileSystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
-import { FileSystem } from "./filesystem";
 import { resolveToFullPath } from "./FileSystemUtil";
 
-export class FileSystemAsync implements FileSystem {
+export class FileSystemAsync {
   // #region Constructors (1)
 
   constructor(public filesystem: AbstractFileSystem<AbstractAccessor>) {}
@@ -25,9 +24,13 @@ export class FileSystemAsync implements FileSystem {
 
   // #region Public Methods (1)
 
-  public toURL(path: string): string {
+  public async toURL(
+    path: string,
+    method?: "GET" | "POST" | "PUT" | "DELETE"
+  ): Promise<string> {
     const fullPath = resolveToFullPath("", path);
-    return `${this.root.toURL()}${fullPath}`;
+    const rootPath = await this.root.toURL(method);
+    return `${rootPath}${fullPath}`;
   }
 
   // #endregion Public Methods (1)
