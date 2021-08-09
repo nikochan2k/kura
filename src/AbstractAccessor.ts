@@ -414,7 +414,7 @@ export abstract class AbstractAccessor {
       var read = true;
     }
     if (type === "blob") {
-      content = toBlob(content);
+      content = await toBlob(content);
     } else if (type === "buffer") {
       content = await toBuffer(content);
     } else if (type === "arraybuffer") {

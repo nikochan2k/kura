@@ -1,9 +1,19 @@
-import { decode, encode } from "base64-arraybuffer";
+import * as ba from "base64-arraybuffer";
 import {
   DEFAULT_BLOB_PROPS,
   DEFAULT_CONTENT_TYPE,
 } from "./FileSystemConstants";
 import { dataUrlToBase64 } from "./FileSystemUtil";
+
+const CHUNK_SIZE = 96 * 1024;
+
+async function decode(str: string) {
+  return ba.decode(str);
+}
+
+async function encode(buffer: ArrayBuffer) {
+  return ba.encode(buffer);
+}
 
 export function isBlob(value: unknown): value is Blob {
   return value instanceof Blob || toString.call(value) === "[object Blob]";
@@ -23,21 +33,41 @@ export function isBuffer(value: any): value is Buffer {
   );
 }
 
+async function concatArrayBuffers(chunks: ArrayBuffer[], byteLength: number) {
+  const u8 = new Uint8Array(byteLength);
+  let pos = 0;
+  for (const chunk of chunks) {
+    u8.set(new Uint8Array(chunk), pos);
+    pos += chunk.byteLength;
+  }
+  return u8.buffer;
+}
+
 async function blobToArrayBufferUsingReadAsArrayBuffer(blob: Blob) {
   if (blob.size === 0) {
     return new ArrayBuffer(0);
   }
-  const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = (ev) => {
-      reject(reader.error || ev);
-    };
-    reader.onload = () => {
-      resolve(reader.result as ArrayBuffer);
-    };
-    reader.readAsArrayBuffer(blob);
-  });
-  return buffer;
+
+  let byteLength = 0;
+  const chunks: ArrayBuffer[] = [];
+  for (let start = 0, end = blob.size; start < end; start += CHUNK_SIZE) {
+    const blobChunk = blob.slice(start, start + CHUNK_SIZE);
+    const chunk = await new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = (ev) => {
+        reject(reader.error || ev);
+      };
+      reader.onload = () => {
+        const chunk = reader.result as ArrayBuffer;
+        byteLength += chunk.byteLength;
+        resolve(chunk);
+      };
+      reader.readAsArrayBuffer(blobChunk);
+    });
+    chunks.push(chunk);
+  }
+
+  return concatArrayBuffers(chunks, byteLength);
 }
 
 async function blobToArrayBufferUsingReadAsDataUrl(blob: Blob) {
@@ -68,15 +98,42 @@ async function blobToArrayBuffer(blob: Blob) {
   return buffer;
 }
 
-function base64ToBuffer(base64: string) {
+async function base64ToBuf(base64: string) {
   return Buffer.from(base64, "base64");
 }
 
-function base64ToArrayBuffer(base64: string) {
-  return decode(base64);
+async function base64ToBuffer(base64: string) {
+  const chunks: Buffer[] = [];
+  let byteLength = 0;
+  for (let start = 0, end = base64.length; start < end; start += CHUNK_SIZE) {
+    const base64chunk = base64.substr(start, CHUNK_SIZE);
+    const chunk = await base64ToBuf(base64chunk);
+    byteLength += chunk.byteLength;
+    chunks.push(chunk);
+  }
+
+  const buffer = Buffer.alloc(byteLength);
+  let pos = 0;
+  for (const chunk of chunks) {
+    buffer.set(chunk, pos);
+    pos += chunk.byteLength;
+  }
+  return buffer;
 }
 
-function uint8ArrayToArrayBuffer(view: Uint8Array) {
+async function base64ToArrayBuffer(base64: string) {
+  let byteLength = 0;
+  const chunks: ArrayBuffer[] = [];
+  for (let start = 0, end = base64.length; start < end; start += CHUNK_SIZE) {
+    const base64chunk = base64.substr(start, CHUNK_SIZE);
+    const chunk = await decode(base64chunk);
+    byteLength += chunk.byteLength;
+    chunks.push(chunk);
+  }
+  return concatArrayBuffers(chunks, byteLength);
+}
+
+async function uint8ArrayToArrayBuffer(view: Uint8Array) {
   const viewLength = view.length;
   const buffer = view.buffer;
   if (viewLength === buffer.byteLength) {
@@ -100,7 +157,7 @@ export async function toBuffer(
 
   let buffer: Buffer;
   if (typeof content === "string") {
-    buffer = base64ToBuffer(content);
+    buffer = await base64ToBuffer(content);
   } else if (isBlob(content)) {
     buffer = await blobToBuffer(content);
   } else if (isBuffer(content)) {
@@ -126,7 +183,7 @@ export async function toArrayBuffer(
 
   let buffer: ArrayBuffer;
   if (typeof content === "string") {
-    buffer = base64ToArrayBuffer(content);
+    buffer = await base64ToArrayBuffer(content);
   } else if (isBlob(content)) {
     buffer = await blobToArrayBuffer(content);
   } else if (isBuffer(content)) {
@@ -135,16 +192,19 @@ export async function toArrayBuffer(
       content.byteOffset + content.byteLength
     );
   } else if (ArrayBuffer.isView(content)) {
-    buffer = uint8ArrayToArrayBuffer(content as Uint8Array);
+    buffer = await uint8ArrayToArrayBuffer(content as Uint8Array);
   } else {
     buffer = content;
   }
   return buffer;
 }
 
-function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
+async function base64ToBlob(
+  base64: string,
+  type = DEFAULT_CONTENT_TYPE
+): Promise<Blob> {
   try {
-    const buffer = base64ToArrayBuffer(base64);
+    const buffer = await base64ToArrayBuffer(base64);
     return new Blob([buffer], { type });
   } catch (e) {
     console.warn(e, base64);
@@ -152,14 +212,16 @@ function base64ToBlob(base64: string, type = DEFAULT_CONTENT_TYPE): Blob {
   }
 }
 
-export function toBlob(content: Blob | BufferSource | string): Blob {
+export async function toBlob(
+  content: Blob | BufferSource | string
+): Promise<Blob> {
   if (!content) {
     return new Blob([], DEFAULT_BLOB_PROPS);
   }
 
   let blob: Blob;
   if (typeof content === "string") {
-    blob = base64ToBlob(content);
+    blob = await base64ToBlob(content);
   } else if (isBlob(content)) {
     blob = content;
   } else {
@@ -173,27 +235,54 @@ async function blobToBase64(blob: Blob): Promise<string> {
     return "";
   }
 
-  const base64 = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = function (ev) {
-      reject(reader.error || ev);
-    };
-    reader.onload = function () {
-      const base64 = dataUrlToBase64(reader.result as string);
-      resolve(base64);
-    };
-    reader.readAsDataURL(blob);
-  });
+  const chunks: string[] = [];
+  for (let start = 0, end = blob.size; start < end; start += CHUNK_SIZE) {
+    const blobChunk = blob.slice(start, start + CHUNK_SIZE);
+    const chunk = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = function (ev) {
+        reject(reader.error || ev);
+      };
+      reader.onload = function () {
+        const base64 = dataUrlToBase64(reader.result as string);
+        resolve(base64);
+      };
+      reader.readAsDataURL(blobChunk);
+    });
+    chunks.push(chunk);
+  }
+  return chunks.join("");
+}
+
+async function arrayBufferToBase64(ab: ArrayBuffer): Promise<string> {
+  return encode(ab);
+}
+
+async function uint8ArrayToBase64(u8: Uint8Array): Promise<string> {
+  const chunks: string[] = [];
+  for (let start = 0, end = u8.byteLength; start < end; start += CHUNK_SIZE) {
+    const u8Chunk = u8.slice(start, start + CHUNK_SIZE);
+    const abChunk = await uint8ArrayToArrayBuffer(u8Chunk);
+    const chunk = await arrayBufferToBase64(abChunk);
+    chunks.push(chunk);
+  }
+  const base64 = chunks.join("");
   return base64;
 }
 
-function uint8ArrayToBase64(u8: Uint8Array): string {
-  const buffer = uint8ArrayToArrayBuffer(u8);
-  return arrayBufferToBase64(buffer);
-}
-
-function arrayBufferToBase64(ab: ArrayBuffer): string {
-  return encode(ab);
+async function bufferToBase64(buffer: Buffer) {
+  const chunks: string[] = [];
+  for (
+    let start = 0, end = buffer.byteLength;
+    start < end;
+    start += CHUNK_SIZE
+  ) {
+    const bufferChunk = buffer.slice(start, start + CHUNK_SIZE);
+    const chunk = bufferChunk.toString("base64");
+    chunks.push(chunk);
+  }
+  const base64 = chunks.join("");
+  return base64;
 }
 
 export async function toBase64(
@@ -209,11 +298,11 @@ export async function toBase64(
   } else if (isBlob(content)) {
     base64 = await blobToBase64(content);
   } else if (isBuffer(content)) {
-    base64 = content.toString("base64");
+    base64 = await bufferToBase64(content);
   } else if (ArrayBuffer.isView(content)) {
-    base64 = uint8ArrayToBase64(content as Uint8Array);
+    base64 = await uint8ArrayToBase64(content as Uint8Array);
   } else {
-    base64 = arrayBufferToBase64(content);
+    base64 = await uint8ArrayToBase64(new Uint8Array(content));
   }
   return base64;
 }

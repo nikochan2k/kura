@@ -301,7 +301,7 @@ export class IdbAccessor extends AbstractAccessor {
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = ab;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = toBlob(ab);
+      content = await toBlob(ab);
     } else {
       content = await toBase64(ab);
     }
