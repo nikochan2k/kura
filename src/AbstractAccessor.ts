@@ -133,7 +133,7 @@ export abstract class AbstractAccessor {
       const indexPath = await this.createIndexPath(dirPath);
       const content = await this.doReadContent(indexPath);
       const text = await toText(content);
-      return textToObject(text) || {};
+      return textToObject(text);
     } catch (e) {
       if (e instanceof NotFoundError) {
         return {};

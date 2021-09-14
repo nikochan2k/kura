@@ -267,7 +267,7 @@ export async function vacuum(filesystem: FileSystem) {
   await vacuumDirectory(accessor, filesystem.root.fullPath);
 }
 
-export function onError(err: DOMError, errorCallback?: ErrorCallback) {
+export function onError(err: any, errorCallback?: ErrorCallback) {
   if (errorCallback) {
     errorCallback(err);
   } else {

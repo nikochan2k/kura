@@ -4,15 +4,13 @@ export function objectToText(obj: any) {
 
 export function textToObject<T>(text: string) {
   if (!text) {
-    console.warn("ObjectUtil#textToObject", "No input");
-    return null;
+    throw new Error("ObjectUtil#textToObject: No input");
   }
 
   try {
     return JSON.parse(text) as T;
   } catch (e) {
-    console.warn("ObjectUtil#textToObject", text, e);
-    return null;
+    throw new Error("ObjectUtil#textToObject: " + text + "\n" + text);
   }
 }
 
