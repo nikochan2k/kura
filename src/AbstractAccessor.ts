@@ -169,7 +169,14 @@ export abstract class AbstractAccessor {
   public async getFileNameIndex(dirPath: string) {
     let fileNameIndex = this.dirPathIndex[dirPath];
     if (typeof fileNameIndex === "undefined") {
-      fileNameIndex = await this.doGetFileNameIndex(dirPath);
+      try {
+        fileNameIndex = await this.doGetFileNameIndex(dirPath);
+      } catch (e) {
+        if (!(e instanceof NotFoundError)) {
+          throw e;
+        }
+        fileNameIndex = {};
+      }
       this.dirPathIndex[dirPath] = fileNameIndex;
     }
     return fileNameIndex;
@@ -583,12 +590,8 @@ export abstract class AbstractAccessor {
   protected async getRecord(fullPath: string) {
     const dirPath = getParentPath(fullPath);
     const name = getName(fullPath);
-    try {
-      const fileÑameIndex = await this.getFileNameIndex(dirPath);
-      return { record: fileÑameIndex[name], fileNameIndex: fileÑameIndex };
-    } catch (e) {
-      return { record: null, fileNameIndex: {} };
-    }
+    const fileÑameIndex = await this.getFileNameIndex(dirPath);
+    return { record: fileÑameIndex[name], fileNameIndex: fileÑameIndex };
   }
 
   protected initialize(options: FileSystemOptions) {
