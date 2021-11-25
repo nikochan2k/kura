@@ -587,7 +587,7 @@ export abstract class AbstractAccessor {
     await this.doWriteArrayBuffer(fullPath, buffer);
   }
 
-  protected async getRecord(fullPath: string) {
+  public async getRecord(fullPath: string) {
     const dirPath = getParentPath(fullPath);
     const name = getName(fullPath);
     const fileÑameIndex = await this.getFileNameIndex(dirPath);
