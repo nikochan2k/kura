@@ -351,6 +351,13 @@ export class IdbAccessor extends AbstractAccessor {
 
   private drop() {
     return new Promise<void>(async (resolve, reject) => {
+      const isExisting = (await indexedDB.databases())
+        .map((db) => db.name)
+        .includes(this.dbName);
+      if (!isExisting) {
+        resolve();
+      }
+
       const dbName = this.dbName;
       const db = await this.open(dbName);
       const onError = (ev: Event) => {
