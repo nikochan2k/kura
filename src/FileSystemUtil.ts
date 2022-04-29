@@ -217,18 +217,18 @@ export function isIllegalFileName(name: string) {
   return /[\x00-\x1f\x7f-\x9f\\/:*?"<>|]/.test(name);
 }
 
-export function isIllegalPath(fullPath: string) {
+export function isIllegalPath(fullPath: string, index: boolean) {
   if (fullPath === DIR_SEPARATOR) {
     return true;
   }
-  if (fullPath.startsWith(INDEX_DIR)) {
+  if (index && fullPath.startsWith(INDEX_DIR)) {
     return true;
   }
   return false;
 }
 
-export function isIllegalObject(obj: FileSystemObject) {
-  if (isIllegalPath(obj.fullPath)) {
+export function isIllegalObject(obj: FileSystemObject, index: boolean) {
+  if (isIllegalPath(obj.fullPath, index)) {
     return true;
   }
   if (isIllegalFileName(obj.name)) {

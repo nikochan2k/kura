@@ -308,7 +308,7 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     content?: Blob | BufferSource | string
   ): Promise<FileSystemObject> {
-    if (isIllegalObject(obj)) {
+    if (isIllegalObject(obj, this.options.index)) {
       const fullPath = obj.fullPath;
       throw new InvalidModificationError(
         this.name,
@@ -385,7 +385,7 @@ export abstract class AbstractAccessor {
     obj: FileSystemObject,
     type?: DataType
   ): Promise<Blob | BufferSource | string> {
-    if (isIllegalObject(obj)) {
+    if (isIllegalObject(obj, this.options.index)) {
       const fullPath = obj.fullPath;
       throw new InvalidModificationError(
         this.name,
