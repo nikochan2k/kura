@@ -1,3 +1,4 @@
+import { FileError } from "./FileError";
 import { FileWriter } from "./filewriter";
 
 // Type definitions for File System API
@@ -431,7 +432,7 @@ export interface VoidCallback {
  * When an error occurs, the following callback is made.
  */
 export interface ErrorCallback {
-  (err: DOMError): void;
+  (err: FileError): void;
 }
 
 declare global {
