@@ -246,6 +246,9 @@ export class IdbAccessor extends AbstractAccessor {
     const indexPath = await this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
     const fileNameIndex = this.dirPathIndex[dirPath];
+    if (!fileNameIndex) {
+      return;
+    }
     const text = objectToText(fileNameIndex);
     const u8 = textToUint8Array(text);
     await this.doWriteContent(indexPath, u8);

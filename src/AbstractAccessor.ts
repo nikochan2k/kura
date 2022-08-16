@@ -133,7 +133,12 @@ export abstract class AbstractAccessor {
       const indexPath = await this.createIndexPath(dirPath);
       const content = await this.doReadContent(indexPath);
       const text = await toText(content);
-      return textToObject(text);
+      try {
+        return textToObject(text);
+      } catch {
+        this.doDelete(indexPath, true);
+        return {};
+      }
     } catch (e) {
       if (e instanceof NotFoundError) {
         return {};
@@ -518,6 +523,9 @@ export abstract class AbstractAccessor {
     const indexPath = await this.createIndexPath(dirPath);
     this.debug("saveFileNameIndex", indexPath);
     const fileNameIndex = this.dirPathIndex[dirPath];
+    if (!fileNameIndex) {
+      return;
+    }
     const text = objectToText(fileNameIndex);
     const u8 = textToUint8Array(text);
     await this.doWriteContent(indexPath, u8);
