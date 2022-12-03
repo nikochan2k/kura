@@ -2,18 +2,23 @@ import { FileSystemObject } from "./FileSystemObject";
 
 export interface Record {
   deleted?: number;
-  modified: number;
+  modified?: number;
+
   [key: string]: any;
 }
 
 export interface RecordCacheEntry {
-  record: Record;
   lastModified: number;
+  record: Record;
 }
 
 export type RecordCache = {
   [name: string]: RecordCacheEntry;
 };
+
+export interface FileNameIndex {
+  [name: string]: Record;
+}
 
 export interface Event {
   postDelete?: (obj: FileSystemObject) => void;

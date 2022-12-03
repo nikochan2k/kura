@@ -16,10 +16,15 @@ import {
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
 import { DIR_SEPARATOR, INDEX_DIR } from "./FileSystemConstants";
-import { Record, RecordCache } from "./FileSystemIndex";
+import { FileNameIndex, Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import { isIllegalObject, onError } from "./FileSystemUtil";
+import {
+  getName,
+  getParentPath,
+  isIllegalObject,
+  onError,
+} from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToUint8Array, toText } from "./TextConverter";
 
@@ -98,6 +103,29 @@ export abstract class AbstractAccessor {
       }
       throw new InvalidModificationError(this.name, fullPath, e);
     }
+  }
+
+  public async getFileNameIndex(dirPath: string) {
+    const fileNameIndex: FileNameIndex = {};
+
+    let indexDir = INDEX_DIR + dirPath;
+    const objects = await this.doGetObjects(indexDir);
+    for (const obj of objects) {
+      try {
+        const record = await this.getRecord(obj.fullPath);
+        const indexName = getName(obj.fullPath);
+        const name = indexName.substring(1);
+        if (!dirPath.endsWith("/")) {
+          dirPath += "/";
+        }
+        const fullPath = dirPath + name;
+        fileNameIndex[fullPath] = record;
+      } catch (e) {
+        console.warn("getFileNameIndex", { name: this.name, dirPath, e });
+      }
+    }
+
+    return fileNameIndex;
   }
 
   public async getObject(fullPath: string, _isFile: boolean) {
@@ -185,14 +213,6 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, dirPath, e);
     }
-  }
-
-  protected async createIndexPath(fullPath: string) {
-    const u8 = new TextEncoder().encode(fullPath);
-    const ab = await crypto.subtle.digest("SHA-256", u8);
-    const array = Array.from(new Uint8Array(ab));
-    const hash = array.map((b) => b.toString(16).padStart(2, "0")).join("");
-    return INDEX_DIR + DIR_SEPARATOR + hash;
   }
 
   public async getRecord(fullPath: string) {
@@ -481,6 +501,24 @@ export abstract class AbstractAccessor {
   public abstract doReadContent(
     fullPath: string
   ): Promise<Blob | BufferSource | string>;
+
+  protected async createIndexPath(fullPath: string) {
+    const name = getName(fullPath);
+    const parentPath = getParentPath(fullPath);
+    const indexName = "$" + name;
+    const indexDir = INDEX_DIR + parentPath;
+    const indexPath = indexDir + indexName;
+    try {
+      await this.doGetObject(indexPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.doMakeDirectory({ fullPath: indexDir, name: indexName });
+      } else {
+        throw new NotReadableError(this.name, indexPath, e);
+      }
+    }
+    return indexPath;
+  }
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
