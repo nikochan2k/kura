@@ -243,7 +243,7 @@ export class IdbAccessor extends AbstractAccessor {
     await this.drop();
   }
 
-  protected async saveRecord(indexPath: string, record: Record) {
+  protected async doSaveRecord(indexPath: string, record: Record) {
     const text = objectToText(record);
     const u8 = textToUint8Array(text);
     await this.doWriteContent(indexPath, u8);
