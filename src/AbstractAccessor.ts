@@ -472,8 +472,7 @@ export abstract class AbstractAccessor {
       record = entry.record;
     } else {
       try {
-        const res = await this.getRecord(fullPath);
-        record = res.record;
+        record = await this.getRecord(fullPath);
       } catch (e) {
         if (!(e instanceof NotFoundError)) {
           throw e;
