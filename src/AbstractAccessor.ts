@@ -187,8 +187,16 @@ export abstract class AbstractAccessor {
     }
   }
 
+  protected async createIndexPath(fullPath: string) {
+    const u8 = new TextEncoder().encode(fullPath);
+    const ab = await crypto.subtle.digest("SHA-256", u8);
+    const array = Array.from(new Uint8Array(ab));
+    const hash = array.map((b) => b.toString(16).padStart(2, "0")).join("");
+    return INDEX_DIR + DIR_SEPARATOR + hash;
+  }
+
   public async getRecord(fullPath: string) {
-    const indexPath = INDEX_DIR + fullPath;
+    const indexPath = await this.createIndexPath(fullPath);
     const indexObj = await this.doGetObject(indexPath);
     const entry = this.recordCache[indexPath];
     if (entry && indexObj.lastModified === entry.lastModified) {
@@ -454,7 +462,7 @@ export abstract class AbstractAccessor {
       }
     }
 
-    const indexPath = INDEX_DIR + fullPath;
+    const indexPath = await this.createIndexPath(fullPath);
     await this.doSaveRecord(indexPath, record);
 
     const indexObj = await this.doGetObject(indexPath);
@@ -513,7 +521,7 @@ export abstract class AbstractAccessor {
     }
     record.deleted = Date.now();
 
-    const indexPath = INDEX_DIR + fullPath;
+    const indexPath = await this.createIndexPath(fullPath);
     await this.doSaveRecord(indexPath, record);
 
     const indexObj = await this.doGetObject(indexPath);
