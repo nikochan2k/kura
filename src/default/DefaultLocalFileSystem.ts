@@ -8,16 +8,10 @@ import {
 import { IdbLocalFileSystem } from "../idb/IdbLocalFileSystem";
 
 export class DefaultLocalFileSystem implements LocalFileSystem {
-  // #region Properties (3)
-
   private localFileSystem: LocalFileSystem;
 
   public PERSISTENT: number;
   public TEMPORARY: number;
-
-  // #endregion Properties (3)
-
-  // #region Constructors (1)
 
   constructor() {
     this.localFileSystem = new EmbeddedLocalFileSystem();
@@ -27,10 +21,6 @@ export class DefaultLocalFileSystem implements LocalFileSystem {
     this.TEMPORARY = window.TEMPORARY;
     this.PERSISTENT = window.PERSISTENT;
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (2)
 
   public requestFileSystem(
     type: number,
@@ -57,6 +47,4 @@ export class DefaultLocalFileSystem implements LocalFileSystem {
       errorCallback
     );
   }
-
-  // #endregion Public Methods (2)
 }

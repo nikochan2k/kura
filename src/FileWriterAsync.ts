@@ -1,13 +1,7 @@
 import { FileWriter } from "./filewriter";
 
 export class FileWriterAsync {
-  // #region Constructors (1)
-
   constructor(private fileWriter: FileWriter) {}
-
-  // #endregion Constructors (1)
-
-  // #region Public Accessors (2)
 
   public get length() {
     return this.fileWriter.length;
@@ -16,10 +10,6 @@ export class FileWriterAsync {
   public get position() {
     return this.fileWriter.position;
   }
-
-  // #endregion Public Accessors (2)
-
-  // #region Public Methods (5)
 
   public async appendFile(data: Blob) {
     this.seek(this.length);
@@ -50,6 +40,4 @@ export class FileWriterAsync {
     await this.truncate(0);
     await this.write(data);
   }
-
-  // #endregion Public Methods (5)
 }

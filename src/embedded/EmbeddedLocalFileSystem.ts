@@ -6,8 +6,6 @@ import {
 } from "../filesystem";
 
 export class EmbeddedLocalFileSystem implements LocalFileSystem {
-  // #region Properties (4)
-
   public PERSISTENT: number;
   public TEMPORARY: number;
   public requestFileSystem: (
@@ -22,10 +20,6 @@ export class EmbeddedLocalFileSystem implements LocalFileSystem {
     errorCallback?: ErrorCallback
   ) => void;
 
-  // #endregion Properties (4)
-
-  // #region Constructors (1)
-
   constructor() {
     this.requestFileSystem =
       window.requestFileSystem || window.webkitRequestFileSystem;
@@ -33,6 +27,4 @@ export class EmbeddedLocalFileSystem implements LocalFileSystem {
     this.TEMPORARY = window.TEMPORARY;
     this.PERSISTENT = window.PERSISTENT;
   }
-
-  // #endregion Constructors (1)
 }

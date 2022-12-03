@@ -1,14 +1,6 @@
-import { AbstractAccessor } from "./AbstractAccessor";
-import { AbstractFileSystem } from "./AbstractFileSystem";
 import { DirectoryEntryAsync } from "./DirectoryEntryAsync";
 import { FileEntryAsync } from "./FileEntryAsync";
-import {
-  DirectoryEntry,
-  Entry,
-  ErrorCallback,
-  FileEntry,
-  FileSystem,
-} from "./filesystem";
+import { DirectoryEntry, Entry, ErrorCallback, FileEntry } from "./filesystem";
 import { FileSystemAsync } from "./FileSystemAsync";
 import {
   DEFAULT_CONTENT_TYPE,
@@ -236,35 +228,6 @@ export function isIllegalObject(obj: FileSystemObject, index: boolean) {
   }
 
   return false;
-}
-
-export async function vacuumDirectory(
-  accessor: AbstractAccessor,
-  dirPath: string
-) {
-  const fileNameIndex = await accessor.doGetFileNameIndex(dirPath);
-  for (const [name, record] of Object.entries(fileNameIndex)) {
-    const obj = record.obj;
-    if (obj.size == null) {
-      await vacuumDirectory(accessor, obj.fullPath);
-    }
-    delete fileNameIndex[name];
-  }
-}
-
-export async function vacuum(filesystem: FileSystem) {
-  if (!(filesystem instanceof AbstractFileSystem)) {
-    console.info("This is not kura FileSystem.");
-    return;
-  }
-
-  const afs = filesystem as AbstractFileSystem<AbstractAccessor>;
-  const accessor = afs.accessor;
-  if (!accessor.options.index) {
-    console.info("This filesystem does not use index.");
-    return;
-  }
-  await vacuumDirectory(accessor, filesystem.root.fullPath);
 }
 
 export function onError(err: any, errorCallback?: ErrorCallback) {

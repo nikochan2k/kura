@@ -1,6 +1,6 @@
 {
   "name": "kura",
-  "version": "0.3.70",
+  "version": "0.4.0",
   "description": "The FileSystem API abstraction library.",
   "author": "Yoshihiro Seki",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "npm-version": "npm version patch",
     "npm-publish": "npm publish",
     "release": "npm-run-all clean compile npm-version npm-publish",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --silent=false"
   },
   "jest": {
     "testEnvironment": "jsdom",

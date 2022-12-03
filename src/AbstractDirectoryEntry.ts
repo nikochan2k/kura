@@ -36,22 +36,12 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
   implements DirectoryEntry
 {
-  // #region Properties (2)
-
   public isDirectory = true;
   public isFile = false;
-
-  // #endregion Properties (2)
-
-  // #region Constructors (1)
 
   constructor(params: FileSystemParams<T>) {
     super(params);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (9)
 
   public copyTo(
     parent: DirectoryEntry,
@@ -331,10 +321,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       });
   }
 
-  // #endregion Public Methods (9)
-
-  // #region Protected Methods (3)
-
   protected createEntries(objects: FileSystemObject[]) {
     const entries: AbstractEntry<T>[] = [];
     for (const obj of objects) {
@@ -362,12 +348,6 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
     return obj;
   }
 
-  // #endregion Protected Methods (3)
-
-  // #region Protected Abstract Methods (2)
-
   protected abstract createEntry(obj: FileSystemObject): AbstractEntry<T>;
   protected abstract toFileEntry(obj: FileSystemObject): FileEntry;
-
-  // #endregion Protected Abstract Methods (2)
 }

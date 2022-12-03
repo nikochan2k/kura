@@ -18,14 +18,8 @@ if (window.PERSISTENT == null) {
 }
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
-  // #region Properties (2)
-
   public PERSISTENT: number;
   public TEMPORARY: number;
-
-  // #endregion Properties (2)
-
-  // #region Constructors (1)
 
   constructor(protected options: FileSystemOptions = {}) {
     if (options.event == null) options.event = {};
@@ -33,10 +27,6 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     this.PERSISTENT = window.PERSISTENT;
     this.TEMPORARY = window.TEMPORARY;
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (2)
 
   public requestFileSystem(
     type: number,
@@ -71,11 +61,5 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     throw new NotImplementedError("", url);
   }
 
-  // #endregion Public Methods (2)
-
-  // #region Protected Abstract Methods (1)
-
   protected abstract createAccessor(): Promise<AbstractAccessor>;
-
-  // #endregion Protected Abstract Methods (1)
 }

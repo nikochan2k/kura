@@ -4,15 +4,9 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { FileWriterAsync } from "./FileWriterAsync";
 
 export class FileEntryAsync extends EntryAsync<FileEntry> {
-  // #region Constructors (1)
-
   constructor(fileSystemAsync: FileSystemAsync, fileEntry: FileEntry) {
     super(fileSystemAsync, fileEntry);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (6)
 
   public createWriter(): Promise<FileWriterAsync> {
     return new Promise<FileWriterAsync>((resolve, reject) => {
@@ -70,6 +64,4 @@ export class FileEntryAsync extends EntryAsync<FileEntry> {
       );
     });
   }
-
-  // #endregion Public Methods (6)
 }

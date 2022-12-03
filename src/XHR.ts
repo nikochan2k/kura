@@ -2,24 +2,14 @@ import { DEFAULT_CONTENT_TYPE } from "./FileSystemConstants";
 import { NotFoundError } from "./FileError";
 
 export interface XHROptions {
-  // #region Properties (2)
-
   requestHeaders?: { [key: string]: string };
   timeout?: number;
-
-  // #endregion Properties (2)
 }
 
 export class XHR {
-  // #region Properties (3)
-
   private handled: boolean;
   private options: XHROptions;
   private url: string;
-
-  // #endregion Properties (3)
-
-  // #region Constructors (1)
 
   constructor(
     private key?: string,
@@ -37,10 +27,6 @@ export class XHR {
     }
     this.options = options;
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (3)
 
   public async get(
     url: string,
@@ -69,10 +55,6 @@ export class XHR {
   ) {
     await this.xhr("PUT", url, content, type);
   }
-
-  // #endregion Public Methods (3)
-
-  // #region Private Methods (3)
 
   private configure(xhr: XMLHttpRequest) {
     xhr.timeout = this.options.timeout;
@@ -142,6 +124,4 @@ export class XHR {
     xhr.send(content);
     await promise;
   }
-
-  // #endregion Private Methods (3)
 }

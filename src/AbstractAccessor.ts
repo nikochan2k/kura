@@ -15,82 +15,30 @@ import {
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import {
-  DIR_SEPARATOR,
-  INDEX_DIR,
-  INDEX_FILE_NAME,
-} from "./FileSystemConstants";
-import { DirPathIndex, FileNameIndex } from "./FileSystemIndex";
+import { DIR_SEPARATOR, INDEX_DIR } from "./FileSystemConstants";
+import { Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import {
-  getName,
-  getParentPath,
-  isIllegalObject,
-  onError,
-} from "./FileSystemUtil";
+import { isIllegalObject, onError } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToUint8Array, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
-  // #region Properties (4)
-
   protected contentsCache: ContentsCache;
+  protected recordCache: RecordCache = {};
 
   public abstract readonly filesystem: FileSystem;
   public abstract readonly name: string;
 
-  public dirPathIndex: DirPathIndex = {};
-
-  // #endregion Properties (4)
-
-  // #region Constructors (1)
-
   constructor(public readonly options: FileSystemOptions) {
     this.initialize(options);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (23)
 
   public clearContentsCache(fullPath: string) {
     if (this.contentsCache == null) {
       return;
     }
     this.contentsCache.remove(fullPath);
-  }
-
-  public clearFileNameIndex(dirPath: string) {
-    delete this.dirPathIndex[dirPath];
-  }
-
-  public async createIndexDir(dirPath: string) {
-    let indexDir = INDEX_DIR + dirPath;
-    if (!indexDir.endsWith(DIR_SEPARATOR)) {
-      indexDir += DIR_SEPARATOR;
-    }
-
-    const fullPath = indexDir.substr(0, indexDir.length - 1);
-    try {
-      await this.doGetObject(fullPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.doMakeDirectory({
-          fullPath,
-          name: getName(fullPath),
-        });
-      } else {
-        throw e;
-      }
-    }
-
-    return indexDir;
-  }
-
-  public async createIndexPath(dirPath: string) {
-    const indexDir = await this.createIndexDir(dirPath);
-    return indexDir + INDEX_FILE_NAME;
   }
 
   public async delete(fullPath: string, isFile: boolean) {
@@ -128,25 +76,6 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async doGetFileNameIndex(dirPath: string): Promise<FileNameIndex> {
-    try {
-      const indexPath = await this.createIndexPath(dirPath);
-      const content = await this.doReadContent(indexPath);
-      const text = await toText(content);
-      try {
-        return textToObject(text);
-      } catch {
-        this.doDelete(indexPath, true);
-        return {};
-      }
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        return {};
-      }
-      throw e;
-    }
-  }
-
   public async doWriteContent(
     fullPath: string,
     content: Blob | BufferSource | string
@@ -171,62 +100,18 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async getFileNameIndex(dirPath: string) {
-    let fileNameIndex = this.dirPathIndex[dirPath];
-    if (typeof fileNameIndex === "undefined") {
-      try {
-        fileNameIndex = await this.doGetFileNameIndex(dirPath);
-      } catch (e) {
-        if (!(e instanceof NotFoundError)) {
-          throw e;
-        }
-        fileNameIndex = {};
-      }
-      this.dirPathIndex[dirPath] = fileNameIndex;
-    }
-    return fileNameIndex;
-  }
-
-  public async getFileNameIndexObject(dirPath: string) {
-    const indexPath = await this.createIndexPath(dirPath);
-    return this.doGetObject(indexPath);
-  }
-
-  public async getObject(fullPath: string, isFile: boolean) {
+  public async getObject(fullPath: string, _isFile: boolean) {
     this.debug("getObject", fullPath);
 
     try {
       var obj = await this.doGetObject(fullPath);
+      await this.saveAndGetRecord(fullPath, obj.lastModified);
     } catch (e) {
       await this.handleReadError(e, fullPath);
     }
 
     if (!(await this.beforeHead(obj))) {
       throw new NotFoundError(this.name, obj.fullPath, "beforeHead");
-    }
-
-    if (this.options.index) {
-      let updated = false;
-      let { record, fileNameIndex } = await this.getRecord(fullPath);
-      if (record) {
-        if (record.deleted) {
-          if (this.options.indexOptions?.logicalDelete) {
-            throw new NotFoundError(this.name, obj.fullPath, "logicalDelete");
-          } else {
-            updated = true;
-            record = { modified: obj.lastModified || Date.now(), obj };
-          }
-        }
-      } else {
-        updated = true;
-        record = { modified: obj.lastModified || Date.now(), obj };
-      }
-
-      if (updated) {
-        fileNameIndex[obj.name] = record;
-        const dirPath = getParentPath(fullPath);
-        await this.saveFileNameIndex(dirPath);
-      }
     }
 
     this.afterHead(obj);
@@ -239,34 +124,20 @@ export abstract class AbstractAccessor {
       let objects = await this.doGetObjects(dirPath);
 
       if (index) {
-        const fileNameIndex = await this.getFileNameIndex(dirPath);
-
-        let updated = false;
         const newObjects: FileSystemObject[] = [];
         for (const obj of objects) {
           if (obj.fullPath === INDEX_DIR) {
             continue;
           }
 
-          const name = obj.name;
-          const record = fileNameIndex[name];
-          if (record) {
-            if (record.deleted) {
-              if (this.options.indexOptions.logicalDelete) {
-                continue;
-              } else {
-                delete record.deleted;
-                record.modified = obj.lastModified;
-                record.obj = obj;
-                updated = true;
-              }
+          try {
+            const record = await this.saveAndGetRecord(obj.fullPath);
+            if (this.options.indexOptions.logicalDelete && record.deleted) {
+              continue;
             }
-          } else {
-            fileNameIndex[name] = {
-              modified: obj.lastModified || Date.now(),
-              obj,
-            };
-            updated = true;
+          } catch (e) {
+            console.warn("getObjects", obj, e);
+            continue;
           }
 
           if (!(await this.beforeHead(obj))) {
@@ -275,10 +146,6 @@ export abstract class AbstractAccessor {
           this.afterHead(obj);
 
           newObjects.push(obj);
-        }
-
-        if (updated) {
-          await this.saveFileNameIndex(dirPath);
         }
 
         return newObjects;
@@ -293,6 +160,25 @@ export abstract class AbstractAccessor {
       }
       throw new NotReadableError(this.name, dirPath, e);
     }
+  }
+
+  public async getRecord(fullPath: string) {
+    const indexPath = INDEX_DIR + fullPath;
+    const indexObj = await this.doGetObject(indexPath);
+    const entry = this.recordCache[indexPath];
+    if (entry && indexObj.lastModified === entry.lastModified) {
+      return entry.record;
+    }
+
+    const content = await this.doReadContent(indexPath);
+    const text = await toText(content);
+    const record: Record = textToObject(text);
+    this.recordCache[indexPath] = {
+      record,
+      lastModified: indexObj.lastModified,
+    };
+
+    return record;
   }
 
   public async getURL(
@@ -359,9 +245,7 @@ export abstract class AbstractAccessor {
           this.contentsCache.put(obj, content);
         }
       }
-      if (this.options.index) {
-        await this.updateIndex(obj);
-      }
+      await this.saveAndGetRecord(obj.fullPath, obj.lastModified);
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
@@ -488,9 +372,7 @@ export abstract class AbstractAccessor {
     this.debug("remove", fullPath);
     await this.beforeDelete(obj);
 
-    if (this.options.index) {
-      await this.deleteFromIndex(fullPath);
-    }
+    await this.deleteRecord(fullPath);
     await this.delete(fullPath, isFile);
 
     this.afterDelete(obj);
@@ -519,31 +401,41 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async saveFileNameIndex(dirPath: string) {
-    const indexPath = await this.createIndexPath(dirPath);
-    this.debug("saveFileNameIndex", indexPath);
-    const fileNameIndex = this.dirPathIndex[dirPath];
-    if (!fileNameIndex) {
+  public async saveAndGetRecord(fullPath: string, modified?: number) {
+    if (!this.options.index) {
       return;
     }
-    const text = objectToText(fileNameIndex);
-    const u8 = textToUint8Array(text);
-    await this.doWriteContent(indexPath, u8);
+
+    if (!modified) {
+      modified = Date.now();
+    }
+
+    let record: Record;
+    try {
+      record = await this.getRecord(fullPath);
+      if (record.modified === modified && record.deleted == null) {
+        return record;
+      }
+      record.modified = modified;
+      delete record.deleted;
+    } catch (e) {
+      if (!(e instanceof NotFoundError)) {
+        throw e;
+      }
+      record = { modified };
+    }
+
+    const indexPath = INDEX_DIR + fullPath;
+    await this.saveRecord(indexPath, record);
+
+    const indexObj = await this.doGetObject(indexPath);
+    this.recordCache[indexPath] = {
+      record,
+      lastModified: indexObj.lastModified,
+    };
+
+    return record;
   }
-
-  public async updateIndex(obj: FileSystemObject) {
-    const fullPath = obj.fullPath;
-    const dirPath = getParentPath(fullPath);
-    const fileNameIndex = await this.getFileNameIndex(dirPath);
-    const name = getName(fullPath);
-    fileNameIndex[name] = { modified: obj.lastModified || Date.now(), obj };
-    this.dirPathIndex[dirPath] = fileNameIndex;
-    await this.saveFileNameIndex(dirPath);
-  }
-
-  // #endregion Public Methods (23)
-
-  // #region Public Abstract Methods (5)
 
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   public abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
@@ -552,10 +444,6 @@ export abstract class AbstractAccessor {
   public abstract doReadContent(
     fullPath: string
   ): Promise<Blob | BufferSource | string>;
-
-  // #endregion Public Abstract Methods (5)
-
-  // #region Protected Methods (8)
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
@@ -570,21 +458,38 @@ export abstract class AbstractAccessor {
     }
   }
 
-  protected async deleteFromIndex(fullPath: string) {
+  protected async deleteRecord(fullPath: string) {
     if (!this.options.index) {
       return;
     }
 
-    const dirPath = getParentPath(fullPath);
-    const fileNameIndex = await this.getFileNameIndex(dirPath);
-    const name = getName(fullPath);
-    const record = fileNameIndex[name];
-    if (!record) {
-      return;
+    const entry = this.recordCache[fullPath];
+    let record: Record;
+    if (entry) {
+      if (entry.record.deleted != null) {
+        return;
+      }
+      record = entry.record;
+    } else {
+      try {
+        const res = await this.getRecord(fullPath);
+        record = res.record;
+      } catch (e) {
+        if (!(e instanceof NotFoundError)) {
+          throw e;
+        }
+        return;
+      }
     }
-    record.deleted = Date.now();
-    this.dirPathIndex[dirPath] = fileNameIndex;
-    await this.saveFileNameIndex(dirPath);
+
+    const indexPath = INDEX_DIR + fullPath;
+    await this.saveRecord(indexPath, { ...record, deleted: Date.now() });
+
+    const indexObj = await this.doGetObject(indexPath);
+    this.recordCache[indexPath] = {
+      record,
+      lastModified: indexObj.lastModified,
+    };
   }
 
   protected async doWriteUint8Array(
@@ -593,13 +498,6 @@ export abstract class AbstractAccessor {
   ): Promise<void> {
     const buffer = await toArrayBuffer(view);
     await this.doWriteArrayBuffer(fullPath, buffer);
-  }
-
-  public async getRecord(fullPath: string) {
-    const dirPath = getParentPath(fullPath);
-    const name = getName(fullPath);
-    const fileÑameIndex = await this.getFileNameIndex(dirPath);
-    return { record: fileÑameIndex[name], fileNameIndex: fileÑameIndex };
   }
 
   protected initialize(options: FileSystemOptions) {
@@ -658,9 +556,10 @@ export abstract class AbstractAccessor {
     await this.doMakeDirectory(obj);
   }
 
-  // #endregion Protected Methods (8)
-
-  // #region Protected Abstract Methods (4)
+  protected async saveRecord(indexPath: string, record: Record) {
+    const text = objectToText(record);
+    await this.doWriteContent(indexPath, text);
+  }
 
   protected abstract doWriteArrayBuffer(
     fullPath: string,
@@ -675,10 +574,6 @@ export abstract class AbstractAccessor {
     fullPath: string,
     buffer: Buffer
   ): Promise<void>;
-
-  // #endregion Protected Abstract Methods (4)
-
-  // #region Private Methods (11)
 
   private afterDelete(obj: FileSystemObject) {
     if (!this.options.event.postDelete) {
@@ -780,18 +675,8 @@ export abstract class AbstractAccessor {
 
   private async handleReadError(e: any, fullPath: string, name?: string) {
     if (e instanceof NotFoundError) {
-      if (this.options.index) {
-        let { record, fileNameIndex } = await this.getRecord(fullPath);
-        if (record && !record.deleted) {
-          if (name == null) {
-            name = getName(fullPath);
-          }
-          delete fileNameIndex[name];
-          const dirPath = getParentPath(fullPath);
-          await this.saveFileNameIndex(dirPath);
-          this.clearContentsCache(fullPath);
-        }
-      }
+      await this.deleteRecord(fullPath);
+      this.clearContentsCache(fullPath);
       throw e;
     } else if (e instanceof AbstractFileError) {
       throw e;
@@ -799,6 +684,4 @@ export abstract class AbstractAccessor {
       throw new NotReadableError(this.name, fullPath, e);
     }
   }
-
-  // #endregion Private Methods (11)
 }

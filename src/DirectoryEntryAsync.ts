@@ -6,18 +6,12 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { createEntry } from "./FileSystemUtil";
 
 export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
-  // #region Constructors (1)
-
   constructor(
     fileSystemAsync: FileSystemAsync,
     directoryEntry: DirectoryEntry
   ) {
     super(fileSystemAsync, directoryEntry);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (5)
 
   public createReader(): DirectoryReaderAsync {
     return new DirectoryReaderAsync(
@@ -72,6 +66,4 @@ export class DirectoryEntryAsync extends EntryAsync<DirectoryEntry> {
       );
     });
   }
-
-  // #endregion Public Methods (5)
 }

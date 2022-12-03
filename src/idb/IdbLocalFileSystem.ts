@@ -4,15 +4,9 @@ import { FileSystemOptions } from "../FileSystemOptions";
 import { IdbAccessor } from "./IdbAccessor";
 
 export class IdbLocalFileSystem extends AbstractLocalFileSystem {
-  // #region Constructors (1)
-
   constructor(private dbName: string, options?: FileSystemOptions) {
     super(options);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Protected Methods (1)
 
   protected createAccessor(): Promise<AbstractAccessor> {
     return new Promise<IdbAccessor>((resolve, reject) => {
@@ -27,6 +21,4 @@ export class IdbLocalFileSystem extends AbstractLocalFileSystem {
         });
     });
   }
-
-  // #endregion Protected Methods (1)
 }

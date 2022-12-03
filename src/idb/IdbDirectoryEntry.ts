@@ -6,15 +6,9 @@ import { IdbAccessor } from "./IdbAccessor";
 import { IdbFileEntry } from "./IdbFileEntry";
 
 export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
-  // #region Constructors (1)
-
   constructor(params: FileSystemParams<IdbAccessor>) {
     super(params);
   }
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (2)
 
   public toDirectoryEntry(obj: FileSystemObject): DirectoryEntry {
     return new IdbDirectoryEntry({
@@ -30,10 +24,6 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
     });
   }
 
-  // #endregion Public Methods (2)
-
-  // #region Protected Methods (1)
-
   protected createEntry(obj: FileSystemObject) {
     return obj.size != null
       ? new IdbFileEntry({
@@ -45,6 +35,4 @@ export class IdbDirectoryEntry extends AbstractDirectoryEntry<IdbAccessor> {
           ...obj,
         });
   }
-
-  // #endregion Protected Methods (1)
 }

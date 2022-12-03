@@ -12,6 +12,7 @@ import {
   NotFoundError,
 } from "../FileError";
 import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
+import { Record } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
 import { getName, getSize } from "../FileSystemUtil";
@@ -242,14 +243,8 @@ export class IdbAccessor extends AbstractAccessor {
     await this.drop();
   }
 
-  public async saveFileNameIndex(dirPath: string) {
-    const indexPath = await this.createIndexPath(dirPath);
-    this.debug("saveFileNameIndex", indexPath);
-    const fileNameIndex = this.dirPathIndex[dirPath];
-    if (!fileNameIndex) {
-      return;
-    }
-    const text = objectToText(fileNameIndex);
+  protected async saveRecord(indexPath: string, record: Record) {
+    const text = objectToText(record);
     const u8 = textToUint8Array(text);
     await this.doWriteContent(indexPath, u8);
 

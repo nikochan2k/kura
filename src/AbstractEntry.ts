@@ -22,20 +22,10 @@ import {
 export abstract class AbstractEntry<T extends AbstractAccessor>
   implements Entry
 {
-  // #region Properties (2)
-
   public abstract isDirectory: boolean;
   public abstract isFile: boolean;
 
-  // #endregion Properties (2)
-
-  // #region Constructors (1)
-
   constructor(public params: FileSystemParams<T>) {}
-
-  // #endregion Constructors (1)
-
-  // #region Public Accessors (3)
 
   public get filesystem() {
     return this.params.accessor.filesystem;
@@ -48,10 +38,6 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
   public get name() {
     return this.params.name;
   }
-
-  // #endregion Public Accessors (3)
-
-  // #region Public Methods (3)
 
   public getMetadata(
     successCallback: MetadataCallback,
@@ -90,10 +76,6 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
       });
   }
 
-  // #endregion Public Methods (3)
-
-  // #region Public Abstract Methods (3)
-
   public abstract copyTo(
     parent: DirectoryEntry,
     newName?: string | undefined,
@@ -110,10 +92,6 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     successCallback: VoidCallback,
     errorCallback?: ErrorCallback | undefined
   ): void;
-
-  // #endregion Public Abstract Methods (3)
-
-  // #region Protected Methods (2)
 
   protected canCopy(
     parent: DirectoryEntry,
@@ -135,11 +113,5 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
     return true;
   }
 
-  // #endregion Protected Methods (2)
-
-  // #region Protected Abstract Methods (1)
-
   protected abstract toDirectoryEntry(obj: FileSystemObject): DirectoryEntry;
-
-  // #endregion Protected Abstract Methods (1)
 }

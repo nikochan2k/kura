@@ -6,13 +6,7 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { createEntry } from "./FileSystemUtil";
 
 export abstract class EntryAsync<T extends Entry> {
-  // #region Constructors (1)
-
   constructor(protected fileSystemAsync: FileSystemAsync, public entry: T) {}
-
-  // #endregion Constructors (1)
-
-  // #region Public Accessors (5)
 
   public get filesystem() {
     return this.fileSystemAsync;
@@ -33,10 +27,6 @@ export abstract class EntryAsync<T extends Entry> {
   public get name() {
     return this.entry.name;
   }
-
-  // #endregion Public Accessors (5)
-
-  // #region Public Methods (6)
 
   public copyTo(
     parent: DirectoryEntryAsync,
@@ -123,6 +113,4 @@ export abstract class EntryAsync<T extends Entry> {
       );
     });
   }
-
-  // #endregion Public Methods (6)
 }

@@ -21,31 +21,17 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
   extends AbstractEntry<T>
   implements FileEntry
 {
-  // #region Properties (3)
-
   public fileWriter: AbstractFileWriter<T>;
   public isDirectory = false;
   public isFile = true;
-
-  // #endregion Properties (3)
-
-  // #region Constructors (1)
 
   constructor(params: FileSystemParams<T>) {
     super(params);
   }
 
-  // #endregion Constructors (1)
-
-  // #region Public Accessors (1)
-
   public get size() {
     return this.params.size;
   }
-
-  // #endregion Public Accessors (1)
-
-  // #region Public Methods (9)
 
   public copyTo(
     parent: DirectoryEntry,
@@ -210,11 +196,5 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
       });
   }
 
-  // #endregion Public Methods (9)
-
-  // #region Protected Abstract Methods (1)
-
   protected abstract createFileWriter(file: File): AbstractFileWriter<T>;
-
-  // #endregion Protected Abstract Methods (1)
 }

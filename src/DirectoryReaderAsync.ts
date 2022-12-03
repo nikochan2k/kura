@@ -4,16 +4,10 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import { createEntry } from "./FileSystemUtil";
 
 export class DirectoryReaderAsync {
-  // #region Constructors (1)
-
   constructor(
     private fileSystemAsync: FileSystemAsync,
     private directoryReader: DirectoryReader
   ) {}
-
-  // #endregion Constructors (1)
-
-  // #region Public Methods (1)
 
   public readEntries(): Promise<EntryAsync<Entry>[]> {
     return new Promise<EntryAsync<Entry>[]>((resolve, reject) => {
@@ -26,6 +20,4 @@ export class DirectoryReaderAsync {
       );
     });
   }
-
-  // #endregion Public Methods (1)
 }

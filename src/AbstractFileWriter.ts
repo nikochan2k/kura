@@ -6,9 +6,8 @@ import { FileWriter } from "./filewriter";
 import { NotImplementedError } from "./FileError";
 
 export abstract class AbstractFileWriter<T extends AbstractAccessor>
-  implements FileWriter {
-  // #region Properties (12)
-
+  implements FileWriter
+{
   public DONE: number;
   public INIT: number;
   public WRITING: number;
@@ -22,23 +21,11 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
   public position = 0;
   public readyState: number;
 
-  // #endregion Properties (12)
-
-  // #region Constructors (1)
-
   constructor(protected fileEntry: AbstractFileEntry<T>, public file: File) {}
-
-  // #endregion Constructors (1)
-
-  // #region Public Accessors (1)
 
   public get length() {
     return this.fileEntry.size;
   }
-
-  // #endregion Public Accessors (1)
-
-  // #region Public Methods (7)
 
   public abort(): void {
     throw new NotImplementedError(
@@ -138,10 +125,6 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     }
   }
 
-  // #endregion Public Methods (7)
-
-  // #region Protected Methods (1)
-
   protected doWrite(blob: Blob, onsuccess: () => void) {
     const obj: FileSystemObject = {
       name: this.fileEntry.name,
@@ -180,6 +163,4 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
         }
       });
   }
-
-  // #endregion Protected Methods (1)
 }
