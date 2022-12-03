@@ -109,15 +109,15 @@ export abstract class AbstractAccessor {
     const fileNameIndex: FileNameIndex = {};
 
     let indexDir = INDEX_DIR + dirPath;
+    if (!dirPath.endsWith("/")) {
+      dirPath += "/";
+    }
+
     const objects = await this.doGetObjects(indexDir);
     for (const obj of objects) {
       try {
         const record = await this.getRecord(obj.fullPath);
-        const indexName = getName(obj.fullPath);
-        const name = indexName.substring(1);
-        if (!dirPath.endsWith("/")) {
-          dirPath += "/";
-        }
+        const name = record.name;
         const fullPath = dirPath + name;
         fileNameIndex[fullPath] = record;
       } catch (e) {
@@ -151,7 +151,7 @@ export abstract class AbstractAccessor {
       var obj = await this.doGetObject(fullPath);
       if (record && record.modified != obj.lastModified) {
         record.modified = obj.lastModified;
-        await this.saveRecord(fullPath, obj.lastModified, record);
+        await this.saveRecord(fullPath, obj.lastModified, obj.size, record);
       }
     } catch (e) {
       await this.handleReadError(e, fullPath);
@@ -457,6 +457,7 @@ export abstract class AbstractAccessor {
   public async saveRecord(
     fullPath: string,
     lastModified: number,
+    size?: number,
     record?: Record
   ) {
     if (!this.options.index) {
@@ -473,7 +474,7 @@ export abstract class AbstractAccessor {
         delete record.deleted;
       } catch (e) {
         if (e instanceof NotFoundError) {
-          record = { modified: lastModified };
+          record = { name: getName(fullPath), modified: lastModified, size };
         } else if (e instanceof AbstractFileError) {
           throw e;
         } else {

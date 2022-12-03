@@ -1,8 +1,10 @@
 import { FileSystemObject } from "./FileSystemObject";
 
 export interface Record {
+  name: string;
   deleted?: number;
   modified?: number;
+  size?: number;
 
   [key: string]: any;
 }
