@@ -111,8 +111,7 @@ export abstract class AbstractAccessor {
           throw new NotFoundError(this.name, fullPath, "getObject");
         }
       } catch (e) {
-        if (e instanceof NotFoundError) {
-        } else if (e instanceof AbstractFileError) {
+        if (e instanceof AbstractFileError) {
           throw e;
         } else {
           throw new NotReadableError(this.name, fullPath, e);
