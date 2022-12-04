@@ -215,12 +215,15 @@ export abstract class AbstractAccessor {
     const objects = await this.doGetObjects(indexDir);
     for (const obj of objects) {
       try {
-        const record = await this.getRecord(obj.fullPath);
-        const name = record.name;
+        const name = obj.name.substring(1);
         const fullPath = dirPath + name;
+        const record = await this.getRecord(fullPath);
         fileNameIndex[fullPath] = record;
       } catch (e) {
-        console.debug(e);
+        if (e instanceof NotFoundError) {
+        } else {
+          onError(e);
+        }
       }
     }
 
