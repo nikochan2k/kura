@@ -59,6 +59,42 @@ export abstract class AbstractAccessor {
     }
   }
 
+  public async deleteRecord(fullPath: string) {
+    if (!this.options.index) {
+      return;
+    }
+
+    const entry = this.recordCache[fullPath];
+    let record: Record;
+    if (entry) {
+      if (entry.record.deleted != null) {
+        return;
+      }
+      record = entry.record;
+    } else {
+      try {
+        record = await this.getRecord(fullPath);
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          return;
+        } else if (e instanceof AbstractFileError) {
+          throw e;
+        }
+        throw new NotReadableError(this.name, fullPath, e);
+      }
+    }
+    record.deleted = Date.now();
+
+    const indexPath = await this.createIndexPath(fullPath);
+    await this.doSaveRecord(indexPath, record);
+
+    const indexObj = await this.doGetObject(indexPath);
+    this.recordCache[indexPath] = {
+      record,
+      lastModified: indexObj.lastModified,
+    };
+  }
+
   public async doDeleteRecursively(fullPath: string) {
     try {
       var children = await this.doGetObjects(fullPath);
@@ -532,42 +568,6 @@ export abstract class AbstractAccessor {
         `${this.name} - ${title}: fullPath=${value.fullPath}, lastModified=${value.lastModified}, size=${value.size}`
       );
     }
-  }
-
-  protected async deleteRecord(fullPath: string) {
-    if (!this.options.index) {
-      return;
-    }
-
-    const entry = this.recordCache[fullPath];
-    let record: Record;
-    if (entry) {
-      if (entry.record.deleted != null) {
-        return;
-      }
-      record = entry.record;
-    } else {
-      try {
-        record = await this.getRecord(fullPath);
-      } catch (e) {
-        if (e instanceof NotFoundError) {
-          return;
-        } else if (e instanceof AbstractFileError) {
-          throw e;
-        }
-        throw new NotReadableError(this.name, fullPath, e);
-      }
-    }
-    record.deleted = Date.now();
-
-    const indexPath = await this.createIndexPath(fullPath);
-    await this.doSaveRecord(indexPath, record);
-
-    const indexObj = await this.doGetObject(indexPath);
-    this.recordCache[indexPath] = {
-      record,
-      lastModified: indexObj.lastModified,
-    };
   }
 
   protected async doSaveRecord(indexPath: string, record: Record) {
