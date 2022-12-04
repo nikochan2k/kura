@@ -64,6 +64,26 @@ export abstract class AbstractAccessor {
     return indexPath;
   }
 
+  public async delete(fullPath: string, isFile: boolean) {
+    try {
+      await this.deleteRecord(fullPath);
+    } catch (e) {
+      onError(e);
+    }
+
+    if (!this.options.indexOptions?.logicalDelete) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        onError(e);
+      }
+    }
+
+    if (isFile && this.contentsCache) {
+      this.contentsCache.remove(fullPath);
+    }
+  }
+
   public async deleteRecord(fullPath: string) {
     if (!this.options.index) {
       return;
@@ -114,31 +134,43 @@ export abstract class AbstractAccessor {
       if (child.size == null) {
         await this.doDeleteRecursively(child.fullPath);
       } else {
-        await this.doDelete(child.fullPath, true);
+        await this.delete(child.fullPath, true);
       }
     }
     if (fullPath !== DIR_SEPARATOR) {
-      await this.doDelete(fullPath, false);
+      await this.delete(fullPath, false);
     }
   }
 
-  public async doRemove(fullPath: string, isFile: boolean) {
+  public async doPutObject(
+    obj: FileSystemObject,
+    content?: Blob | BufferSource | string
+  ): Promise<FileSystemObject> {
+    const fullPath = obj.fullPath;
     try {
-      await this.deleteRecord(fullPath);
-    } catch (e) {
-      onError(e);
-    }
-
-    if (!this.options.indexOptions?.logicalDelete) {
-      try {
-        await this.doDelete(fullPath, isFile);
-      } catch (e) {
-        onError(e);
+      this.debug("putObject", fullPath);
+      if (content == null) {
+        // Directory
+        await this.doMakeDirectory(obj);
+      } else {
+        // File
+        await this.doWriteContent(fullPath, content);
+        try {
+          obj = await this.doGetObject(fullPath);
+        } catch (e) {
+          console.warn("putObject", fullPath, e);
+        }
+        if (this.contentsCache) {
+          this.contentsCache.put(obj, content);
+        }
       }
-    }
-
-    if (isFile && this.contentsCache) {
-      this.contentsCache.remove(fullPath);
+      await this.saveRecord(obj.fullPath, obj.lastModified);
+      return obj;
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
   }
 
@@ -353,38 +385,6 @@ export abstract class AbstractAccessor {
     return obj;
   }
 
-  public async doPutObject(
-    obj: FileSystemObject,
-    content?: Blob | BufferSource | string
-  ): Promise<FileSystemObject> {
-    const fullPath = obj.fullPath;
-    try {
-      this.debug("putObject", fullPath);
-      if (content == null) {
-        // Directory
-        await this.doMakeDirectory(obj);
-      } else {
-        // File
-        await this.doWriteContent(fullPath, content);
-        try {
-          obj = await this.doGetObject(fullPath);
-        } catch (e) {
-          console.warn("putObject", fullPath, e);
-        }
-        if (this.contentsCache) {
-          this.contentsCache.put(obj, content);
-        }
-      }
-      await this.saveRecord(obj.fullPath, obj.lastModified);
-      return obj;
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
-  }
-
   public async putText(
     obj: FileSystemObject,
     text: string
@@ -495,7 +495,7 @@ export abstract class AbstractAccessor {
     this.debug("remove", fullPath);
     await this.beforeDelete(obj);
 
-    await this.doRemove(fullPath, isFile);
+    await this.delete(fullPath, isFile);
 
     this.afterDelete(obj);
   }
@@ -619,7 +619,7 @@ export abstract class AbstractAccessor {
     }
     const contentsCacheOptions = options.contentsCacheOptions;
     if (!(0 < contentsCacheOptions.capacity)) {
-      contentsCacheOptions.capacity = 10 * 1024 * 1024; // 10MB
+      contentsCacheOptions.capacity = 100 * 1024 * 1024; // 100MB
     }
     if (!(0 < contentsCacheOptions.limitSize)) {
       contentsCacheOptions.limitSize = 256 * 1024; // 256KB;
