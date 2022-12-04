@@ -591,7 +591,8 @@ export abstract class AbstractAccessor {
 
   protected async doSaveRecord(indexPath: string, record: Record) {
     const text = objectToText(record);
-    await this.doWriteContent(indexPath, text);
+    const u8 = textToUint8Array(text);
+    await this.doWriteContent(indexPath, u8);
   }
 
   protected async doWriteUint8Array(
