@@ -218,7 +218,7 @@ export abstract class AbstractAccessor {
         const name = obj.name.substring(1);
         const fullPath = dirPath + name;
         const record = await this.getRecord(fullPath);
-        fileNameIndex[name] = { ...record, fullPath };
+        fileNameIndex[name] = { ...record, fullPath, name };
       } catch (e) {
         if (e instanceof NotFoundError) {
         } else {

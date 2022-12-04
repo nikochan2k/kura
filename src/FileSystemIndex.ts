@@ -17,9 +17,7 @@ export type RecordCache = {
   [name: string]: RecordCacheEntry;
 };
 
-export interface FileNameIndexEntry extends Record {
-  fullPath: string;
-}
+export interface FileNameIndexEntry extends Record, FileSystemObject {}
 
 export interface FileNameIndex {
   [name: string]: FileNameIndexEntry;
