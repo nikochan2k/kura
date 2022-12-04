@@ -230,11 +230,12 @@ export abstract class AbstractAccessor {
     const fileNameIndex: FileNameIndex = {};
 
     let indexDir = INDEX_DIR_PATH + dirPath;
+    const objects = await this.doGetObjects(indexDir);
+
     if (!dirPath.endsWith("/")) {
       dirPath += "/";
     }
 
-    const objects = await this.doGetObjects(indexDir);
     for (const obj of objects) {
       try {
         const name = obj.name.substring(1);
