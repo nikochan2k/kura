@@ -64,19 +64,6 @@ export abstract class AbstractAccessor {
     return indexPath;
   }
 
-  public async delete(fullPath: string, isFile: boolean) {
-    if (!this.options.indexOptions?.logicalDelete) {
-      try {
-        await this.doDelete(fullPath, isFile);
-      } catch (e) {
-        onError(e);
-      }
-    }
-    if (isFile && this.contentsCache) {
-      this.contentsCache.remove(fullPath);
-    }
-  }
-
   public async deleteRecord(fullPath: string) {
     if (!this.options.index) {
       return;
@@ -132,6 +119,58 @@ export abstract class AbstractAccessor {
     }
     if (fullPath !== DIR_SEPARATOR) {
       await this.doDelete(fullPath, false);
+    }
+  }
+
+  public async doPutObject(
+    obj: FileSystemObject,
+    content?: Blob | BufferSource | string
+  ): Promise<void> {
+    const fullPath = obj.fullPath;
+    try {
+      this.debug("doPutObject", fullPath);
+      if (content == null) {
+        // Directory
+        await this.doMakeDirectory(obj);
+      } else {
+        // File
+        await this.doWriteContent(fullPath, content);
+        try {
+          obj = await this.doGetObject(fullPath);
+        } catch (e) {
+          console.warn("doPutObject", fullPath, e);
+        }
+        if (this.contentsCache) {
+          this.contentsCache.put(obj, content);
+        }
+      }
+      await this.saveRecord(obj.fullPath, obj.lastModified);
+    } catch (e) {
+      if (e instanceof AbstractFileError) {
+        throw e;
+      }
+      throw new InvalidModificationError(this.name, fullPath, e);
+    }
+  }
+
+  public async doRemove(fullPath: string, isFile: boolean) {
+    const logicalDelete = this.options.indexOptions?.logicalDelete;
+    if (!logicalDelete) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        onError(e);
+      }
+    }
+
+    try {
+      await this.deleteRecord(fullPath);
+    } catch (e) {
+      onError(e);
+    }
+
+    if (isFile && this.contentsCache) {
+      this.contentsCache.remove(fullPath);
     }
   }
 
@@ -335,30 +374,7 @@ export abstract class AbstractAccessor {
       await this.beforePut(obj);
     }
 
-    try {
-      this.debug("putObject", fullPath);
-      if (content == null) {
-        // Directory
-        await this.makeDirectory(obj);
-      } else {
-        // File
-        await this.doWriteContent(fullPath, content);
-        try {
-          obj = await this.doGetObject(fullPath);
-        } catch (e) {
-          console.warn("putObject", fullPath, e);
-        }
-        if (this.contentsCache) {
-          this.contentsCache.put(obj, content);
-        }
-      }
-      await this.saveRecord(obj.fullPath, obj.lastModified);
-    } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
-    }
+    await this.doPutObject(obj, content);
 
     if (create) {
       this.afterPost(obj);
@@ -479,8 +495,7 @@ export abstract class AbstractAccessor {
     this.debug("remove", fullPath);
     await this.beforeDelete(obj);
 
-    await this.deleteRecord(fullPath);
-    await this.delete(fullPath, isFile);
+    await this.doRemove(fullPath, isFile);
 
     this.afterDelete(obj);
   }
@@ -632,11 +647,6 @@ export abstract class AbstractAccessor {
     if (indexOptions.logicalDelete == null) {
       indexOptions.logicalDelete = false;
     }
-  }
-
-  protected async makeDirectory(obj: FileSystemObject) {
-    this.debug("makeDirectory", obj);
-    await this.doMakeDirectory(obj);
   }
 
   protected abstract doWriteArrayBuffer(
