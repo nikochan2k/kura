@@ -35,6 +35,7 @@ import { textToUint8Array, toText } from "./TextConverter";
 export abstract class AbstractAccessor {
   protected contentsCache: ContentsCache;
   protected recordCache: RecordCache = {};
+  protected indexDirCreated = false;
 
   public abstract readonly filesystem: FileSystem;
   public abstract readonly name: string;
@@ -51,6 +52,10 @@ export abstract class AbstractAccessor {
   }
 
   public async createIndexPath(fullPath: string) {
+    if (!this.indexDirCreated) {
+      await this.makeDirectory(DIR_SEPARATOR, INDEX_DIR_NAME);
+      this.indexDirCreated = true;
+    }
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
     const indexName = "$" + name;
@@ -627,10 +632,6 @@ export abstract class AbstractAccessor {
       options.contentsCache = true;
     }
     this.initializeContentsCacheOptions(options);
-
-    if (options.index) {
-      this.makeDirectory(DIR_SEPARATOR, INDEX_DIR_NAME);
-    }
 
     this.debug("AbstractAccessor#initialize", JSON.stringify(options));
   }
