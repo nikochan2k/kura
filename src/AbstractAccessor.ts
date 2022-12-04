@@ -236,6 +236,9 @@ export abstract class AbstractAccessor {
       try {
         const name = obj.name.substring(1);
         const fullPath = dirPath + name;
+        if (fullPath.startsWith(INDEX_DIR_PATH)) {
+          continue;
+        }
         const record = await this.getRecord(fullPath);
         fileNameIndex[name] = { ...record, fullPath, name };
       } catch (e) {
