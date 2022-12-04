@@ -120,7 +120,7 @@ export abstract class AbstractAccessor {
     };
   }
 
-  public async doDeleteRecursively(fullPath: string) {
+  public async deleteRecursively(fullPath: string) {
     try {
       var children = await this.doGetObjects(fullPath);
     } catch (e) {
@@ -132,7 +132,7 @@ export abstract class AbstractAccessor {
 
     for (const child of children) {
       if (child.size == null) {
-        await this.doDeleteRecursively(child.fullPath);
+        await this.deleteRecursively(child.fullPath);
       } else {
         await this.delete(child.fullPath, true);
       }
@@ -335,7 +335,7 @@ export abstract class AbstractAccessor {
   }
 
   public async purge() {
-    await this.doDeleteRecursively(DIR_SEPARATOR);
+    await this.deleteRecursively(DIR_SEPARATOR);
     if (this.contentsCache) {
       this.contentsCache.clear();
     }
