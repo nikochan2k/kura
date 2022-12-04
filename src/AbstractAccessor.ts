@@ -50,7 +50,10 @@ export abstract class AbstractAccessor {
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
     const indexName = "$" + name;
-    const indexDir = INDEX_DIR + parentPath;
+    let indexDir = INDEX_DIR + parentPath;
+    if (!indexDir.endsWith(DIR_SEPARATOR)) {
+      indexDir += DIR_SEPARATOR;
+    }
     const indexPath = indexDir + indexName;
     try {
       await this.doGetObject(indexPath);
