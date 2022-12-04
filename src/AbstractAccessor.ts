@@ -222,6 +222,11 @@ export abstract class AbstractAccessor {
   }
 
   public async getFileNameIndex(dirPath: string) {
+    if (!this.indexDirCreated) {
+      await this.makeDirectory(DIR_SEPARATOR, INDEX_DIR_NAME);
+      this.indexDirCreated = true;
+    }
+
     const fileNameIndex: FileNameIndex = {};
 
     let indexDir = INDEX_DIR_PATH + dirPath;
