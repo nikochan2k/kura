@@ -122,10 +122,10 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public doMakeDirectory(obj: FileSystemObject) {
-    return this.doPutObject(obj);
+    return this.doPutObjectIDB(obj);
   }
 
-  public doPutObject(obj: FileSystemObject) {
+  public doPutObjectIDB(obj: FileSystemObject) {
     return new Promise<void>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const entryTx = db.transaction([ENTRY_STORE], "readwrite");
@@ -183,7 +183,7 @@ export class IdbAccessor extends AbstractAccessor {
         lastModified: Date.now(),
         size: getSize(content),
       };
-      await this.doPutObject(obj);
+      await this.doPutObjectIDB(obj);
 
       if (typeof content === "string") {
         await this.doWriteBase64(fullPath, content);
@@ -248,7 +248,7 @@ export class IdbAccessor extends AbstractAccessor {
     const u8 = textToUint8Array(text);
     await this.doWriteContent(indexPath, u8);
 
-    await this.doPutObject({
+    await this.doPutObjectIDB({
       fullPath: indexPath,
       name: INDEX_FILE_NAME,
       lastModified: Date.now(),

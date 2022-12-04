@@ -342,6 +342,22 @@ export abstract class AbstractAccessor {
       await this.beforePut(obj);
     }
 
+    obj = await this.doPutObject(obj, content);
+
+    if (create) {
+      this.afterPost(obj);
+    } else {
+      this.afterPut(obj);
+    }
+
+    return obj;
+  }
+
+  public async doPutObject(
+    obj: FileSystemObject,
+    content?: Blob | BufferSource | string
+  ): Promise<FileSystemObject> {
+    const fullPath = obj.fullPath;
     try {
       this.debug("putObject", fullPath);
       if (content == null) {
@@ -360,20 +376,13 @@ export abstract class AbstractAccessor {
         }
       }
       await this.saveRecord(obj.fullPath, obj.lastModified);
+      return obj;
     } catch (e) {
       if (e instanceof AbstractFileError) {
         throw e;
       }
       throw new InvalidModificationError(this.name, fullPath, e);
     }
-
-    if (create) {
-      this.afterPost(obj);
-    } else {
-      this.afterPut(obj);
-    }
-
-    return obj;
   }
 
   public async putText(
