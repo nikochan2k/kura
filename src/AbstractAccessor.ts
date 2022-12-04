@@ -186,7 +186,7 @@ export abstract class AbstractAccessor {
           this.contentsCache.put(obj, content);
         }
       }
-      await this.saveRecord(obj.fullPath, obj.lastModified);
+      await this.saveRecord(obj.fullPath, obj.lastModified, obj.size);
       return obj;
     } catch (e) {
       if (e instanceof AbstractFileError) {
