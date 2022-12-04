@@ -1,12 +1,11 @@
 import { FileSystemObject } from "./FileSystemObject";
 
 export interface Record {
-  name: string;
   deleted?: number;
   modified?: number;
   size?: number;
 
-  [key: string]: any;
+  // [key: string]: any;
 }
 
 export interface RecordCacheEntry {
@@ -18,8 +17,12 @@ export type RecordCache = {
   [name: string]: RecordCacheEntry;
 };
 
+export interface FileNameIndexEntry extends Record {
+  fullPath: string;
+}
+
 export interface FileNameIndex {
-  [name: string]: Record;
+  [name: string]: FileNameIndexEntry;
 }
 
 export interface Event {
