@@ -46,6 +46,24 @@ export abstract class AbstractAccessor {
     this.contentsCache.remove(fullPath);
   }
 
+  public async createIndexPath(fullPath: string) {
+    const name = getName(fullPath);
+    const parentPath = getParentPath(fullPath);
+    const indexName = "$" + name;
+    const indexDir = INDEX_DIR + parentPath;
+    const indexPath = indexDir + indexName;
+    try {
+      await this.doGetObject(indexPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.doMakeDirectory({ fullPath: indexDir, name: indexName });
+      } else {
+        throw new NotReadableError(this.name, indexPath, e);
+      }
+    }
+    return indexPath;
+  }
+
   public async delete(fullPath: string, isFile: boolean) {
     if (!this.options.indexOptions?.logicalDelete) {
       try {
@@ -538,24 +556,6 @@ export abstract class AbstractAccessor {
   public abstract doReadContent(
     fullPath: string
   ): Promise<Blob | BufferSource | string>;
-
-  protected async createIndexPath(fullPath: string) {
-    const name = getName(fullPath);
-    const parentPath = getParentPath(fullPath);
-    const indexName = "$" + name;
-    const indexDir = INDEX_DIR + parentPath;
-    const indexPath = indexDir + indexName;
-    try {
-      await this.doGetObject(indexPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.doMakeDirectory({ fullPath: indexDir, name: indexName });
-      } else {
-        throw new NotReadableError(this.name, indexPath, e);
-      }
-    }
-    return indexPath;
-  }
 
   protected debug(title: string, value: string | FileSystemObject) {
     if (!this.options.verbose) {
