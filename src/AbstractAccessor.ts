@@ -92,6 +92,9 @@ export abstract class AbstractAccessor {
     if (!this.options.index) {
       return;
     }
+    if (fullPath === INDEX_DIR_PATH) {
+      return;
+    }
 
     const entry = this.recordCache[fullPath];
     if (!record) {
