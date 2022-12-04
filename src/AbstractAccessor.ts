@@ -53,18 +53,18 @@ export abstract class AbstractAccessor {
 
   public async createIndexPath(fullPath: string) {
     if (!this.indexDirCreated) {
-      await this.makeDirectory(DIR_SEPARATOR, INDEX_DIR_NAME);
+      await this.makeDirectory(INDEX_DIR_PATH);
       this.indexDirCreated = true;
     }
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
     const indexName = "$" + name;
     let indexDir = INDEX_DIR_PATH + parentPath;
-    await this.makeDirectory(indexDir, indexName);
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
     }
     const indexPath = indexDir + indexName;
+    await this.makeDirectory(indexPath);
     return indexPath;
   }
 
@@ -149,16 +149,12 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async makeDirectory(fullPath: string, name?: string) {
-    if (!name) {
-      name = getName(fullPath);
-    }
-
+  public async makeDirectory(fullPath: string) {
     try {
       await this.doGetObject(fullPath);
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.doMakeDirectory({ fullPath, name });
+        await this.doMakeDirectory(fullPath);
       } else {
         throw new NotReadableError(this.name, fullPath, e);
       }
@@ -174,7 +170,7 @@ export abstract class AbstractAccessor {
       this.debug("putObject", fullPath);
       if (content == null) {
         // Directory
-        await this.makeDirectory(obj.fullPath, obj.name);
+        await this.makeDirectory(obj.fullPath);
       } else {
         // File
         await this.doWriteContent(fullPath, content);
@@ -223,7 +219,7 @@ export abstract class AbstractAccessor {
 
   public async getFileNameIndex(dirPath: string) {
     if (!this.indexDirCreated) {
-      await this.makeDirectory(DIR_SEPARATOR, INDEX_DIR_NAME);
+      await this.makeDirectory(INDEX_DIR_PATH);
       this.indexDirCreated = true;
     }
 
@@ -599,7 +595,7 @@ export abstract class AbstractAccessor {
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
   public abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
   public abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
-  public abstract doMakeDirectory(obj: FileSystemObject): Promise<void>;
+  public abstract doMakeDirectory(fullPath: string): Promise<void>;
   public abstract doReadContent(
     fullPath: string
   ): Promise<Blob | BufferSource | string>;

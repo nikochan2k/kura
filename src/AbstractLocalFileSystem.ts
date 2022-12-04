@@ -38,10 +38,7 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
       .then((accessor) => {
         if (accessor.options.index) {
           accessor
-            .doMakeDirectory({
-              fullPath: INDEX_DIR_PATH,
-              name: INDEX_DIR_NAME,
-            })
+            .doMakeDirectory(INDEX_DIR_PATH)
             .catch(() => {})
             .finally(() => successCallback(accessor.filesystem));
         } else {

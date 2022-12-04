@@ -121,8 +121,8 @@ export class IdbAccessor extends AbstractAccessor {
     });
   }
 
-  public doMakeDirectory(obj: FileSystemObject) {
-    return this.doPutObjectIDB(obj);
+  public doMakeDirectory(fullPath: string) {
+    return this.doPutObjectIDB({ fullPath, name: getName(fullPath) });
   }
 
   public doPutObjectIDB(obj: FileSystemObject) {
