@@ -84,31 +84,34 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async deleteRecord(fullPath: string) {
+  public async deleteRecord(fullPath: string, record?: Record) {
     if (!this.options.index) {
       return;
     }
 
     const entry = this.recordCache[fullPath];
-    let record: Record;
-    if (entry) {
-      if (entry.record.deleted != null) {
-        return;
-      }
-      record = entry.record;
-    } else {
-      try {
-        record = await this.getRecord(fullPath);
-      } catch (e) {
-        if (e instanceof NotFoundError) {
+    if (!record) {
+      if (entry) {
+        if (entry.record.deleted != null) {
           return;
-        } else if (e instanceof AbstractFileError) {
-          throw e;
         }
-        throw new NotReadableError(this.name, fullPath, e);
+        record = entry.record;
+      } else {
+        try {
+          record = await this.getRecord(fullPath);
+        } catch (e) {
+          if (e instanceof NotFoundError) {
+            return;
+          } else if (e instanceof AbstractFileError) {
+            throw e;
+          }
+          throw new NotReadableError(this.name, fullPath, e);
+        }
       }
     }
-    record.deleted = Date.now();
+    if (record.deleted == null) {
+      record.deleted = Date.now();
+    }
 
     const indexPath = await this.createIndexPath(fullPath);
     await this.doSaveRecord(indexPath, record);
