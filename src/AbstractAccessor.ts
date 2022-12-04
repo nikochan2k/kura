@@ -219,9 +219,7 @@ export abstract class AbstractAccessor {
         const name = record.name;
         const fullPath = dirPath + name;
         fileNameIndex[fullPath] = record;
-      } catch (e) {
-        console.warn("getFileNameIndex", { name: this.name, dirPath, e });
-      }
+      } catch {}
     }
 
     return fileNameIndex;
