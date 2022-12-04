@@ -6,7 +6,7 @@ import {
   FileSystemCallback,
   LocalFileSystem,
 } from "./filesystem";
-import { INDEX_DIR } from "./FileSystemConstants";
+import { INDEX_DIR_NAME, INDEX_DIR_PATH } from "./FileSystemConstants";
 import { FileSystemOptions } from "./FileSystemOptions";
 import { onError } from "./FileSystemUtil";
 
@@ -39,8 +39,8 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
         if (accessor.options.index) {
           accessor
             .doMakeDirectory({
-              fullPath: INDEX_DIR,
-              name: INDEX_DIR.substr(1),
+              fullPath: INDEX_DIR_PATH,
+              name: INDEX_DIR_NAME,
             })
             .catch(() => {})
             .finally(() => successCallback(accessor.filesystem));

@@ -1,5 +1,5 @@
 import { AbstractAccessor } from "./AbstractAccessor";
-import { INDEX_DIR } from "./FileSystemConstants";
+import { INDEX_DIR_PATH } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { ContentsCacheOptions } from "./FileSystemOptions";
 import { getMemorySize } from "./FileSystemUtil";
@@ -35,7 +35,7 @@ export class ContentsCache {
 
   public put(obj: FileSystemObject, content: Blob | BufferSource | string) {
     const fullPath = obj.fullPath;
-    if (fullPath.startsWith(INDEX_DIR)) {
+    if (fullPath.startsWith(INDEX_DIR_PATH)) {
       return;
     }
 

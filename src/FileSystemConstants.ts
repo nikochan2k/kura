@@ -4,5 +4,6 @@ export const LAST_DIR_SEPARATORS = /\/+$/;
 export const DEFAULT_BLOB_PROPS: BlobPropertyBag = {
   type: DEFAULT_CONTENT_TYPE,
 };
-export const INDEX_DIR = "/.index";
+export const INDEX_DIR_NAME = ".index";
+export const INDEX_DIR_PATH = DIR_SEPARATOR + INDEX_DIR_NAME;
 export const INDEX_FILE_NAME = "index.json";

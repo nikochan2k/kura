@@ -15,7 +15,11 @@ import {
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import { DIR_SEPARATOR, INDEX_DIR } from "./FileSystemConstants";
+import {
+  DIR_SEPARATOR,
+  INDEX_DIR_NAME,
+  INDEX_DIR_PATH,
+} from "./FileSystemConstants";
 import { FileNameIndex, Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -50,20 +54,12 @@ export abstract class AbstractAccessor {
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
     const indexName = "$" + name;
-    let indexDir = INDEX_DIR + parentPath;
+    let indexDir = INDEX_DIR_PATH + parentPath;
+    await this.makeDirectory(indexDir, indexName);
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
     }
     const indexPath = indexDir + indexName;
-    try {
-      await this.doGetObject(indexPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.doMakeDirectory({ fullPath: indexDir, name: indexName });
-      } else {
-        throw new NotReadableError(this.name, indexPath, e);
-      }
-    }
     return indexPath;
   }
 
@@ -148,6 +144,22 @@ export abstract class AbstractAccessor {
     }
   }
 
+  public async makeDirectory(fullPath: string, name?: string) {
+    if (!name) {
+      name = getName(fullPath);
+    }
+
+    try {
+      await this.doGetObject(fullPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.doMakeDirectory({ fullPath, name });
+      } else {
+        throw new NotReadableError(this.name, fullPath, e);
+      }
+    }
+  }
+
   public async doPutObject(
     obj: FileSystemObject,
     content?: Blob | BufferSource | string
@@ -157,7 +169,7 @@ export abstract class AbstractAccessor {
       this.debug("putObject", fullPath);
       if (content == null) {
         // Directory
-        await this.doMakeDirectory(obj);
+        await this.makeDirectory(obj.fullPath, obj.name);
       } else {
         // File
         await this.doWriteContent(fullPath, content);
@@ -207,7 +219,7 @@ export abstract class AbstractAccessor {
   public async getFileNameIndex(dirPath: string) {
     const fileNameIndex: FileNameIndex = {};
 
-    let indexDir = INDEX_DIR + dirPath;
+    let indexDir = INDEX_DIR_PATH + dirPath;
     if (!dirPath.endsWith("/")) {
       dirPath += "/";
     }
@@ -275,7 +287,7 @@ export abstract class AbstractAccessor {
       if (index) {
         const newObjects: FileSystemObject[] = [];
         for (const obj of objects) {
-          if (obj.fullPath === INDEX_DIR) {
+          if (obj.fullPath === INDEX_DIR_PATH) {
             continue;
           }
 
@@ -473,7 +485,7 @@ export abstract class AbstractAccessor {
     }
 
     const index = this.options.index;
-    if (index && fullPath.startsWith(INDEX_DIR)) {
+    if (index && fullPath.startsWith(INDEX_DIR_PATH)) {
       throw new InvalidModificationError(
         this.name,
         fullPath,
@@ -615,6 +627,10 @@ export abstract class AbstractAccessor {
       options.contentsCache = true;
     }
     this.initializeContentsCacheOptions(options);
+
+    if (options.index) {
+      this.makeDirectory(DIR_SEPARATOR, INDEX_DIR_NAME);
+    }
 
     this.debug("AbstractAccessor#initialize", JSON.stringify(options));
   }

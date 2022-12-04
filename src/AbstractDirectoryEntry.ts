@@ -22,7 +22,7 @@ import {
 import {
   DEFAULT_BLOB_PROPS,
   DIR_SEPARATOR,
-  INDEX_DIR,
+  INDEX_DIR_PATH,
 } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemParams } from "./FileSystemParams";
@@ -324,7 +324,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
   protected createEntries(objects: FileSystemObject[]) {
     const entries: AbstractEntry<T>[] = [];
     for (const obj of objects) {
-      if (obj.fullPath.startsWith(INDEX_DIR)) {
+      if (obj.fullPath.startsWith(INDEX_DIR_PATH)) {
         continue;
       }
       entries.push(this.createEntry(obj));

@@ -5,7 +5,7 @@ import { FileSystemAsync } from "./FileSystemAsync";
 import {
   DEFAULT_CONTENT_TYPE,
   DIR_SEPARATOR,
-  INDEX_DIR,
+  INDEX_DIR_PATH,
   LAST_DIR_SEPARATORS,
 } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
@@ -213,7 +213,7 @@ export function isIllegalPath(fullPath: string, index: boolean) {
   if (fullPath === DIR_SEPARATOR) {
     return true;
   }
-  if (index && fullPath.startsWith(INDEX_DIR)) {
+  if (index && fullPath.startsWith(INDEX_DIR_PATH)) {
     return true;
   }
   return false;
