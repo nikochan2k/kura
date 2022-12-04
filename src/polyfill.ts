@@ -10,7 +10,3 @@ if (!globalVar.TextDecoder || !globalVar.TextEncoder) {
   globalVar.TextDecoder = TextEncodingShim.TextDecoder;
   globalVar.TextEncoder = TextEncodingShim.TextEncoder;
 }
-if (!globalVar.crypto) {
-  const { Crypto } = require("@peculiar/webcrypto");
-  globalVar.crypto = new Crypto();
-}
