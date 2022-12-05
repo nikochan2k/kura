@@ -58,7 +58,7 @@ export abstract class AbstractAccessor {
     }
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
-    const indexName = "$" + name;
+    const indexName = "_" + name;
     let indexDir = INDEX_DIR_PATH + parentPath;
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
