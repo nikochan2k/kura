@@ -573,6 +573,7 @@ export abstract class AbstractAccessor {
         if (record.modified === lastModified) {
           return record;
         }
+        record.size = size;
         record.modified = lastModified;
         delete record.deleted;
       } catch (e) {
@@ -584,6 +585,9 @@ export abstract class AbstractAccessor {
           throw new NotReadableError(this.name, fullPath, e);
         }
       }
+    } else {
+      record.modified = lastModified;
+      record.size = size;
     }
 
     const indexPath = await this.createIndexPath(fullPath);
