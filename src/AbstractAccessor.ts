@@ -34,8 +34,8 @@ import { textToUint8Array, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
   protected contentsCache: ContentsCache;
-  protected recordCache: RecordCache = {};
   protected indexDirCreated = false;
+  protected recordCache: RecordCache = {};
 
   public abstract readonly filesystem: FileSystem;
   public abstract readonly name: string;
@@ -66,6 +66,31 @@ export abstract class AbstractAccessor {
     await this.makeDirectory(indexDir);
     const indexPath = indexDir + indexName;
     return indexPath;
+  }
+
+  public async createRecord(obj: FileSystemObject) {
+    const fullPath = obj.fullPath;
+    const lastModified = obj.lastModified;
+    const size = obj.size;
+    let record: Record;
+    try {
+      record = await this.getRecord(fullPath);
+      if (record.modified === lastModified) {
+        return record;
+      }
+      record.size = size;
+      record.modified = lastModified;
+      delete record.deleted;
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        record = { modified: lastModified, size };
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      } else {
+        throw new NotReadableError(this.name, fullPath, e);
+      }
+    }
+    return record;
   }
 
   public async delete(fullPath: string, isFile: boolean) {
@@ -149,18 +174,6 @@ export abstract class AbstractAccessor {
     }
     if (fullPath !== DIR_SEPARATOR) {
       await this.delete(fullPath, false);
-    }
-  }
-
-  public async makeDirectory(fullPath: string) {
-    try {
-      await this.doGetObject(fullPath);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.doMakeDirectory(fullPath);
-      } else {
-        throw new NotReadableError(this.name, fullPath, e);
-      }
     }
   }
 
@@ -257,31 +270,6 @@ export abstract class AbstractAccessor {
     }
 
     return fileNameIndex;
-  }
-
-  protected async createRecord(obj: FileSystemObject) {
-    const fullPath = obj.fullPath;
-    const lastModified = obj.lastModified;
-    const size = obj.size;
-    let record: Record;
-    try {
-      record = await this.getRecord(fullPath);
-      if (record.modified === lastModified) {
-        return record;
-      }
-      record.size = size;
-      record.modified = lastModified;
-      delete record.deleted;
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        record = { modified: lastModified, size };
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      } else {
-        throw new NotReadableError(this.name, fullPath, e);
-      }
-    }
-    return record;
   }
 
   public async getObject(fullPath: string, _isFile: boolean) {
@@ -397,6 +385,18 @@ export abstract class AbstractAccessor {
     method?: "GET" | "POST" | "PUT" | "DELETE"
   ): Promise<string> {
     return null;
+  }
+
+  public async makeDirectory(fullPath: string) {
+    try {
+      await this.doGetObject(fullPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        await this.doMakeDirectory(fullPath);
+      } else {
+        throw new NotReadableError(this.name, fullPath, e);
+      }
+    }
   }
 
   public async purge() {
