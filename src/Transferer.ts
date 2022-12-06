@@ -10,10 +10,5 @@ export class Transferer {
   ) {
     const content = await fromAccessor.readContentInternal(fromObj);
     await toAccessor.doWriteContent(toObj.fullPath, content);
-    await toAccessor.saveRecord(
-      toObj.fullPath,
-      fromObj.lastModified,
-      fromObj.size
-    );
   }
 }

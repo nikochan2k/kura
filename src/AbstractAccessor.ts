@@ -186,7 +186,7 @@ export abstract class AbstractAccessor {
           this.contentsCache.put(obj, content);
         }
       }
-      await this.saveRecord(obj.fullPath, obj.lastModified, obj.size);
+      await this.saveRecord(obj);
       return obj;
     } catch (e) {
       if (e instanceof AbstractFileError) {
@@ -227,6 +227,9 @@ export abstract class AbstractAccessor {
     }
 
     const fileNameIndex: FileNameIndex = {};
+    if (dirPath === INDEX_DIR_PATH) {
+      return fileNameIndex;
+    }
 
     let indexDir = INDEX_DIR_PATH + (dirPath === DIR_SEPARATOR ? "" : dirPath);
     const objects = await this.doGetObjects(indexDir);
@@ -239,7 +242,7 @@ export abstract class AbstractAccessor {
       try {
         const name = obj.name.substring(1);
         const fullPath = dirPath + name;
-        if (fullPath.startsWith(INDEX_DIR_PATH)) {
+        if (fullPath === INDEX_DIR_PATH) {
           continue;
         }
         const record = await this.getRecord(fullPath);
@@ -278,7 +281,7 @@ export abstract class AbstractAccessor {
       var obj = await this.doGetObject(fullPath);
       if (record && record.modified != obj.lastModified) {
         record.modified = obj.lastModified;
-        await this.saveRecord(fullPath, obj.lastModified, obj.size, record);
+        await this.saveRecord(obj, record);
       }
     } catch (e) {
       await this.handleReadError(e, fullPath);
@@ -312,7 +315,7 @@ export abstract class AbstractAccessor {
               }
             } catch (e) {
               if (e instanceof NotFoundError) {
-                await this.saveRecord(obj.fullPath, Date.now());
+                await this.saveRecord(obj);
               } else {
                 console.warn("getObjects", obj, e);
               }
@@ -557,16 +560,14 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async saveRecord(
-    fullPath: string,
-    lastModified: number,
-    size?: number,
-    record?: Record
-  ) {
+  public async saveRecord(obj: FileSystemObject, record?: Record) {
     if (!this.options.index) {
       return;
     }
 
+    const fullPath = obj.fullPath;
+    const lastModified = obj.lastModified;
+    const size = obj.size;
     if (!record) {
       try {
         record = await this.getRecord(fullPath);
