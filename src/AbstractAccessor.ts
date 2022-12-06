@@ -63,8 +63,8 @@ export abstract class AbstractAccessor {
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
     }
+    await this.makeDirectory(indexDir);
     const indexPath = indexDir + indexName;
-    await this.makeDirectory(indexPath);
     return indexPath;
   }
 
