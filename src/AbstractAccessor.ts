@@ -90,17 +90,13 @@ export abstract class AbstractAccessor {
   }
 
   public async delete(fullPath: string, isFile: boolean) {
-    try {
-      await this.deleteRecord(fullPath);
-    } catch (e) {
-      onError(e);
-    }
+    await this.deleteRecord(fullPath);
 
     if (!this.options.indexOptions?.logicalDelete) {
       try {
         await this.doDelete(fullPath, isFile);
       } catch (e) {
-        onError(e);
+        await this.handleWriteError(e, fullPath);
       }
     }
 
@@ -146,13 +142,7 @@ export abstract class AbstractAccessor {
     try {
       var children = await this.doGetObjects(fullPath);
     } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.handleNotFoundError(fullPath);
-        throw e;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
+      await this.handleReadError(e, fullPath);
     }
 
     for (const child of children) {
@@ -190,13 +180,10 @@ export abstract class AbstractAccessor {
         }
       }
       const record = await this.createRecord(obj);
-      await this.saveRecord(obj.fullPath, record);
+      await this.saveRecord(fullPath, record);
       return obj;
     } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
+      await this.handleWriteError(e, fullPath);
     }
   }
 
@@ -217,10 +204,7 @@ export abstract class AbstractAccessor {
         await this.doWriteArrayBuffer(fullPath, content);
       }
     } catch (e) {
-      if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new InvalidModificationError(this.name, fullPath, e);
+      await this.handleWriteError(e, fullPath);
     }
   }
 
@@ -253,10 +237,7 @@ export abstract class AbstractAccessor {
         const record = await this.getRecord(fullPath);
         fileNameIndex[name] = { ...record, fullPath, name };
       } catch (e) {
-        if (e instanceof AbstractFileError) {
-          throw e;
-        }
-        throw new NotReadableError(this.name, fullPath, e);
+        onError(e);
       }
     }
 
@@ -274,11 +255,7 @@ export abstract class AbstractAccessor {
           throw new NotFoundError(this.name, fullPath, "getObject");
         }
       } catch (e) {
-        if (e instanceof AbstractFileError) {
-          throw e;
-        } else {
-          throw new NotReadableError(this.name, fullPath, e);
-        }
+        await this.handleReadError(e, fullPath);
       }
     }
 
@@ -339,12 +316,7 @@ export abstract class AbstractAccessor {
         return objects;
       }
     } catch (e) {
-      if (e instanceof NotFoundError) {
-        await this.handleReadError(e, dirPath);
-      } else if (e instanceof AbstractFileError) {
-        throw e;
-      }
-      throw new NotReadableError(this.name, dirPath, e);
+      await this.handleReadError(e, dirPath);
     }
   }
 
@@ -488,7 +460,7 @@ export abstract class AbstractAccessor {
       try {
         content = await this.doReadContent(fullPath);
       } catch (e) {
-        await this.handleReadError(e, fullPath, obj.name);
+        await this.handleReadError(e, fullPath);
       }
       var read = true;
     }
@@ -545,10 +517,11 @@ export abstract class AbstractAccessor {
           );
         }
       } catch (e) {
-        if (!(e instanceof NotFoundError)) {
-          onError(e);
+        if (e instanceof NotFoundError) {
+          await this.handleNotFoundError(fullPath);
+          return;
         }
-        return;
+        await this.handleReadError(e, fullPath);
       }
     }
 
@@ -569,10 +542,8 @@ export abstract class AbstractAccessor {
       if (e instanceof NotFoundError) {
         await this.handleNotFoundError(fullPath);
         return;
-      } else if (e instanceof AbstractFileError) {
-        throw e;
       }
-      throw new InvalidModificationError(this.name, fullPath, e);
+      this.handleReadError(e, fullPath);
     }
 
     for (const child of children) {
@@ -592,16 +563,20 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    const indexPath = await this.createIndexPath(fullPath);
-    await this.doSaveRecord(indexPath, record);
+    try {
+      const indexPath = await this.createIndexPath(fullPath);
+      await this.doSaveRecord(indexPath, record);
 
-    const indexObj = await this.doGetObject(indexPath);
-    this.recordCache[indexPath] = {
-      record,
-      lastModified: indexObj.lastModified,
-    };
+      const indexObj = await this.doGetObject(indexPath);
+      this.recordCache[indexPath] = {
+        record,
+        lastModified: indexObj.lastModified,
+      };
 
-    return record;
+      return record;
+    } catch (e) {
+      await this.handleWriteError(e, fullPath);
+    }
   }
 
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
@@ -807,7 +782,7 @@ export abstract class AbstractAccessor {
     this.clearContentsCache(fullPath);
   }
 
-  private async handleReadError(e: any, fullPath: string, name?: string) {
+  private async handleReadError(e: any, fullPath: string) {
     if (e instanceof NotFoundError) {
       await this.handleNotFoundError(fullPath);
       throw e;
@@ -815,5 +790,15 @@ export abstract class AbstractAccessor {
       throw e;
     }
     throw new NotReadableError(this.name, fullPath, e);
+  }
+
+  private async handleWriteError(e: any, fullPath: string) {
+    if (e instanceof NotFoundError) {
+      await this.handleNotFoundError(fullPath);
+      throw e;
+    } else if (e instanceof AbstractFileError) {
+      throw e;
+    }
+    throw new InvalidModificationError(this.name, fullPath, e);
   }
 }
