@@ -15,11 +15,7 @@ import {
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import {
-  DIR_SEPARATOR,
-  INDEX_DIR_NAME,
-  INDEX_DIR_PATH,
-} from "./FileSystemConstants";
+import { DIR_SEPARATOR, INDEX_DIR_PATH } from "./FileSystemConstants";
 import { FileNameIndex, Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -126,7 +122,6 @@ export abstract class AbstractAccessor {
       record = await this.getRecord(fullPath);
     } catch (e) {
       if (e instanceof NotFoundError) {
-        delete this.recordCache[fullPath];
         return;
       } else if (e instanceof AbstractFileError) {
         throw e;
@@ -151,10 +146,13 @@ export abstract class AbstractAccessor {
     try {
       var children = await this.doGetObjects(fullPath);
     } catch (e) {
-      if (!(e instanceof NotFoundError)) {
-        onError(e);
+      if (e instanceof NotFoundError) {
+        await this.handleNotFoundError(fullPath);
+        throw e;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
       }
-      return;
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
 
     for (const child of children) {
@@ -245,19 +243,20 @@ export abstract class AbstractAccessor {
     }
 
     for (const obj of objects) {
+      let fullPath;
       try {
         const name = obj.name.substring(1);
-        const fullPath = dirPath + name;
+        fullPath = dirPath + name;
         if (fullPath === INDEX_DIR_PATH) {
           continue;
         }
         const record = await this.getRecord(fullPath);
         fileNameIndex[name] = { ...record, fullPath, name };
       } catch (e) {
-        if (e instanceof NotFoundError) {
-        } else {
-          onError(e);
+        if (e instanceof AbstractFileError) {
+          throw e;
         }
+        throw new NotReadableError(this.name, fullPath, e);
       }
     }
 
@@ -351,7 +350,15 @@ export abstract class AbstractAccessor {
 
   public async getRecord(fullPath: string) {
     const indexPath = await this.createIndexPath(fullPath);
-    const indexObj = await this.doGetObject(indexPath);
+    let indexObj: FileSystemObject;
+    try {
+      indexObj = await this.doGetObject(indexPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        delete this.recordCache[fullPath];
+      }
+      throw e;
+    }
     const entry = this.recordCache[indexPath];
     if (entry && indexObj.lastModified === entry.lastModified) {
       return entry.record;
@@ -555,13 +562,17 @@ export abstract class AbstractAccessor {
 
   public async removeRecursively(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
+    let children: FileSystemObject[];
     try {
-      var children = await this.getObjects(fullPath);
+      children = await this.getObjects(fullPath);
     } catch (e) {
-      if (!(e instanceof NotFoundError)) {
-        onError(e);
+      if (e instanceof NotFoundError) {
+        await this.handleNotFoundError(fullPath);
+        return;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
       }
-      return;
+      throw new InvalidModificationError(this.name, fullPath, e);
     }
 
     for (const child of children) {
@@ -791,10 +802,14 @@ export abstract class AbstractAccessor {
     }
   }
 
+  private async handleNotFoundError(fullPath: string) {
+    await this.deleteRecord(fullPath);
+    this.clearContentsCache(fullPath);
+  }
+
   private async handleReadError(e: any, fullPath: string, name?: string) {
     if (e instanceof NotFoundError) {
-      await this.deleteRecord(fullPath);
-      this.clearContentsCache(fullPath);
+      await this.handleNotFoundError(fullPath);
       throw e;
     } else if (e instanceof AbstractFileError) {
       throw e;
