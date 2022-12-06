@@ -113,7 +113,7 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async deleteRecord(fullPath: string, record?: Record) {
+  public async deleteRecord(fullPath: string) {
     if (!this.options.index) {
       return;
     }
@@ -121,25 +121,17 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    const entry = this.recordCache[fullPath];
-    if (!record) {
-      if (entry) {
-        if (entry.record.deleted != null) {
-          return;
-        }
-        record = entry.record;
-      } else {
-        try {
-          record = await this.getRecord(fullPath);
-        } catch (e) {
-          if (e instanceof NotFoundError) {
-            return;
-          } else if (e instanceof AbstractFileError) {
-            throw e;
-          }
-          throw new NotReadableError(this.name, fullPath, e);
-        }
+    let record: Record;
+    try {
+      record = await this.getRecord(fullPath);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        delete this.recordCache[fullPath];
+        return;
+      } else if (e instanceof AbstractFileError) {
+        throw e;
       }
+      throw new NotReadableError(this.name, fullPath, e);
     }
     if (record.deleted == null) {
       record.deleted = Date.now();
@@ -291,13 +283,9 @@ export abstract class AbstractAccessor {
       }
     }
 
+    let obj: FileSystemObject;
     try {
-      var obj = await this.doGetObject(fullPath);
-      if (record && record.modified !== obj.lastModified) {
-        record.modified = obj.lastModified;
-        record.size = obj.size;
-        await this.saveRecord(fullPath, record);
-      }
+      obj = await this.doGetObject(fullPath);
     } catch (e) {
       await this.handleReadError(e, fullPath);
     }
