@@ -186,7 +186,8 @@ export abstract class AbstractAccessor {
           this.contentsCache.put(obj, content);
         }
       }
-      await this.saveRecord(obj);
+      const record = await this.createRecord(obj);
+      await this.saveRecord(obj.fullPath, record);
       return obj;
     } catch (e) {
       if (e instanceof AbstractFileError) {
@@ -258,6 +259,31 @@ export abstract class AbstractAccessor {
     return fileNameIndex;
   }
 
+  protected async createRecord(obj: FileSystemObject) {
+    const fullPath = obj.fullPath;
+    const lastModified = obj.lastModified;
+    const size = obj.size;
+    let record: Record;
+    try {
+      record = await this.getRecord(fullPath);
+      if (record.modified === lastModified) {
+        return record;
+      }
+      record.size = size;
+      record.modified = lastModified;
+      delete record.deleted;
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        record = { modified: lastModified, size };
+      } else if (e instanceof AbstractFileError) {
+        throw e;
+      } else {
+        throw new NotReadableError(this.name, fullPath, e);
+      }
+    }
+    return record;
+  }
+
   public async getObject(fullPath: string, _isFile: boolean) {
     this.debug("getObject", fullPath);
 
@@ -279,9 +305,10 @@ export abstract class AbstractAccessor {
 
     try {
       var obj = await this.doGetObject(fullPath);
-      if (record && record.modified != obj.lastModified) {
+      if (record && record.modified !== obj.lastModified) {
         record.modified = obj.lastModified;
-        await this.saveRecord(obj, record);
+        record.size = obj.size;
+        await this.saveRecord(fullPath, record);
       }
     } catch (e) {
       await this.handleReadError(e, fullPath);
@@ -315,7 +342,8 @@ export abstract class AbstractAccessor {
               }
             } catch (e) {
               if (e instanceof NotFoundError) {
-                await this.saveRecord(obj);
+                const record = await this.createRecord(obj);
+                await this.saveRecord(obj.fullPath, record);
               } else {
                 console.warn("getObjects", obj, e);
               }
@@ -560,35 +588,9 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async saveRecord(obj: FileSystemObject, record?: Record) {
+  public async saveRecord(fullPath: string, record: Record) {
     if (!this.options.index) {
       return;
-    }
-
-    const fullPath = obj.fullPath;
-    const lastModified = obj.lastModified;
-    const size = obj.size;
-    if (!record) {
-      try {
-        record = await this.getRecord(fullPath);
-        if (record.modified === lastModified) {
-          return record;
-        }
-        record.size = size;
-        record.modified = lastModified;
-        delete record.deleted;
-      } catch (e) {
-        if (e instanceof NotFoundError) {
-          record = { modified: lastModified, size };
-        } else if (e instanceof AbstractFileError) {
-          throw e;
-        } else {
-          throw new NotReadableError(this.name, fullPath, e);
-        }
-      }
-    } else {
-      record.modified = lastModified;
-      record.size = size;
     }
 
     const indexPath = await this.createIndexPath(fullPath);
