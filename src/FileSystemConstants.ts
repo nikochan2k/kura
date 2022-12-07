@@ -7,3 +7,5 @@ export const DEFAULT_BLOB_PROPS: BlobPropertyBag = {
 export const INDEX_DIR_NAME = ".index";
 export const INDEX_DIR_PATH = DIR_SEPARATOR + INDEX_DIR_NAME;
 export const INDEX_FILE_NAME = "index.json";
+export const INDEX_PREFIX = "_";
+export const INDEX_PREFIX_LEN = INDEX_PREFIX.length;

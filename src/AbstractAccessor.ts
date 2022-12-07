@@ -15,7 +15,12 @@ import {
   NotReadableError,
 } from "./FileError";
 import { DataType, FileSystem } from "./filesystem";
-import { DIR_SEPARATOR, INDEX_DIR_PATH } from "./FileSystemConstants";
+import {
+  DIR_SEPARATOR,
+  INDEX_DIR_PATH,
+  INDEX_PREFIX,
+  INDEX_PREFIX_LEN,
+} from "./FileSystemConstants";
 import { FileNameIndex, Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
@@ -54,7 +59,7 @@ export abstract class AbstractAccessor {
     }
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
-    const indexName = "_" + name;
+    const indexName = INDEX_PREFIX + name;
     let indexDir = INDEX_DIR_PATH + parentPath;
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
@@ -227,17 +232,18 @@ export abstract class AbstractAccessor {
     }
 
     for (const obj of objects) {
+      if (obj.size == null) {
+        // folder
+        continue;
+      }
       let fullPath;
       try {
-        const name = obj.name.substring(1);
+        const name = obj.name.substring(INDEX_PREFIX_LEN);
         fullPath = dirPath + name;
-        if (fullPath === INDEX_DIR_PATH) {
-          continue;
-        }
         const record = await this.getRecord(fullPath);
         fileNameIndex[name] = { ...record, fullPath, name };
       } catch (e) {
-        onError(e);
+        console.warn("getFileNameIndex", obj, e);
       }
     }
 
