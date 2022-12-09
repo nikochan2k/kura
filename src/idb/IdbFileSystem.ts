@@ -5,8 +5,6 @@ import { IdbAccessor } from "./IdbAccessor";
 import { IdbDirectoryEntry } from "./IdbDirectoryEntry";
 
 export class IdbFileSystem extends AbstractFileSystem<IdbAccessor> {
-  public root: IdbDirectoryEntry;
-
   constructor(accessor: IdbAccessor) {
     super(accessor);
   }
