@@ -90,7 +90,7 @@ export abstract class AbstractAccessor {
   }
 
   public async delete(fullPath: string, isFile: boolean) {
-    await this.deleteRecord(fullPath);
+    await this.deleteRecord(fullPath, isFile);
 
     if (!this.options.indexOptions?.logicalDelete) {
       try {
@@ -105,7 +105,7 @@ export abstract class AbstractAccessor {
     }
   }
 
-  public async deleteRecord(fullPath: string) {
+  public async deleteRecord(fullPath: string, _isFile: boolean) {
     if (!this.options.index) {
       return;
     }
@@ -631,7 +631,7 @@ export abstract class AbstractAccessor {
       return;
     }
 
-    await this.deleteRecord(fullPath);
+    await this.deleteRecord(fullPath, isFile);
     if (isFile) {
       this.clearContentsCache(fullPath);
     }
