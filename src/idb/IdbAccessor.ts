@@ -56,71 +56,73 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public doGetObject(fullPath: string) {
-    // eslint-disable-next-line
-    return new Promise<FileSystemObject>(async (resolve, reject) => {
-      const db = await this.open(this.dbName);
-      const tx = db.transaction([ENTRY_STORE], "readonly");
-      const range = IDBKeyRange.only(fullPath);
-      const onError = (ev: Event) => {
-        const req = ev.target as IDBRequest;
-        db.close();
-        reject(new NotFoundError(this.name, fullPath, req.error || ev));
-      };
-      tx.onabort = onError;
-      tx.onerror = onError;
-      const request = tx.objectStore(ENTRY_STORE).get(range);
-      const onSuccess = () => {
-        db.close();
-        if (request.result != null) {
-          resolve(request.result); // eslint-disable-line
-        } else {
-          reject(new NotFoundError(this.name, fullPath));
-        }
-      };
-      tx.oncomplete = onSuccess;
-      request.onerror = onError;
+    return new Promise<FileSystemObject>((resolve, reject) => {
+      void (async () => {
+        const db = await this.open(this.dbName);
+        const tx = db.transaction([ENTRY_STORE], "readonly");
+        const range = IDBKeyRange.only(fullPath);
+        const onError = (ev: Event) => {
+          const req = ev.target as IDBRequest;
+          db.close();
+          reject(new NotFoundError(this.name, fullPath, req.error || ev));
+        };
+        tx.onabort = onError;
+        tx.onerror = onError;
+        const request = tx.objectStore(ENTRY_STORE).get(range);
+        const onSuccess = () => {
+          db.close();
+          if (request.result != null) {
+            resolve(request.result); // eslint-disable-line
+          } else {
+            reject(new NotFoundError(this.name, fullPath));
+          }
+        };
+        tx.oncomplete = onSuccess;
+        request.onerror = onError;
+      })();
     });
   }
 
   public doGetObjects(fullPath: string) {
-    // eslint-disable-next-line
-    return new Promise<FileSystemObject[]>(async (resolve, reject) => {
-      const db = await this.open(this.dbName);
-      const tx = db.transaction([ENTRY_STORE], "readonly");
-      const onError = (ev: Event) => {
-        const req = ev.target as IDBRequest;
-        db.close();
-        reject(new NotFoundError(this.name, fullPath, req.error || ev));
-      };
-      tx.onabort = onError;
-      tx.onerror = onError;
-      const objects: FileSystemObject[] = [];
-      tx.oncomplete = () => {
-        db.close();
-        resolve(objects);
-      };
+    return new Promise<FileSystemObject[]>((resolve, reject) => {
+      void (async () => {
+        const db = await this.open(this.dbName);
+        const tx = db.transaction([ENTRY_STORE], "readonly");
+        const onError = (ev: Event) => {
+          const req = ev.target as IDBRequest;
+          db.close();
+          reject(new NotFoundError(this.name, fullPath, req.error || ev));
+        };
+        tx.onabort = onError;
+        tx.onerror = onError;
+        const objects: FileSystemObject[] = [];
+        tx.oncomplete = () => {
+          db.close();
+          resolve(objects);
+        };
 
-      let slashCount: number;
-      if (fullPath === DIR_SEPARATOR) {
-        slashCount = 1;
-      } else {
-        slashCount = countSlash(fullPath) + 1; // + 1 is the last slash for directory
-      }
-      const range = getRange(fullPath);
-      const request = tx.objectStore(ENTRY_STORE).openCursor(range);
-      request.onsuccess = (ev) => {
-        const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
-        if (cursor) {
-          const obj = cursor.value as FileSystemObject;
-
-          if (slashCount === countSlash(obj.fullPath)) {
-            objects.push(obj);
-          }
-
-          cursor.continue();
+        let slashCount: number;
+        if (fullPath === DIR_SEPARATOR) {
+          slashCount = 1;
+        } else {
+          slashCount = countSlash(fullPath) + 1; // + 1 is the last slash for directory
         }
-      };
-      request.onerror = onError;
+        const range = getRange(fullPath);
+        const request = tx.objectStore(ENTRY_STORE).openCursor(range);
+        request.onsuccess = (ev) => {
+          const cursor = <IDBCursorWithValue>(<IDBRequest>ev.target).result;
+          if (cursor) {
+            const obj = cursor.value as FileSystemObject;
+
+            if (slashCount === countSlash(obj.fullPath)) {
+              objects.push(obj);
+            }
+
+            cursor.continue();
+          }
+        };
+        request.onerror = onError;
+      })();
     });
   }
 
@@ -129,51 +131,56 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public doPutObjectIDB(obj: FileSystemObject) {
-    // eslint-disable-next-line
-    return new Promise<void>(async (resolve, reject) => {
-      const db = await this.open(this.dbName);
-      const entryTx = db.transaction([ENTRY_STORE], "readwrite");
-      const onError = (ev: Event) => {
-        db.close();
-        reject(new InvalidModificationError(this.name, obj.fullPath, ev));
-      };
-      entryTx.onabort = onError;
-      entryTx.onerror = onError;
-      entryTx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      const entryReq = entryTx.objectStore(ENTRY_STORE).put(obj, obj.fullPath);
-      entryReq.onerror = onError;
+    return new Promise<void>((resolve, reject) => {
+      void (async () => {
+        const db = await this.open(this.dbName);
+        const entryTx = db.transaction([ENTRY_STORE], "readwrite");
+        const onError = (ev: Event) => {
+          db.close();
+          reject(new InvalidModificationError(this.name, obj.fullPath, ev));
+        };
+        entryTx.onabort = onError;
+        entryTx.onerror = onError;
+        entryTx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        const entryReq = entryTx
+          .objectStore(ENTRY_STORE)
+          .put(obj, obj.fullPath);
+        entryReq.onerror = onError;
+      })();
     });
   }
 
   public doReadContent(
     fullPath: string
   ): Promise<Blob | BufferSource | string> {
-    // eslint-disable-next-line
-    return new Promise<any>(async (resolve, reject) => {
-      const db = await this.open(this.dbName);
-      const onError = (ev: Event) => {
-        const req = ev.target as IDBRequest;
-        db.close();
-        reject(new NotFoundError(this.name, fullPath, req.error || ev));
-      };
-      const tx = db.transaction([CONTENT_STORE], "readonly");
-      const range = IDBKeyRange.only(fullPath);
-      tx.onabort = onError;
-      tx.onerror = onError;
-      const request = tx.objectStore(CONTENT_STORE).get(range);
-      request.onerror = onError;
-      const name = this.name;
-      tx.oncomplete = () => {
-        db.close();
-        if (request.result != null) {
-          resolve(request.result);
-        } else {
-          reject(new NotFoundError(name, fullPath));
-        }
-      };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return new Promise<any>((resolve, reject) => {
+      void (async () => {
+        const db = await this.open(this.dbName);
+        const onError = (ev: Event) => {
+          const req = ev.target as IDBRequest;
+          db.close();
+          reject(new NotFoundError(this.name, fullPath, req.error || ev));
+        };
+        const tx = db.transaction([CONTENT_STORE], "readonly");
+        const range = IDBKeyRange.only(fullPath);
+        tx.onabort = onError;
+        tx.onerror = onError;
+        const request = tx.objectStore(CONTENT_STORE).get(range);
+        request.onerror = onError;
+        const name = this.name;
+        tx.oncomplete = () => {
+          db.close();
+          if (request.result != null) {
+            resolve(request.result);
+          } else {
+            reject(new NotFoundError(name, fullPath));
+          }
+        };
+      })();
     });
   }
 
@@ -309,70 +316,73 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   private async doDeleteWithStore(storeName: string, fullPath: string) {
-    // eslint-disable-next-line
-    await new Promise<void>(async (resolve, reject) => {
-      const db = await this.open(this.dbName);
-      const entryTx = db.transaction([storeName], "readwrite");
-      const onError = (ev: Event) => {
-        const req = ev.target as IDBRequest;
-        db.close();
-        reject(
-          `doDeleteWithStore failure (${
-            req.error || ev // eslint-disable-line
-          }): ${fullPath} of ${storeName}`
-        );
-      };
-      entryTx.onabort = onError;
-      entryTx.onerror = onError;
-      entryTx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      let range = IDBKeyRange.only(fullPath); // eslint-disable-line
-      const request = entryTx.objectStore(storeName).delete(range);
-      request.onerror = onError;
+    await new Promise<void>((resolve, reject) => {
+      void (async () => {
+        const db = await this.open(this.dbName);
+        const entryTx = db.transaction([storeName], "readwrite");
+        const onError = (ev: Event) => {
+          const req = ev.target as IDBRequest;
+          db.close();
+          reject(
+            `doDeleteWithStore failure (${
+              req.error || ev // eslint-disable-line
+            }): ${fullPath} of ${storeName}`
+          );
+        };
+        entryTx.onabort = onError;
+        entryTx.onerror = onError;
+        entryTx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        let range = IDBKeyRange.only(fullPath); // eslint-disable-line
+        const request = entryTx.objectStore(storeName).delete(range);
+        request.onerror = onError;
+      })();
     });
   }
 
   private doWriteContentToIdb(fullPath: string, content: any) {
-    // eslint-disable-next-line
-    return new Promise<void>(async (resolve, reject) => {
-      const db = await this.open(this.dbName);
-      const contentTx = db.transaction([CONTENT_STORE], "readwrite");
-      const onError = (ev: Event) => {
-        db.close();
-        reject(new InvalidModificationError(this.name, fullPath, ev));
-      };
-      contentTx.onabort = onError;
-      contentTx.onerror = onError;
-      contentTx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      const contentReq = contentTx
-        .objectStore(CONTENT_STORE)
-        .put(content, fullPath);
-      contentReq.onerror = onError;
+    return new Promise<void>((resolve, reject) => {
+      void (async () => {
+        const db = await this.open(this.dbName);
+        const contentTx = db.transaction([CONTENT_STORE], "readwrite");
+        const onError = (ev: Event) => {
+          db.close();
+          reject(new InvalidModificationError(this.name, fullPath, ev));
+        };
+        contentTx.onabort = onError;
+        contentTx.onerror = onError;
+        contentTx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        const contentReq = contentTx
+          .objectStore(CONTENT_STORE)
+          .put(content, fullPath);
+        contentReq.onerror = onError;
+      })();
     });
   }
 
   private drop() {
-    // eslint-disable-next-line
-    return new Promise<void>(async (resolve) => {
-      const dbName = this.dbName;
-      const db = await this.open(dbName);
-      const onError = (ev: Event) => {
-        db.close();
-        console.debug(ev); // Not Found
-        resolve();
-      };
-      const request = indexedDB.deleteDatabase(dbName);
-      request.onblocked = onError;
-      request.onerror = onError;
-      request.onsuccess = () => {
-        db.close();
-        resolve();
-      };
+    return new Promise<void>((resolve) => {
+      void (async () => {
+        const dbName = this.dbName;
+        const db = await this.open(dbName);
+        const onError = (ev: Event) => {
+          db.close();
+          console.debug(ev); // Not Found
+          resolve();
+        };
+        const request = indexedDB.deleteDatabase(dbName);
+        request.onblocked = onError;
+        request.onerror = onError;
+        request.onsuccess = () => {
+          db.close();
+          resolve();
+        };
+      })();
     });
   }
 
