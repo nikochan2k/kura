@@ -162,24 +162,26 @@ export abstract class AbstractAccessor {
     content?: Blob | BufferSource | string
   ): Promise<FileSystemObject> {
     const fullPath = obj.fullPath;
+    let record: Record;
     try {
       this.debug("putObject", fullPath);
       if (content == null) {
         // Directory
         await this.makeDirectory(obj.fullPath);
+        record = { modified: Date.now() };
       } else {
         // File
         await this.doWriteContent(fullPath, content);
+        obj = await this.doGetObject(fullPath);
+        if (this.contentsCache) {
+          this.contentsCache.put(obj, content);
+        }
+        record = await this.createRecord(obj);
       }
     } catch (e) {
       await this.handleWriteError(e, fullPath, obj.size != null);
     }
 
-    obj = await this.doGetObject(fullPath);
-    if (this.contentsCache) {
-      this.contentsCache.put(obj, content);
-    }
-    const record = await this.createRecord(obj);
     if (record) {
       await this.saveRecord(fullPath, record);
     }
