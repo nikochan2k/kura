@@ -131,7 +131,7 @@ export abstract class AbstractAccessor {
     const indexPath = await this.createIndexPath(fullPath);
     await this.doSaveRecord(indexPath, record);
 
-    const indexObj = await this.doGetObject(indexPath);
+    const indexObj = await this.doGetObject(indexPath, true);
     this.recordCache[indexPath] = {
       record,
       lastModified: indexObj.lastModified,
@@ -172,7 +172,7 @@ export abstract class AbstractAccessor {
       } else {
         // File
         await this.doWriteContent(fullPath, content);
-        obj = await this.doGetObject(fullPath);
+        obj = await this.doGetObject(fullPath, true);
         if (this.contentsCache) {
           this.contentsCache.put(obj, content);
         }
@@ -256,7 +256,7 @@ export abstract class AbstractAccessor {
         record = await this.getRecord(fullPath);
       } catch (e) {
         try {
-          obj = await this.doGetObject(fullPath);
+          obj = await this.doGetObject(fullPath, isFile);
           await this.saveRecord(fullPath, {
             modified: obj.lastModified,
             size: obj.size,
@@ -272,7 +272,7 @@ export abstract class AbstractAccessor {
 
     if (!obj) {
       try {
-        obj = await this.doGetObject(fullPath);
+        obj = await this.doGetObject(fullPath, isFile);
       } catch (e) {
         await this.handleReadError(e, fullPath, isFile);
       }
@@ -338,7 +338,7 @@ export abstract class AbstractAccessor {
     const indexPath = await this.createIndexPath(fullPath);
     let indexObj: FileSystemObject;
     try {
-      indexObj = await this.doGetObject(indexPath);
+      indexObj = await this.doGetObject(indexPath, true);
     } catch (e) {
       if (e instanceof NotFoundError) {
         delete this.recordCache[fullPath];
@@ -370,7 +370,7 @@ export abstract class AbstractAccessor {
 
   public async makeDirectory(fullPath: string) {
     try {
-      await this.doGetObject(fullPath);
+      await this.doGetObject(fullPath, false);
     } catch (e) {
       if (e instanceof NotFoundError) {
         await this.doMakeDirectory(fullPath);
@@ -403,7 +403,7 @@ export abstract class AbstractAccessor {
     const fullPath = obj.fullPath;
     let create = false;
     try {
-      obj = await this.doGetObject(fullPath);
+      obj = await this.doGetObject(fullPath, content != null);
     } catch (e) {
       if (e instanceof NotFoundError) {
         create = true;
@@ -581,7 +581,7 @@ export abstract class AbstractAccessor {
       const indexPath = await this.createIndexPath(fullPath);
       await this.doSaveRecord(indexPath, record);
 
-      const indexObj = await this.doGetObject(indexPath);
+      const indexObj = await this.doGetObject(indexPath, true);
       this.recordCache[indexPath] = {
         record,
         lastModified: indexObj.lastModified,
@@ -594,7 +594,10 @@ export abstract class AbstractAccessor {
   }
 
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
-  public abstract doGetObject(fullPath: string): Promise<FileSystemObject>;
+  public abstract doGetObject(
+    fullPath: string,
+    isFile: boolean
+  ): Promise<FileSystemObject>;
   public abstract doGetObjects(dirPath: string): Promise<FileSystemObject[]>;
   public abstract doMakeDirectory(fullPath: string): Promise<void>;
   public abstract doReadContent(
