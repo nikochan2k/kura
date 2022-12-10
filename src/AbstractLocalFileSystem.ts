@@ -57,7 +57,7 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
     successCallback: EntryCallback,
     errorCallback?: ErrorCallback | undefined
   ): void {
-    throw new NotImplementedError("", url);
+    errorCallback(new NotImplementedError("", url));
   }
 
   protected abstract createAccessor(): Promise<AbstractAccessor>;
