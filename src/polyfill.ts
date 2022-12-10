@@ -1,3 +1,4 @@
+/* eslint-disable */
 const globalVar =
   typeof window !== "undefined"
     ? window
@@ -10,3 +11,4 @@ if (!globalVar.TextDecoder || !globalVar.TextEncoder) {
   globalVar.TextDecoder = TextEncodingShim.TextDecoder;
   globalVar.TextEncoder = TextEncodingShim.TextEncoder;
 }
+/* eslint-enable */

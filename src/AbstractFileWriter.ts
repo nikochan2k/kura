@@ -136,11 +136,12 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
     const accessor = this.fileEntry.params.accessor;
     accessor
       .putObject(obj, blob)
-      .then(async () => {
+      .then(() => {
         this.fileEntry.params.lastModified = obj.lastModified;
         this.fileEntry.params.size = obj.size;
         onsuccess();
         if (this.onwriteend) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const evt: ProgressEvent<EventTarget> = {
             loaded: this.position,
             total: this.length,
@@ -151,8 +152,9 @@ export abstract class AbstractFileWriter<T extends AbstractAccessor>
       })
       .catch((err) => {
         if (this.onerror) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const evt: ProgressEvent<EventTarget> = {
-            error: err,
+            error: err, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
             loaded: this.position,
             total: this.length,
             lengthComputable: true,

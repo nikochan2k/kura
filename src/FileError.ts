@@ -17,7 +17,7 @@ export abstract class AbstractFileError implements FileError {
       this.e = e.name + ", " + e.message;
       this.stack = e.stack;
     } else {
-      this.e = e;
+      this.e = e; // eslint-disable-line
       this.stack = new Error().stack;
     }
   }

@@ -80,7 +80,7 @@ export abstract class AbstractFileEntry<T extends AbstractAccessor>
     const accessor = this.params.accessor;
     accessor
       .readContent(this.params, "blob")
-      .then(async (blob) => {
+      .then((blob) => {
         if (!blob) {
           successCallback(null);
           return;

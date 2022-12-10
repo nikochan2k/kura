@@ -113,12 +113,14 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       options = {};
     }
     if (!successCallback) {
-      successCallback = () => {};
+      successCallback = () => {
+        // noop
+      };
     }
 
     this.params.accessor
       .getObject(fullPath, false)
-      .then(async (obj) => {
+      .then((obj) => {
         if (obj.size != null) {
           onError(
             new PathExistsError(
@@ -150,6 +152,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
                 successCallback(this.toDirectoryEntry(newObj));
               })
               .catch((err) => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 errorCallback(err);
               });
           } else {
@@ -173,12 +176,14 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
       options = {};
     }
     if (!successCallback) {
-      successCallback = () => {};
+      successCallback = () => {
+        // noop
+      };
     }
 
     this.params.accessor
       .getObject(fullPath, true)
-      .then(async (obj) => {
+      .then((obj) => {
         if (obj.size == null) {
           onError(
             new PathExistsError(
@@ -213,6 +218,7 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
                 successCallback(this.toFileEntry(newObj));
               })
               .catch((err) => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 errorCallback(err);
               });
           } else {

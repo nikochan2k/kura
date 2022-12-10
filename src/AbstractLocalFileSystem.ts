@@ -6,15 +6,15 @@ import {
   FileSystemCallback,
   LocalFileSystem,
 } from "./filesystem";
-import { INDEX_DIR_NAME, INDEX_DIR_PATH } from "./FileSystemConstants";
+import { INDEX_DIR_PATH } from "./FileSystemConstants";
 import { FileSystemOptions } from "./FileSystemOptions";
 import { onError } from "./FileSystemUtil";
 
 if (window.TEMPORARY == null) {
-  (window as any).TEMPORARY = 0;
+  (window as any).TEMPORARY = 0; // eslint-disable-line
 }
 if (window.PERSISTENT == null) {
-  (window as any).PERSISTENT = 1;
+  (window as any).PERSISTENT = 1; // eslint-disable-line
 }
 
 export abstract class AbstractLocalFileSystem implements LocalFileSystem {
@@ -39,7 +39,9 @@ export abstract class AbstractLocalFileSystem implements LocalFileSystem {
         if (accessor.options.index) {
           accessor
             .doMakeDirectory(INDEX_DIR_PATH)
-            .catch(() => {})
+            .catch(() => {
+              // noop
+            })
             .finally(() => successCallback(accessor.filesystem));
         } else {
           successCallback(accessor.filesystem);

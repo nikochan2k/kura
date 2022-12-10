@@ -37,6 +37,7 @@ export class XHR {
     this.configure(xhr);
     xhr.responseType = responseType;
     xhr.send();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await promise;
   }
 

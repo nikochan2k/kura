@@ -441,5 +441,6 @@ declare global {
     msIndexedDB: any;
     webkitRequestFileSystem: any;
   }
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface WorkerGlobalScope extends LocalFileSystem {}
 }

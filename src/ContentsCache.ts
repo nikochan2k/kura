@@ -23,7 +23,7 @@ export class ContentsCache {
     this.cache = {};
   }
 
-  public async get(fullPath: string) {
+  public get(fullPath: string) {
     const entry = this.cache[fullPath];
     if (!entry) {
       return null;

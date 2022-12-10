@@ -89,6 +89,7 @@ interface FileSaver extends EventTarget {
   onwriteend: (event: ProgressEvent) => void;
 }
 
+// eslint-disable-next-line no-var
 declare var FileSaver: {
   /**
    * When the FileSaver constructor is called, the user agent must return a new FileSaver object with readyState set to INIT.

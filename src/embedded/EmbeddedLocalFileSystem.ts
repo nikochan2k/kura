@@ -21,9 +21,11 @@ export class EmbeddedLocalFileSystem implements LocalFileSystem {
   ) => void;
 
   constructor() {
+    /* eslint-disable */
     this.requestFileSystem =
       window.requestFileSystem || window.webkitRequestFileSystem;
     this.resolveLocalFileSystemURL = window.resolveLocalFileSystemURL;
+    /* eslint-enable */
     this.TEMPORARY = window.TEMPORARY;
     this.PERSISTENT = window.PERSISTENT;
   }

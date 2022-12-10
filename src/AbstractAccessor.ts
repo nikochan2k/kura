@@ -139,8 +139,9 @@ export abstract class AbstractAccessor {
   }
 
   public async deleteRecursively(fullPath: string) {
+    let children: FileSystemObject[];
     try {
-      var children = await this.doGetObjects(fullPath);
+      children = await this.doGetObjects(fullPath);
     } catch (e) {
       await this.handleReadError(e, fullPath, false);
     }
@@ -220,7 +221,8 @@ export abstract class AbstractAccessor {
       return fileNameIndex;
     }
 
-    let indexDir = INDEX_DIR_PATH + (dirPath === DIR_SEPARATOR ? "" : dirPath);
+    const indexDir =
+      INDEX_DIR_PATH + (dirPath === DIR_SEPARATOR ? "" : dirPath);
     const objects = await this.doGetObjects(indexDir);
 
     if (!dirPath.endsWith("/")) {
@@ -293,7 +295,7 @@ export abstract class AbstractAccessor {
   public async getObjects(dirPath: string) {
     try {
       const index = this.options.index;
-      let objects = await this.doGetObjects(dirPath);
+      const objects = await this.doGetObjects(dirPath);
 
       if (index) {
         const newObjects: FileSystemObject[] = [];
@@ -365,11 +367,11 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  public async getURL(
-    fullPath: string,
-    method?: "GET" | "POST" | "PUT" | "DELETE"
+  public getURL(
+    _fullPath: string,
+    _method?: "GET" | "POST" | "PUT" | "DELETE"
   ): Promise<string> {
-    return null;
+    throw new Error("Not implemented");
   }
 
   public async makeDirectory(fullPath: string) {
@@ -471,19 +473,21 @@ export abstract class AbstractAccessor {
     type?: DataType
   ): Promise<Blob | BufferSource | string> {
     const fullPath = obj.fullPath;
+    let content: string | Blob | BufferSource;
     if (this.contentsCache) {
-      var content = await this.contentsCache.get(fullPath);
+      content = this.contentsCache.get(fullPath);
     }
+    let read = false;
     if (!content) {
       try {
         content = await this.doReadContent(fullPath);
       } catch (e) {
         await this.handleReadError(e, fullPath, true);
       }
-      var read = true;
+      read = true;
     }
     if (type === "blob") {
-      content = await toBlob(content);
+      content = toBlob(content);
     } else if (type === "buffer") {
       content = await toBuffer(content);
     } else if (type === "arraybuffer") {
@@ -531,7 +535,9 @@ export abstract class AbstractAccessor {
           throw new InvalidModificationError(
             this.name,
             fullPath,
-            `directory is not empty - ${objects.map((obj) => obj.fullPath)}`
+            `directory is not empty - ${objects
+              .map((obj) => obj.fullPath)
+              .toString()}`
           );
         }
       } catch (e) {

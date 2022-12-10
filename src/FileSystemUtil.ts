@@ -10,7 +10,7 @@ import {
 } from "./FileSystemConstants";
 import { FileSystemObject } from "./FileSystemObject";
 
-const LAST_PATH_PART = /\/([^\/]+)\/?$/;
+const LAST_PATH_PART = /\/([^/]+)\/?$/;
 
 export function getParentPath(fullPath: string) {
   const parentPath = fullPath.replace(LAST_PATH_PART, "");
@@ -206,6 +206,7 @@ export function getTextSize(text: string) {
 }
 
 export function isIllegalFileName(name: string) {
+  // eslint-disable-next-line no-control-regex
   return /[\x00-\x1f\x7f-\x9f\\/:*?"<>|]/.test(name);
 }
 
@@ -232,6 +233,7 @@ export function isIllegalObject(obj: FileSystemObject, index: boolean) {
 
 export function onError(err: any, errorCallback?: ErrorCallback) {
   if (errorCallback) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     errorCallback(err);
   } else {
     console.error(err);

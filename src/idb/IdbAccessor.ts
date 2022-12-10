@@ -24,6 +24,7 @@ import { countSlash, getRange } from "./IdbUtil";
 const ENTRY_STORE = "entries";
 const CONTENT_STORE = "contents";
 
+// eslint-disable-next-line
 const indexedDB: IDBFactory =
   window.indexedDB || window.mozIndexedDB || window.msIndexedDB;
 
@@ -55,6 +56,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public doGetObject(fullPath: string) {
+    // eslint-disable-next-line
     return new Promise<FileSystemObject>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const tx = db.transaction([ENTRY_STORE], "readonly");
@@ -70,7 +72,7 @@ export class IdbAccessor extends AbstractAccessor {
       const onSuccess = () => {
         db.close();
         if (request.result != null) {
-          resolve(request.result);
+          resolve(request.result); // eslint-disable-line
         } else {
           reject(new NotFoundError(this.name, fullPath));
         }
@@ -81,6 +83,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public doGetObjects(fullPath: string) {
+    // eslint-disable-next-line
     return new Promise<FileSystemObject[]>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const tx = db.transaction([ENTRY_STORE], "readonly");
@@ -126,6 +129,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   public doPutObjectIDB(obj: FileSystemObject) {
+    // eslint-disable-next-line
     return new Promise<void>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const entryTx = db.transaction([ENTRY_STORE], "readwrite");
@@ -147,6 +151,7 @@ export class IdbAccessor extends AbstractAccessor {
   public doReadContent(
     fullPath: string
   ): Promise<Blob | BufferSource | string> {
+    // eslint-disable-next-line
     return new Promise<any>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const onError = (ev: Event) => {
@@ -217,13 +222,14 @@ export class IdbAccessor extends AbstractAccessor {
         const req = ev.target as IDBRequest;
         const db = req.result as IDBDatabase;
         db?.close();
-        reject(`open failure (${req.error || ev}): ${dbName}`);
+        reject(`open failure (${req.error || ev}): ${dbName}`); // eslint-disable-line
       };
       const request = indexedDB.open(dbName.replace(":", "_"));
       request.onerror = onError;
       request.onblocked = onError;
       request.onupgradeneeded = (ev) => {
         const request = ev.target as IDBRequest;
+        /* eslint-disable */
         const db = request.result;
         if (!db.objectStoreNames.contains(ENTRY_STORE)) {
           db.createObjectStore(ENTRY_STORE);
@@ -231,10 +237,11 @@ export class IdbAccessor extends AbstractAccessor {
         if (!db.objectStoreNames.contains(CONTENT_STORE)) {
           db.createObjectStore(CONTENT_STORE);
         }
+        /* eslint-enable */
       };
       request.onsuccess = (e) => {
-        const db = (e.target as IDBRequest).result;
-        resolve(db);
+        const db = (e.target as IDBRequest).result; // eslint-disable-line
+        resolve(db); // eslint-disable-line
       };
     });
   }
@@ -264,7 +271,7 @@ export class IdbAccessor extends AbstractAccessor {
     if (IdbAccessor.SUPPORTS_ARRAY_BUFFER) {
       content = ab;
     } else if (IdbAccessor.SUPPORTS_BLOB) {
-      content = await toBlob(ab);
+      content = toBlob(ab); // eslint-disable-line
     } else {
       content = await toBase64(ab);
     }
@@ -302,6 +309,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   private async doDeleteWithStore(storeName: string, fullPath: string) {
+    // eslint-disable-next-line
     await new Promise<void>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const entryTx = db.transaction([storeName], "readwrite");
@@ -310,7 +318,7 @@ export class IdbAccessor extends AbstractAccessor {
         db.close();
         reject(
           `doDeleteWithStore failure (${
-            req.error || ev
+            req.error || ev // eslint-disable-line
           }): ${fullPath} of ${storeName}`
         );
       };
@@ -320,13 +328,14 @@ export class IdbAccessor extends AbstractAccessor {
         db.close();
         resolve();
       };
-      let range = IDBKeyRange.only(fullPath);
+      let range = IDBKeyRange.only(fullPath); // eslint-disable-line
       const request = entryTx.objectStore(storeName).delete(range);
       request.onerror = onError;
     });
   }
 
   private doWriteContentToIdb(fullPath: string, content: any) {
+    // eslint-disable-next-line
     return new Promise<void>(async (resolve, reject) => {
       const db = await this.open(this.dbName);
       const contentTx = db.transaction([CONTENT_STORE], "readwrite");
@@ -348,6 +357,7 @@ export class IdbAccessor extends AbstractAccessor {
   }
 
   private drop() {
+    // eslint-disable-next-line
     return new Promise<void>(async (resolve) => {
       const dbName = this.dbName;
       const db = await this.open(dbName);
