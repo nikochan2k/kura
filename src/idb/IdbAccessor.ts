@@ -11,7 +11,7 @@ import {
   InvalidModificationError,
   NotFoundError,
 } from "../FileError";
-import { DIR_SEPARATOR, INDEX_FILE_NAME } from "../FileSystemConstants";
+import { DIR_SEPARATOR } from "../FileSystemConstants";
 import { Record } from "../FileSystemIndex";
 import { FileSystemObject } from "../FileSystemObject";
 import { FileSystemOptions } from "../FileSystemOptions";
@@ -264,8 +264,8 @@ export class IdbAccessor extends AbstractAccessor {
 
     await this.doPutObjectIDB({
       fullPath: indexPath,
-      name: INDEX_FILE_NAME,
-      lastModified: Date.now(),
+      name: getName(indexPath),
+      lastModified: record.modified,
       size: getSize(u8),
     });
   }
