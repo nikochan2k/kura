@@ -71,13 +71,13 @@ export abstract class AbstractAccessor {
 
   public async createRecord(obj: FileSystemObject) {
     const fullPath = obj.fullPath;
-    const lastModified = obj.lastModified;
+    const lastModified = obj.lastModified ?? Date.now();
     const size = obj.size;
     let record: Record;
     try {
       record = await this.getRecord(fullPath);
       if (record.modified === lastModified) {
-        return record;
+        return null;
       }
       record.size = size;
       record.modified = lastModified;
@@ -185,7 +185,9 @@ export abstract class AbstractAccessor {
         }
       }
       const record = await this.createRecord(obj);
-      await this.saveRecord(fullPath, record);
+      if (record) {
+        await this.saveRecord(fullPath, record);
+      }
       return obj;
     } catch (e) {
       await this.handleWriteError(e, fullPath);
@@ -301,7 +303,9 @@ export abstract class AbstractAccessor {
             } catch (e) {
               if (e instanceof NotFoundError) {
                 const record = await this.createRecord(obj);
-                await this.saveRecord(obj.fullPath, record);
+                if (record) {
+                  await this.saveRecord(obj.fullPath, record);
+                }
               } else {
                 console.warn("getObjects", obj, e);
               }
