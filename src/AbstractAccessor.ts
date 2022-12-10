@@ -24,12 +24,7 @@ import {
 import { FileNameIndex, Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import {
-  getName,
-  getParentPath,
-  isIllegalObject,
-  onError,
-} from "./FileSystemUtil";
+import { getName, getParentPath, isIllegalObject } from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToUint8Array, toText } from "./TextConverter";
 
@@ -101,7 +96,7 @@ export abstract class AbstractAccessor {
       try {
         await this.doDelete(fullPath, isFile);
       } catch (e) {
-        await this.handleWriteError(e, fullPath);
+        await this.handleWriteError(e, fullPath, isFile);
       }
     }
 
@@ -147,7 +142,7 @@ export abstract class AbstractAccessor {
     try {
       var children = await this.doGetObjects(fullPath);
     } catch (e) {
-      await this.handleReadError(e, fullPath);
+      await this.handleReadError(e, fullPath, false);
     }
 
     for (const child of children) {
@@ -175,23 +170,20 @@ export abstract class AbstractAccessor {
       } else {
         // File
         await this.doWriteContent(fullPath, content);
-        try {
-          obj = await this.doGetObject(fullPath);
-        } catch (e) {
-          console.warn("putObject", fullPath, e);
-        }
-        if (this.contentsCache) {
-          this.contentsCache.put(obj, content);
-        }
       }
-      const record = await this.createRecord(obj);
-      if (record) {
-        await this.saveRecord(fullPath, record);
-      }
-      return obj;
     } catch (e) {
-      await this.handleWriteError(e, fullPath);
+      await this.handleWriteError(e, fullPath, obj.size != null);
     }
+
+    obj = await this.doGetObject(fullPath);
+    if (this.contentsCache) {
+      this.contentsCache.put(obj, content);
+    }
+    const record = await this.createRecord(obj);
+    if (record) {
+      await this.saveRecord(fullPath, record);
+    }
+    return obj;
   }
 
   public async doWriteContent(
@@ -211,7 +203,7 @@ export abstract class AbstractAccessor {
         await this.doWriteArrayBuffer(fullPath, content);
       }
     } catch (e) {
-      await this.handleWriteError(e, fullPath);
+      await this.handleWriteError(e, fullPath, true);
     }
   }
 
@@ -252,26 +244,36 @@ export abstract class AbstractAccessor {
     return fileNameIndex;
   }
 
-  public async getObject(fullPath: string, _isFile: boolean) {
+  public async getObject(fullPath: string, isFile: boolean) {
     this.debug("getObject", fullPath);
 
-    let record: Record;
+    let obj: FileSystemObject;
     if (this.options.index) {
+      let record: Record;
       try {
         record = await this.getRecord(fullPath);
-        if (record.deleted != null) {
-          throw new NotFoundError(this.name, fullPath, "getObject");
-        }
       } catch (e) {
-        await this.handleReadError(e, fullPath);
+        try {
+          obj = await this.doGetObject(fullPath);
+          await this.saveRecord(fullPath, {
+            modified: obj.lastModified,
+            size: obj.size,
+          });
+        } catch (e) {
+          await this.handleReadError(e, fullPath, isFile);
+        }
+      }
+      if (record.deleted != null) {
+        throw new NotFoundError(this.name, fullPath, "getObject");
       }
     }
 
-    let obj: FileSystemObject;
-    try {
-      obj = await this.doGetObject(fullPath);
-    } catch (e) {
-      await this.handleReadError(e, fullPath);
+    if (!obj) {
+      try {
+        obj = await this.doGetObject(fullPath);
+      } catch (e) {
+        await this.handleReadError(e, fullPath, isFile);
+      }
     }
 
     if (!(await this.beforeHead(obj))) {
@@ -326,7 +328,7 @@ export abstract class AbstractAccessor {
         return objects;
       }
     } catch (e) {
-      await this.handleReadError(e, dirPath);
+      await this.handleReadError(e, dirPath, false);
     }
   }
 
@@ -470,7 +472,7 @@ export abstract class AbstractAccessor {
       try {
         content = await this.doReadContent(fullPath);
       } catch (e) {
-        await this.handleReadError(e, fullPath);
+        await this.handleReadError(e, fullPath, true);
       }
       var read = true;
     }
@@ -506,7 +508,7 @@ export abstract class AbstractAccessor {
     }
 
     const index = this.options.index;
-    if (index && fullPath.startsWith(INDEX_DIR_PATH)) {
+    if (index && fullPath.startsWith(INDEX_DIR_PATH + "/")) {
       throw new InvalidModificationError(
         this.name,
         fullPath,
@@ -528,10 +530,10 @@ export abstract class AbstractAccessor {
         }
       } catch (e) {
         if (e instanceof NotFoundError) {
-          await this.handleNotFoundError(fullPath);
+          await this.handleNotFoundError(fullPath, false);
           return;
         }
-        await this.handleReadError(e, fullPath);
+        await this.handleReadError(e, fullPath, false);
       }
     }
 
@@ -550,10 +552,10 @@ export abstract class AbstractAccessor {
       children = await this.getObjects(fullPath);
     } catch (e) {
       if (e instanceof NotFoundError) {
-        await this.handleNotFoundError(fullPath);
+        await this.handleNotFoundError(fullPath, false);
         return;
       }
-      this.handleReadError(e, fullPath);
+      await this.handleReadError(e, fullPath, false);
     }
 
     for (const child of children) {
@@ -585,7 +587,7 @@ export abstract class AbstractAccessor {
 
       return record;
     } catch (e) {
-      await this.handleWriteError(e, fullPath);
+      await this.handleWriteError(e, fullPath, true);
     }
   }
 
@@ -622,6 +624,37 @@ export abstract class AbstractAccessor {
   ): Promise<void> {
     const buffer = await toArrayBuffer(view);
     await this.doWriteArrayBuffer(fullPath, buffer);
+  }
+
+  protected async handleNotFoundError(fullPath: string, isFile: boolean) {
+    if (fullPath.startsWith(INDEX_DIR_PATH + "/")) {
+      return;
+    }
+
+    await this.deleteRecord(fullPath);
+    if (isFile) {
+      this.clearContentsCache(fullPath);
+    }
+  }
+
+  protected async handleReadError(e: any, fullPath: string, isFile: boolean) {
+    if (e instanceof NotFoundError) {
+      await this.handleNotFoundError(fullPath, isFile);
+      throw e;
+    } else if (e instanceof AbstractFileError) {
+      throw e;
+    }
+    throw new NotReadableError(this.name, fullPath, e);
+  }
+
+  protected async handleWriteError(e: any, fullPath: string, isFile: boolean) {
+    if (e instanceof NotFoundError) {
+      await this.handleNotFoundError(fullPath, isFile);
+      throw e;
+    } else if (e instanceof AbstractFileError) {
+      throw e;
+    }
+    throw new InvalidModificationError(this.name, fullPath, e);
   }
 
   protected initialize(options: FileSystemOptions) {
@@ -785,30 +818,5 @@ export abstract class AbstractAccessor {
         "beforePut"
       );
     }
-  }
-
-  private async handleNotFoundError(fullPath: string) {
-    await this.deleteRecord(fullPath);
-    this.clearContentsCache(fullPath);
-  }
-
-  private async handleReadError(e: any, fullPath: string) {
-    if (e instanceof NotFoundError) {
-      await this.handleNotFoundError(fullPath);
-      throw e;
-    } else if (e instanceof AbstractFileError) {
-      throw e;
-    }
-    throw new NotReadableError(this.name, fullPath, e);
-  }
-
-  private async handleWriteError(e: any, fullPath: string) {
-    if (e instanceof NotFoundError) {
-      await this.handleNotFoundError(fullPath);
-      throw e;
-    } else if (e instanceof AbstractFileError) {
-      throw e;
-    }
-    throw new InvalidModificationError(this.name, fullPath, e);
   }
 }
