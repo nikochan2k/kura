@@ -255,17 +255,21 @@ export abstract class AbstractAccessor {
       try {
         record = await this.getRecord(fullPath);
       } catch (e) {
-        try {
-          obj = await this.doGetObject(fullPath, isFile);
+        if (e instanceof NotFoundError) {
+          try {
+            obj = await this.doGetObject(fullPath, isFile);
+          } catch (e) {
+            await this.handleReadError(e, fullPath, isFile);
+          }
           await this.saveRecord(fullPath, {
             modified: obj.lastModified,
             size: obj.size,
           });
-        } catch (e) {
-          await this.handleReadError(e, fullPath, isFile);
+        } else {
+          throw e;
         }
       }
-      if (record.deleted != null) {
+      if (record?.deleted != null) {
         throw new NotFoundError(this.name, fullPath, "getObject");
       }
     }
