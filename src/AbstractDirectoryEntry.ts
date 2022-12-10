@@ -153,10 +153,10 @@ export abstract class AbstractDirectoryEntry<T extends AbstractAccessor>
               })
               .catch((err) => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                errorCallback(err);
+                onError(err, errorCallback);
               });
           } else {
-            errorCallback(err);
+            onError(err, errorCallback);
           }
         } else {
           onError(err, errorCallback);

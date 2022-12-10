@@ -70,9 +70,10 @@ export abstract class AbstractEntry<T extends AbstractAccessor>
       .getURL(this.fullPath, method)
       .then((url) => urlCallback(url))
       .catch((e) => {
-        if (errorCallback) {
-          new NotReadableError(this.name, this.fullPath, e);
-        }
+        onError(
+          new NotReadableError(this.name, this.fullPath, e),
+          errorCallback
+        );
       });
   }
 
