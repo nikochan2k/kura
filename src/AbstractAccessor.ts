@@ -240,7 +240,15 @@ export abstract class AbstractAccessor {
 
     const indexDir =
       INDEX_DIR_PATH + (dirPath === DIR_SEPARATOR ? "" : dirPath);
-    const objects = await this.doGetObjects(indexDir);
+    let objects: FileSystemObject[];
+    try {
+      objects = await this.doGetObjects(indexDir);
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        return fileNameIndex;
+      }
+      await this.handleReadError(e, indexDir, false);
+    }
 
     if (!dirPath.endsWith("/")) {
       dirPath += "/";
