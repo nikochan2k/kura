@@ -160,7 +160,11 @@ export abstract class AbstractAccessor {
         await this.delete(child.fullPath, true, truncate);
       }
     }
-    if (fullPath !== DIR_SEPARATOR) {
+
+    if (
+      fullPath !== DIR_SEPARATOR ||
+      !(this.options?.index && fullPath === INDEX_DIR_PATH)
+    ) {
       await this.delete(fullPath, false, truncate);
     }
   }
