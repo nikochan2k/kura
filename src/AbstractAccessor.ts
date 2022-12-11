@@ -93,10 +93,21 @@ export abstract class AbstractAccessor {
   }
 
   public async delete(fullPath: string, isFile: boolean, truncate: boolean) {
-    if (truncate) {
-      await this.truncateRecord(fullPath);
-    } else {
-      await this.deleteRecord(fullPath, isFile);
+    if (fullPath.startsWith(INDEX_DIR_PATH + "/")) {
+      try {
+        await this.doDelete(fullPath, isFile);
+      } catch (e) {
+        await this.handleWriteError(e, fullPath, isFile);
+      }
+      return;
+    }
+
+    if (this.options.index) {
+      if (truncate) {
+        await this.truncateRecord(fullPath);
+      } else {
+        await this.deleteRecord(fullPath, isFile);
+      }
     }
 
     if (!this.options.indexOptions?.logicalDelete) {
