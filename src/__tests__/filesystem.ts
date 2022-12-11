@@ -8,19 +8,6 @@ import { FileSystemAsync } from "../FileSystemAsync";
 import { LocalFileSystemAsync } from "../LocalFileSystemAsync";
 import { toText } from "../TextConverter";
 
-const globalVar =
-  typeof window !== "undefined"
-    ? window
-    : typeof global !== "undefined"
-    ? global
-    : Function("return this;")();
-
-if (!globalVar.setTimeout || !globalVar.clearTimeout) {
-  const timers = require("timers");
-  globalVar.clearTimeout = timers.clearTimeout;
-  globalVar.setTimeout = timers.setTimeout;
-}
-
 export function testAll(
   factory: LocalFileSystemAsync,
   prepare?: () => Promise<void>,
