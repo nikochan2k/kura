@@ -388,6 +388,7 @@ export abstract class AbstractAccessor {
 
   public async purge() {
     await this.deleteRecursively(DIR_SEPARATOR);
+    this.recordCache = {};
     if (this.contentsCache) {
       this.contentsCache.clear();
     }
