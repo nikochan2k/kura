@@ -24,13 +24,17 @@ import {
 import { FileNameIndex, Record, RecordCache } from "./FileSystemIndex";
 import { FileSystemObject } from "./FileSystemObject";
 import { FileSystemOptions } from "./FileSystemOptions";
-import { getName, getParentPath, isIllegalObject } from "./FileSystemUtil";
+import {
+  getName,
+  getParentPath,
+  isIllegalObject,
+  onError,
+} from "./FileSystemUtil";
 import { objectToText, textToObject } from "./ObjectUtil";
 import { textToUint8Array, toText } from "./TextConverter";
 
 export abstract class AbstractAccessor {
   protected contentsCache: ContentsCache;
-  protected indexDirCreated = false;
   protected recordCache: RecordCache = {};
 
   public abstract readonly filesystem: FileSystem;
@@ -47,11 +51,7 @@ export abstract class AbstractAccessor {
     this.contentsCache.remove(fullPath);
   }
 
-  public async createIndexPath(fullPath: string) {
-    if (!this.indexDirCreated) {
-      await this.makeDirectory(INDEX_DIR_PATH);
-      this.indexDirCreated = true;
-    }
+  public async createIndexPath(fullPath: string, createDirectory: boolean) {
     const name = getName(fullPath);
     const parentPath = getParentPath(fullPath);
     const indexName = INDEX_PREFIX + name;
@@ -59,8 +59,11 @@ export abstract class AbstractAccessor {
     if (!indexDir.endsWith(DIR_SEPARATOR)) {
       indexDir += DIR_SEPARATOR;
     }
-    await this.makeDirectory(indexDir);
     const indexPath = indexDir + indexName;
+    if (!createDirectory) {
+      return indexPath;
+    }
+    await this.makeDirectory(indexDir);
     return indexPath;
   }
 
@@ -89,8 +92,12 @@ export abstract class AbstractAccessor {
     return record;
   }
 
-  public async delete(fullPath: string, isFile: boolean) {
-    await this.deleteRecord(fullPath, isFile);
+  public async delete(fullPath: string, isFile: boolean, truncate: boolean) {
+    if (truncate) {
+      await this.truncateRecord(fullPath);
+    } else {
+      await this.deleteRecord(fullPath, isFile);
+    }
 
     if (!this.options.indexOptions?.logicalDelete) {
       try {
@@ -128,7 +135,7 @@ export abstract class AbstractAccessor {
       record.deleted = Date.now();
     }
 
-    const indexPath = await this.createIndexPath(fullPath);
+    const indexPath = await this.createIndexPath(fullPath, false);
     await this.doSaveRecord(indexPath, record);
 
     const indexObj = await this.doGetObject(indexPath, true);
@@ -138,7 +145,7 @@ export abstract class AbstractAccessor {
     };
   }
 
-  public async deleteRecursively(fullPath: string) {
+  public async deleteRecursively(fullPath: string, truncate: boolean) {
     let children: FileSystemObject[];
     try {
       children = await this.doGetObjects(fullPath);
@@ -148,13 +155,13 @@ export abstract class AbstractAccessor {
 
     for (const child of children) {
       if (child.size == null) {
-        await this.deleteRecursively(child.fullPath);
+        await this.deleteRecursively(child.fullPath, truncate);
       } else {
-        await this.delete(child.fullPath, true);
+        await this.delete(child.fullPath, true, truncate);
       }
     }
     if (fullPath !== DIR_SEPARATOR) {
-      await this.delete(fullPath, false);
+      await this.delete(fullPath, false, truncate);
     }
   }
 
@@ -211,11 +218,6 @@ export abstract class AbstractAccessor {
   }
 
   public async getFileNameIndex(dirPath: string) {
-    if (!this.indexDirCreated) {
-      await this.makeDirectory(INDEX_DIR_PATH);
-      this.indexDirCreated = true;
-    }
-
     const fileNameIndex: FileNameIndex = {};
     if (dirPath === INDEX_DIR_PATH) {
       return fileNameIndex;
@@ -341,7 +343,7 @@ export abstract class AbstractAccessor {
   }
 
   public async getRecord(fullPath: string) {
-    const indexPath = await this.createIndexPath(fullPath);
+    const indexPath = await this.createIndexPath(fullPath, false);
     let indexObj: FileSystemObject;
     try {
       indexObj = await this.doGetObject(indexPath, true);
@@ -387,7 +389,7 @@ export abstract class AbstractAccessor {
   }
 
   public async purge() {
-    await this.deleteRecursively(DIR_SEPARATOR);
+    await this.deleteRecursively(DIR_SEPARATOR, true);
     this.recordCache = {};
     if (this.contentsCache) {
       this.contentsCache.clear();
@@ -553,7 +555,7 @@ export abstract class AbstractAccessor {
     this.debug("remove", fullPath);
     await this.beforeDelete(obj);
 
-    await this.delete(fullPath, isFile);
+    await this.delete(fullPath, isFile, false);
 
     this.afterDelete(obj);
   }
@@ -589,7 +591,7 @@ export abstract class AbstractAccessor {
     }
 
     try {
-      const indexPath = await this.createIndexPath(fullPath);
+      const indexPath = await this.createIndexPath(fullPath, true);
       await this.doSaveRecord(indexPath, record);
 
       const indexObj = await this.doGetObject(indexPath, true);
@@ -602,6 +604,23 @@ export abstract class AbstractAccessor {
     } catch (e) {
       await this.handleWriteError(e, fullPath, true);
     }
+  }
+
+  public async truncateRecord(fullPath: string) {
+    if (!this.options.index) {
+      return;
+    }
+    if (fullPath === INDEX_DIR_PATH) {
+      return;
+    }
+
+    const indexPath = await this.createIndexPath(fullPath, false);
+    try {
+      await this.doDelete(indexPath, true);
+    } catch (e) {
+      onError(e);
+    }
+    delete this.recordCache[indexPath];
   }
 
   public abstract doDelete(fullPath: string, isFile: boolean): Promise<void>;
